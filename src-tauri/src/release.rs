@@ -21,7 +21,7 @@ pub struct ReleasePreflight {
     pub update_channel: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductionLogEntry {
     timestamp: String,
