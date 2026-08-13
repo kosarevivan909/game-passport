@@ -30,7 +30,7 @@ export function InitialSetup({ mode, cloudState, refreshCloud, onContinue }: Pro
     if (mode === "demo") {
       const release = await getReleasePreflight().catch((error) => { logger.error("setup.preflight", "Initial Windows check failed", error); return null; });
       setPreflight(release);
-      const demoResult = { state: "unsupported" as const, message: "DEMO MODE — hardware verification was skipped.", details: [], retryable: false };
+      const demoResult = { state: "unsupported" as const, message: "ДЕМО-РЕЖИМ — проверка оборудования пропущена.", details: [], retryable: false };
       setDisplay(demoResult); setNvidia(demoResult); setMouse(demoResult);
       await refreshCloud(); setChecking(false); return;
     }
@@ -45,23 +45,23 @@ export function InitialSetup({ mode, cloudState, refreshCloud, onContinue }: Pro
   useEffect(() => { void run(); }, []);
 
   const items: CheckItem[] = [
-    { id: "windows", label: "Windows", detail: preflight ? preflight.windowsVersion : "Checking supported Windows version…", state: !preflight ? "checking" : preflight.windowsSupported ? "pass" : "warning", icon: ShieldCheck },
-    { id: "internet", label: "Internet", detail: navigator.onLine ? "Network connection is available." : "Offline. Cached profiles remain available when present.", state: navigator.onLine ? "pass" : "warning", icon: Cloud },
-    { id: "supabase", label: "Profile storage", detail: mode === "field-test" ? "Field Test build — profiles stay on this PC; real Windows adapters are enabled." : mode === "demo" ? "Demo mode — no cloud verification or hardware success is claimed." : cloudState === "connected" ? "Supabase is reachable." : cloudState === "offline" ? "Offline — sign-in and profile changes are unavailable." : cloudState === "checking" ? "Checking Supabase…" : "Supabase is not reachable right now.", state: mode === "field-test" ? "warning" : mode === "demo" || cloudState === "offline" || cloudState === "unavailable" ? "warning" : cloudState === "connected" ? "pass" : "checking", icon: Cloud },
-    { id: "steam", label: "Steam", detail: !preflight ? "Checking Steam…" : !preflight.steamInstalled ? "Steam was not found." : !preflight.steamUserAvailable ? "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2." : "Steam and its active user were detected.", state: !preflight ? "checking" : preflight.steamInstalled && preflight.steamUserAvailable ? "pass" : "warning", icon: Gamepad2 },
-    { id: "cs2", label: "Counter-Strike 2", detail: preflight?.cs2Installed ? "CS2 installation was found." : "CS2 installation was not found in Steam libraries.", state: !preflight ? "checking" : preflight.cs2Installed ? "pass" : "warning", icon: Gamepad2 },
-    { id: "pubg", label: "PUBG", detail: preflight?.pubgConfigAvailable ? "PUBG configuration was found." : "PUBG configuration will appear after the game has been launched once.", state: !preflight ? "checking" : preflight.pubgConfigAvailable ? "pass" : "warning", icon: Gamepad2 },
-    { id: "display", label: "Monitors", detail: display?.message ?? "Checking monitor configuration…", state: responseState(display?.state), icon: Monitor },
-    { id: "nvidia", label: "NVIDIA", detail: nvidia?.message ?? "Checking NVIDIA capability…", state: responseState(nvidia?.state), icon: Monitor },
-    { id: "mouse", label: "Mouse", detail: mouse?.message ?? "Checking physical mouse capability…", state: responseState(mouse?.state), icon: MousePointer2 }
+    { id: "windows", label: "Windows", detail: preflight ? preflight.windowsVersion : "Проверяем версию Windows…", state: !preflight ? "checking" : preflight.windowsSupported ? "pass" : "warning", icon: ShieldCheck },
+    { id: "internet", label: "Интернет", detail: navigator.onLine ? "Подключение к сети доступно." : "Нет сети. Ранее сохранённые профили останутся доступны.", state: navigator.onLine ? "pass" : "warning", icon: Cloud },
+    { id: "supabase", label: "Хранилище профилей", detail: mode === "field-test" ? "Полевая сборка — профили хранятся на этом ПК; реальные Windows-адаптеры включены." : mode === "demo" ? "Демо-режим — облако и оборудование не проверяются." : cloudState === "connected" ? "Облако доступно." : cloudState === "offline" ? "Нет сети — вход и изменение профилей недоступны." : cloudState === "checking" ? "Проверяем облако…" : "Облако сейчас недоступно.", state: mode === "field-test" ? "warning" : mode === "demo" || cloudState === "offline" || cloudState === "unavailable" ? "warning" : cloudState === "connected" ? "pass" : "checking", icon: Cloud },
+    { id: "steam", label: "Steam", detail: !preflight ? "Проверяем Steam…" : !preflight.steamInstalled ? "Steam не найден." : !preflight.steamUserAvailable ? "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2." : "Steam и активный пользователь найдены.", state: !preflight ? "checking" : preflight.steamInstalled && preflight.steamUserAvailable ? "pass" : "warning", icon: Gamepad2 },
+    { id: "cs2", label: "Counter-Strike 2", detail: preflight?.cs2Installed ? "Установка CS2 найдена." : "CS2 не найдена в библиотеках Steam.", state: !preflight ? "checking" : preflight.cs2Installed ? "pass" : "warning", icon: Gamepad2 },
+    { id: "pubg", label: "PUBG", detail: preflight?.pubgConfigAvailable ? "Настройки PUBG найдены." : "Настройки PUBG появятся после первого запуска игры.", state: !preflight ? "checking" : preflight.pubgConfigAvailable ? "pass" : "warning", icon: Gamepad2 },
+    { id: "display", label: "Мониторы", detail: display?.message ?? "Проверяем мониторы…", state: responseState(display?.state), icon: Monitor },
+    { id: "nvidia", label: "NVIDIA", detail: nvidia?.message ?? "Проверяем возможности NVIDIA…", state: responseState(nvidia?.state), icon: Monitor },
+    { id: "mouse", label: "Мышь", detail: mouse?.message ?? "Проверяем физическую мышь…", state: responseState(mouse?.state), icon: MousePointer2 }
   ];
 
   return <main className="content-view setup-view">
-    <div className="page-heading"><div><p className="eyebrow">INITIAL SETUP</p><h1>Let’s check this PC</h1><p>Warnings do not block Game Passport. They show what needs attention before a real capture or apply.</p></div><button className="button secondary" disabled={checking} onClick={() => void run()}><RefreshCw className={checking ? "spin" : ""} size={17} /> Повторить проверку</button></div>
-    {mode === "demo" && <div className="demo-notice prominent"><AlertTriangle size={18} /> DEMO MODE — local sample data only. Hardware and cloud checks are never treated as a successful transfer.</div>}
-    {mode === "field-test" && <div className="demo-notice prominent"><AlertTriangle size={18} /> FIELD TEST — profiles are local to this PC. Real Windows adapters and validation are enabled.</div>}
+    <div className="page-heading"><div><p className="eyebrow">ПЕРВИЧНАЯ НАСТРОЙКА</p><h1>Проверим этот компьютер</h1><p>Предупреждения не блокируют Game Passport. Они показывают, что нужно проверить перед сохранением или применением профиля.</p></div><button className="button secondary" disabled={checking} onClick={() => void run()}><RefreshCw className={checking ? "spin" : ""} size={17} /> Повторить проверку</button></div>
+    {mode === "demo" && <div className="demo-notice prominent"><AlertTriangle size={18} /> ДЕМО-РЕЖИМ — только локальные примеры. Оборудование и облако не проверяются.</div>}
+    {mode === "field-test" && <div className="demo-notice prominent"><AlertTriangle size={18} /> ПОЛЕВОЙ ТЕСТ — профили хранятся на этом ПК. Реальные Windows-адаптеры и проверка включены.</div>}
     <section className="setup-grid">{items.map((item) => <div className={`setup-item ${item.state}`} key={item.id}><span className="setup-icon"><item.icon size={20} /></span><div><strong>{item.label}</strong><small>{item.detail}</small></div><span className="setup-result">{item.state === "pass" ? <Check /> : item.state === "fail" ? <CircleX /> : item.state === "warning" ? <AlertTriangle /> : <RefreshCw className="spin" />}</span></div>)}</section>
-    <div className="setup-footer"><p>You can continue now and repeat every check later in Diagnostics.</p><button className="button primary" onClick={onContinue}>Continue to profiles <ChevronRight size={18} /></button></div>
+    <div className="setup-footer"><p>Можно продолжить сейчас и позднее повторить все проверки в разделе «Диагностика».</p><button className="button primary" onClick={onContinue}>Перейти к профилям <ChevronRight size={18} /></button></div>
   </main>;
 }
 

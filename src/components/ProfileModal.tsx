@@ -16,25 +16,25 @@ export function ProfileModal({ profile, onClose, onSave }: Props) {
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError("");
     try { await onSave(name, game); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save the profile."); setBusy(false); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось сохранить профиль."); setBusy(false); }
   }
 
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
-      <button className="icon-button modal-close" aria-label="Close" onClick={onClose}><X size={19} /></button>
-      <p className="eyebrow">{profile ? "EDIT PROFILE" : "NEW LOADOUT"}</p>
-      <h2 id="profile-title">{profile ? "Update your profile" : "Create a game profile"}</h2>
-      <p className="muted">Choose a clear name so you can find the right setup in seconds.</p>
+      <button className="icon-button modal-close" aria-label="Закрыть" onClick={onClose}><X size={19} /></button>
+      <p className="eyebrow">{profile ? "ИЗМЕНИТЬ ПРОФИЛЬ" : "НОВЫЙ НАБОР"}</p>
+      <h2 id="profile-title">{profile ? "Изменить профиль" : "Создать игровой профиль"}</h2>
+      <p className="muted">Выберите понятное имя, чтобы быстро найти нужные настройки.</p>
       <form onSubmit={submit}>
-        <label>Profile name<input autoFocus maxLength={40} value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. CS2 Competitive" required /></label>
-        <fieldset><legend>Game</legend><div className="game-picker">
+        <label>Название профиля<input autoFocus maxLength={40} value={name} onChange={(event) => setName(event.target.value)} placeholder="например, CS2 Соревновательный" required /></label>
+        <fieldset><legend>Игра</legend><div className="game-picker">
           {RELEASE_GAMES.map((id) => <button className={`game-choice ${game === id ? "selected" : ""}`} type="button" key={id} onClick={() => setGame(id)} style={{ "--game-accent": GAME_META[id].accent } as React.CSSProperties}>
             <span>{GAME_META[id].short}</span><small>{GAME_META[id].name}</small>
           </button>)}
         </div></fieldset>
-        <div className="info-box">{game === "cs2" ? "Save current settings captures real CS2, Display, supported NVIDIA and Mouse settings. Close CS2 and sign in to Steam first." : "Save current settings captures real portable PUBG, Display, supported NVIDIA and Mouse settings. Close PUBG first."}</div>
+        <div className="info-box">{game === "cs2" ? "Сохранение считывает реальные настройки CS2, экрана, NVIDIA и мыши. Сначала закройте CS2 и войдите в Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
         {error && <div className="form-error" role="alert">{error}</div>}
-        <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Cancel</button><button className="button primary" disabled={busy || !name.trim()}>{busy ? "Saving…" : profile ? "Save changes" : "Create profile"}</button></div>
+        <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Отмена</button><button className="button primary" disabled={busy || !name.trim()}>{busy ? "Сохраняем…" : profile ? "Сохранить изменения" : "Создать профиль"}</button></div>
       </form>
     </section>
   </div>;

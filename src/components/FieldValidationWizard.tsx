@@ -12,13 +12,13 @@ interface Props {
 }
 
 const LABELS: Record<FieldValidationEntry["stage"], { title: string; detail: string; software: boolean }> = {
-  capture: { title: "1 · Save current settings", detail: "Runs the real capture pipeline and profile sync.", software: true },
-  apply: { title: "2 · Apply saved settings", detail: "Runs real preflight, backups, writes and verification.", software: true },
-  gameplay: { title: "3 · Gameplay check", detail: "Launch the game and confirm sensitivity, binds, HUD/audio or PUBG gameplay preferences.", software: false },
-  visual: { title: "4 · Visual check", detail: "Confirm graphics, resolution, aspect ratio and window mode in the game UI.", software: false },
-  display: { title: "5 · Display check", detail: "Confirm the expected resolution and best available refresh rate on this PC.", software: false },
-  nvidia: { title: "6 · NVIDIA check", detail: "If supported, confirm the game profile in NVIDIA Control Panel.", software: false },
-  mouse: { title: "7 · Mouse check", detail: "If supported, confirm DPI and polling rate on the physical device.", software: false }
+  capture: { title: "1 · Сохранение текущих настроек", detail: "Запускает реальное считывание настроек и сохраняет их в профиль.", software: true },
+  apply: { title: "2 · Применение сохранённых настроек", detail: "Проверяет игру, создаёт резервные копии, записывает и проверяет настройки.", software: true },
+  gameplay: { title: "3 · Проверка управления", detail: "Запустите игру и проверьте чувствительность, клавиши, HUD, звук и игровые предпочтения.", software: false },
+  visual: { title: "4 · Проверка изображения", detail: "Проверьте графику, разрешение, соотношение сторон и оконный режим.", software: false },
+  display: { title: "5 · Проверка монитора", detail: "Проверьте нужное разрешение и максимальную доступную частоту на этом ПК.", software: false },
+  nvidia: { title: "6 · Проверка NVIDIA", detail: "Если поддерживается, проверьте профиль игры в панели управления NVIDIA.", software: false },
+  mouse: { title: "7 · Проверка мыши", detail: "Если поддерживается, проверьте DPI и частоту опроса физической мыши.", software: false }
 };
 
 export function FieldValidationWizard({ profiles, mode, onRun }: Props) {
@@ -35,12 +35,12 @@ export function FieldValidationWizard({ profiles, mode, onRun }: Props) {
   function reset() { fieldValidation.reset(game); setEntries(fieldValidation.list()); }
 
   return <main className="content-view validation-wizard">
-    <div className="page-heading"><div><p className="eyebrow">TEST GAME PASSPORT</p><h1>Field validation</h1><p>Software evidence and your real in-game/hardware confirmation are recorded separately.</p></div><button className="button secondary" onClick={reset}><RefreshCw size={17} /> Reset {game.toUpperCase()}</button></div>
-    {mode === "demo" && <div className="demo-notice prominent"><AlertTriangle size={18} /> DEMO MODE — software stages and PASS confirmation are disabled.</div>}
-    <div className="wizard-toolbar"><div className="game-tabs"><button className={game === "cs2" ? "active" : ""} onClick={() => setGame("cs2")}>CS2</button><button className={game === "pubg" ? "active" : ""} onClick={() => setGame("pubg")}>PUBG</button></div><label>Test profile<select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">No {game.toUpperCase()} profile</option>{gameProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label></div>
-    {!selected && <div className="form-error page-error"><AlertTriangle size={18} /> Create a {game.toUpperCase()} profile before running software stages. Manual stages may be marked Skip.</div>}
-    <section className="wizard-steps">{gameEntries.map((entry) => { const copy = LABELS[entry.stage]; return <article className={`wizard-step ${entry.status}`} key={entry.id}><span className="wizard-status">{statusIcon(entry.status)}</span><div className="wizard-copy"><small>{copy.software ? "SOFTWARE-VERIFIED" : "USER CONFIRMATION"}</small><h3>{copy.title}</h3><p>{copy.detail}</p>{entry.note && <details><summary>Last software result</summary><p>{entry.note}</p></details>}</div><div className="wizard-actions">{copy.software ? <button className="button secondary" disabled={!selected || mode === "demo"} onClick={() => selected && onRun(selected, entry.stage as "capture" | "apply")}><Play size={16} /> Run</button> : <><button disabled={mode === "demo"} title="Pass" aria-label={`${entry.id} pass`} onClick={() => mark(entry.id, "pass")}><Check /></button><button title="Fail" aria-label={`${entry.id} fail`} onClick={() => mark(entry.id, "fail")}><CircleX /></button><button title="Warning" aria-label={`${entry.id} warning`} onClick={() => mark(entry.id, "warning")}><AlertTriangle /></button><button title="Skipped" aria-label={`${entry.id} skipped`} onClick={() => mark(entry.id, "skipped")}>Skip</button></>}</div></article>; })}</section>
-    <div className="field-legend"><span><Check /> PASS</span><span><CircleX /> FAIL</span><span><AlertTriangle /> WARNING</span><span><Circle /> SKIPPED/PENDING</span></div>
+    <div className="page-heading"><div><p className="eyebrow">ПРОВЕРКА GAME PASSPORT</p><h1>Полевое тестирование</h1><p>Автоматические результаты и ваши проверки в игре записываются отдельно.</p></div><button className="button secondary" onClick={reset}><RefreshCw size={17} /> Сбросить {game.toUpperCase()}</button></div>
+    {mode === "demo" && <div className="demo-notice prominent"><AlertTriangle size={18} /> ДЕМО-РЕЖИМ — автоматические этапы и подтверждение «Пройдено» отключены.</div>}
+    <div className="wizard-toolbar"><div className="game-tabs"><button className={game === "cs2" ? "active" : ""} onClick={() => setGame("cs2")}>CS2</button><button className={game === "pubg" ? "active" : ""} onClick={() => setGame("pubg")}>PUBG</button></div><label>Тестовый профиль<select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Нет профиля {game.toUpperCase()}</option>{gameProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label></div>
+    {!selected && <div className="form-error page-error"><AlertTriangle size={18} /> Создайте профиль {game.toUpperCase()} перед автоматической проверкой. Ручные этапы можно пропустить.</div>}
+    <section className="wizard-steps">{gameEntries.map((entry) => { const copy = LABELS[entry.stage]; return <article className={`wizard-step ${entry.status}`} key={entry.id}><span className="wizard-status">{statusIcon(entry.status)}</span><div className="wizard-copy"><small>{copy.software ? "ПРОВЕРЯЕТСЯ ПРОГРАММОЙ" : "ПОДТВЕРЖДАЕТ ПОЛЬЗОВАТЕЛЬ"}</small><h3>{copy.title}</h3><p>{copy.detail}</p>{entry.note && <details><summary>Последний результат</summary><p>{entry.note}</p></details>}</div><div className="wizard-actions">{copy.software ? <button className="button secondary" disabled={!selected || mode === "demo"} onClick={() => selected && onRun(selected, entry.stage as "capture" | "apply")}><Play size={16} /> Запустить</button> : <><button disabled={mode === "demo"} title="Пройдено" aria-label={`${entry.id} pass`} onClick={() => mark(entry.id, "pass")}><Check /></button><button title="Ошибка" aria-label={`${entry.id} fail`} onClick={() => mark(entry.id, "fail")}><CircleX /></button><button title="Предупреждение" aria-label={`${entry.id} warning`} onClick={() => mark(entry.id, "warning")}><AlertTriangle /></button><button title="Пропущено" aria-label={`${entry.id} skipped`} onClick={() => mark(entry.id, "skipped")}>Пропустить</button></>}</div></article>; })}</section>
+    <div className="field-legend"><span><Check /> ПРОЙДЕНО</span><span><CircleX /> ОШИБКА</span><span><AlertTriangle /> ПРЕДУПРЕЖДЕНИЕ</span><span><Circle /> ПРОПУЩЕНО/ОЖИДАЕТ</span></div>
   </main>;
 }
 

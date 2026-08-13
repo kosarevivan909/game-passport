@@ -11,6 +11,6 @@ export function App() {
   const [ready, setReady] = useState(false);
   useEffect(() => { services.auth.getCurrentUser().then(setUser).catch((error) => logger.error("auth", "Session restore failed", error)).finally(() => setReady(true)); return services.auth.onAuthChange(setUser); }, [services]);
   async function signOut() { try { await services.auth.signOut(); setUser(null); } catch (error) { logger.error("auth", "Sign out failed", error); } }
-  if (!ready) return <main className="splash"><div className="passport-loader">GP</div><span>Loading your passport…</span></main>;
+  if (!ready) return <main className="splash"><div className="passport-loader">GP</div><span>Загружаем ваш паспорт…</span></main>;
   return user ? <Dashboard user={user} services={services} onSignOut={() => void signOut()} /> : <AuthScreen auth={services.auth} mode={services.mode} onAuthenticated={setUser} />;
 }

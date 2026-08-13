@@ -36,11 +36,11 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
       if (operation === "capture" && patches.length > 0 && onCapture) {
         try {
           await onCapture(patches);
-          const syncResult: AdapterResult = { adapterId: "profile.sync", label: "Profile sync", state: "success", message: "Captured settings were saved to this profile." };
+          const syncResult: AdapterResult = { adapterId: "profile.sync", label: "Сохранение профиля", state: "success", message: "Считанные настройки сохранены в этом профиле." };
           finalResults = [...completed, syncResult];
           if (mounted) setResults((old) => [...old, syncResult]);
         } catch (error) {
-          const syncResult: AdapterResult = { adapterId: "profile.sync", label: "Profile sync", state: "error", message: error instanceof Error ? error.message : "Captured settings could not be saved.", retryable: true };
+          const syncResult: AdapterResult = { adapterId: "profile.sync", label: "Сохранение профиля", state: "error", message: error instanceof Error ? error.message : "Не удалось сохранить считанные настройки.", retryable: true };
           finalResults = [...completed, syncResult];
           if (mounted) setResults((old) => [...old, syncResult]);
         }
@@ -59,34 +59,34 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
   const hasRestoredResult = results.some((result) => !result.adapterId.endsWith(".rollback") && (result.state === "success" || result.state === "warning"));
   const capturePersisted = results.some((result) => result.adapterId === "profile.sync" && result.state === "success");
   const retryable = results.some((result) => result.retryable);
-  const title = !done ? (operation === "capture" ? `Reading ${gameName}, Display, NVIDIA and Mouse…` : operation === "restore" ? "Restoring pre-Game Passport settings…" : "Applying your Game Passport…")
-    : operation === "capture" ? (hasError ? "SETTINGS NOT SAVED" : !capturePersisted ? "CAPTURE NOT AVAILABLE" : hasWarning ? "SETTINGS SAVED WITH WARNINGS" : "SETTINGS SAVED")
-      : operation === "restore" ? (hasError ? "RESTORE INCOMPLETE" : !hasRestoredResult ? "NO BACKUP RESTORED" : hasWarning ? "RESTORED WITH WARNINGS" : "SETTINGS RESTORED")
-        : hasError || !hasAppliedResult ? "SETUP NOT APPLIED" : hasWarning ? "SETUP COMPLETED WITH WARNINGS" : "YOUR PC IS READY";
-  const lead = !done ? (operation === "capture" ? `Reading real ${gameName} configuration, Windows display, NVAPI and physical mouse settings.` : operation === "restore" ? "Using the latest local backups created before Game Passport changed this PC." : `Checking that ${gameName} is closed, then applying Display, NVIDIA, Mouse and ${gameName} in order.`)
-    : operation === "capture" ? (hasError || !capturePersisted ? "No settings were written to your profile." : "The real files captured by the Windows adapter are now part of this profile.")
-      : operation === "restore" ? (hasRestoredResult ? "Restorable local state was applied. Review warnings for best-effort components." : "No restorable adapter completed successfully.")
-        : hasError || !hasAppliedResult ? "Game Passport did not report success because the requested operation was not completed." : `Display, driver and Mouse stages ran before ${gameName} files. Review warnings before launching the game.`;
+  const title = !done ? (operation === "capture" ? `Считываем ${gameName}, экран, NVIDIA и мышь…` : operation === "restore" ? "Восстанавливаем прежние настройки…" : "Применяем ваш Game Passport…")
+    : operation === "capture" ? (hasError ? "НАСТРОЙКИ НЕ СОХРАНЕНЫ" : !capturePersisted ? "СОХРАНЕНИЕ НЕДОСТУПНО" : hasWarning ? "СОХРАНЕНО С ПРЕДУПРЕЖДЕНИЯМИ" : "НАСТРОЙКИ СОХРАНЕНЫ")
+      : operation === "restore" ? (hasError ? "ВОССТАНОВЛЕНИЕ НЕ ЗАВЕРШЕНО" : !hasRestoredResult ? "РЕЗЕРВНАЯ КОПИЯ НЕ ВОССТАНОВЛЕНА" : hasWarning ? "ВОССТАНОВЛЕНО С ПРЕДУПРЕЖДЕНИЯМИ" : "НАСТРОЙКИ ВОССТАНОВЛЕНЫ")
+        : hasError || !hasAppliedResult ? "НАСТРОЙКИ НЕ ПРИМЕНЕНЫ" : hasWarning ? "ГОТОВО С ПРЕДУПРЕЖДЕНИЯМИ" : "КОМПЬЮТЕР ГОТОВ";
+  const lead = !done ? (operation === "capture" ? `Считываем реальные настройки ${gameName}, экрана Windows, NVAPI и физической мыши.` : operation === "restore" ? "Используем последние локальные резервные копии, созданные до изменений Game Passport." : `Проверяем, что ${gameName} закрыта, затем применяем настройки экрана, NVIDIA, мыши и ${gameName}.`)
+    : operation === "capture" ? (hasError || !capturePersisted ? "В профиль ничего не записано." : "Реальные файлы, считанные Windows-адаптером, добавлены в этот профиль.")
+      : operation === "restore" ? (hasRestoredResult ? "Доступные локальные настройки восстановлены. Проверьте предупреждения." : "Ни один компонент не удалось восстановить.")
+        : hasError || !hasAppliedResult ? "Операция не была завершена, поэтому Game Passport не сообщает об успехе." : `Настройки экрана, драйвера и мыши применены до файлов ${gameName}. Перед запуском игры проверьте предупреждения.`;
   const baseRows = adapters.map((adapter) => ({ id: adapter.id, label: adapter.label }));
   const extraRows = results.filter((result) => !baseRows.some((row) => row.id === result.adapterId)).map((result) => ({ id: result.adapterId, label: result.label }));
-  const rows = [...baseRows, ...extraRows, ...(operation === "capture" && results.some((result) => result.adapterId === "profile.sync") && !extraRows.some((row) => row.id === "profile.sync") ? [{ id: "profile.sync", label: "Profile sync" }] : [])];
+  const rows = [...baseRows, ...extraRows, ...(operation === "capture" && results.some((result) => result.adapterId === "profile.sync") && !extraRows.some((row) => row.id === "profile.sync") ? [{ id: "profile.sync", label: "Сохранение профиля" }] : [])];
 
   return <main className="process-shell">
     <div className="process-card">
-      <button className="back-button" onClick={onClose}><ArrowLeft size={18} /> Back to profiles</button>
+      <button className="back-button" onClick={onClose}><ArrowLeft size={18} /> Назад к профилям</button>
       <div className={`passport-orb ${done ? hasError || operation === "capture" && !capturePersisted || operation === "apply" && !hasAppliedResult || operation === "restore" && !hasRestoredResult ? "complete" : "success" : ""}`}><div><span>{done && (hasError || operation === "capture" && !capturePersisted || operation === "apply" && !hasAppliedResult || operation === "restore" && !hasRestoredResult) ? "!" : "GP"}</span></div></div>
-      <p className="eyebrow">PROFILE: {profile.name.toUpperCase()}</p>
+      <p className="eyebrow">ПРОФИЛЬ: {profile.name.toUpperCase()}</p>
       <h1>{title}</h1>
       <p className="process-lead">{lead}</p>
       <div className="process-list">{rows.map((row) => {
         const result = results.find((item) => item.adapterId === row.id);
         return <div className={`process-row ${result?.state ?? "pending"}`} key={row.id}>
-          <span>{row.label}<small>{result?.message ?? "Waiting…"}</small>{result?.details && result.details.length > 0 && <details className="technical-details"><summary>Technical details</summary>{result.details.map((detail) => <em key={detail}>{detail}</em>)}</details>}</span>{stateIcon(result?.state)}
+          <span>{row.label}<small>{result?.message ?? "Ожидание…"}</small>{result?.details && result.details.length > 0 && <details className="technical-details"><summary>Технические подробности</summary>{result.details.map((detail) => <em key={detail}>{detail}</em>)}</details>}</span>{stateIcon(result?.state)}
         </div>;
       })}</div>
-      {done && hasWarning && <div className="unsupported-summary"><ShieldAlert size={19} /><span><strong>Review required</strong>Warnings describe settings that could not be captured or fully verified.</span></div>}
-      {done && retryable && <button className="button secondary wide" onClick={() => setAttempt((value) => value + 1)}><RotateCw size={17} /> Повторить проверку / Retry</button>}
-      {done && <button className="button primary wide" onClick={onClose}>Return to dashboard</button>}
+      {done && hasWarning && <div className="unsupported-summary"><ShieldAlert size={19} /><span><strong>Нужна проверка</strong>Некоторые настройки не удалось считать или полностью проверить.</span></div>}
+      {done && retryable && <button className="button secondary wide" onClick={() => setAttempt((value) => value + 1)}><RotateCw size={17} /> Повторить</button>}
+      {done && <button className="button primary wide" onClick={onClose}>Вернуться к профилям</button>}
     </div>
   </main>;
 }

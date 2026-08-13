@@ -11,8 +11,8 @@ describe("OperationScreen", () => {
   it("never labels an unsupported capture as saved", async () => {
     const onCapture = vi.fn();
     render(<OperationScreen profile={profile} operation="capture" orchestrator={new ProfileOrchestrator([new UnsupportedAdapter("game.cs2", "CS2 Settings", "cs2")])} onCapture={onCapture} onClose={() => undefined} />);
-    await waitFor(() => expect(screen.getByRole("heading", { name: "CAPTURE NOT AVAILABLE" })).toBeInTheDocument());
-    expect(screen.queryByText("SETTINGS SAVED")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "СОХРАНЕНИЕ НЕДОСТУПНО" })).toBeInTheDocument());
+    expect(screen.queryByText("НАСТРОЙКИ СОХРАНЕНЫ")).not.toBeInTheDocument();
     expect(onCapture).not.toHaveBeenCalled();
   });
 
@@ -21,6 +21,6 @@ describe("OperationScreen", () => {
     render(<OperationScreen profile={profile} operation="apply" orchestrator={new ProfileOrchestrator([new UnsupportedAdapter("game.cs2", "CS2 Settings", "cs2")])} onComplete={onComplete} onClose={() => undefined} />);
     await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
     expect(onComplete.mock.calls[0][0][0].state).toBe("unsupported");
-    expect(screen.getByRole("heading", { name: "SETUP NOT APPLIED" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "НАСТРОЙКИ НЕ ПРИМЕНЕНЫ" })).toBeInTheDocument();
   });
 });

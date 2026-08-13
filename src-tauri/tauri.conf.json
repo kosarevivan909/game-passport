@@ -43,11 +43,11 @@
     "copyright": "Copyright © 2026 Game Passport",
     "windows": {
       "webviewInstallMode": { "type": "offlineInstaller", "silent": true },
-      "wix": { "language": "en-US" },
+      "wix": { "language": "ru-RU" },
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["English", "Russian"],
-        "displayLanguageSelector": true,
+        "languages": ["Russian"],
+        "displayLanguageSelector": false,
         "startMenuFolder": "Game Passport",
         "installerHooks": "windows/installer-hooks.nsh",
         "installerIcon": "icons/icon.ico",

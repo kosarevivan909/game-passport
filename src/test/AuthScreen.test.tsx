@@ -10,7 +10,7 @@ describe("AuthScreen", () => {
     localStorage.clear();
     let email = "";
     render(<AuthScreen auth={new LocalAuthProvider()} mode="demo" onAuthenticated={(user) => { email = user.email; }} />);
-    fireEvent.click(screen.getByRole("button", { name: /enter game passport/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Войти" }));
     await waitFor(() => expect(email).toBe("player@example.com"));
   });
 
@@ -18,8 +18,8 @@ describe("AuthScreen", () => {
     localStorage.clear();
     let email = "";
     render(<AuthScreen auth={new LocalAuthProvider()} mode="field-test" onAuthenticated={(user) => { email = user.email; }} />);
-    expect(screen.getByText(/FIELD TEST — profiles stay on this PC/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /enter game passport/i }));
+    expect(screen.getByText(/ПОЛЕВОЙ ТЕСТ — профили хранятся на этом ПК/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Войти" }));
     await waitFor(() => expect(email).toBe("player@example.com"));
   });
 });
