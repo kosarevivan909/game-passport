@@ -52,10 +52,8 @@ jobs:
         run: pnpm build
       - name: Rust formatting
         run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-      - name: Windows Rust and NVAPI bridge compile-check
-        run: cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
-      - name: Rust adapter tests (CS2, Display, NVIDIA, Mouse, PUBG)
-        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+      - name: Windows Rust, NVAPI bridge and adapter tests (CS2, Display, NVIDIA, Mouse, PUBG)
+        run: cargo test --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib
       - name: Build real MSI and NSIS installers
         uses: tauri-apps/tauri-action@v0
         env:

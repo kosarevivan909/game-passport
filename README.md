@@ -4,7 +4,7 @@ Windows Release Candidate существующего Game Passport на Tauri 2,
 
 ## Как установить в компьютерном клубе
 
-1. Возьмите файл `Game Passport_0.6.0-rc.1_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
+1. Возьмите файл `Game Passport_0.6.0_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
 2. Запустите EXE обычным пользователем Windows. Постоянные права администратора не нужны.
 3. Выберите язык и завершите установку. Установщик создаёт ярлыки в меню «Пуск» и на рабочем столе; WebView2 включён внутрь инсталлятора и не требует отдельной загрузки.
 4. Запустите Game Passport и войдите в аккаунт Supabase. Пароль Steam приложение не запрашивает.
@@ -28,8 +28,8 @@ Windows Release Candidate существующего Game Passport на Tauri 2,
 Windows workflow: `.github/workflows/windows-build.yml`. Он выполняет frontend tests/build, Rust format/tests, Windows MSVC + native NVAPI bridge check, затем обязан получить оба инсталлятора:
 
 ```text
-Game Passport_0.6.0-rc.1_x64-setup.exe   (NSIS, основной)
-Game Passport_0.6.0-rc.1_x64_en-US.msi   (WiX, дополнительный)
+Game Passport_0.6.0_x64-setup.exe   (NSIS, основной)
+Game Passport_0.6.0_x64_en-US.msi   (WiX, дополнительный)
 SHA256SUMS.txt
 ```
 

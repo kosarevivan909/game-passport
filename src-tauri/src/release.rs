@@ -401,7 +401,7 @@ pub use windows::{append_log, preflight, save_report};
 mod tests {
     #[test]
     fn release_version_comes_from_package() {
-        assert_eq!(super::APP_VERSION, "0.6.0-rc.1");
+        assert_eq!(super::APP_VERSION, "0.6.0");
     }
     #[test]
     fn log_limits_are_bounded() {

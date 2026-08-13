@@ -1,6 +1,6 @@
 [package]
 name = "game-passport"
-version = "0.6.0-rc.1"
+version = "0.6.0"
 description = "Portable gaming profiles for Windows PCs"
 authors = ["Game Passport"]
 license = "Proprietary"

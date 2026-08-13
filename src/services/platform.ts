@@ -40,7 +40,7 @@ export async function getPubgDiagnostics(): Promise<PubgCommandResponse> {
 
 export async function getReleasePreflight(): Promise<ReleasePreflight> {
   if (!isTauriDesktop()) return {
-    appVersion: "0.6.0-rc.1", build: "browser-preview", windowsVersion: navigator.platform || "Browser",
+    appVersion: "0.6.0", build: "browser-preview", windowsVersion: navigator.platform || "Browser",
     windowsSupported: false, steamInstalled: false, steamUserAvailable: false, steamPath: null, cs2Installed: false,
     pubgConfigAvailable: false, logDirectory: null, administratorRequired: false,
     updateChannel: "Manual signed releases (updater not activated)"
