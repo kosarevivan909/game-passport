@@ -1,0 +1,94 @@
+name: Windows build
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Build type
+        required: true
+        default: field-test
+        type: choice
+        options:
+          - field-test
+          - production
+  push:
+    tags: ["v*"]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      GAME_PASSPORT_BUILD: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.16.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pnpm install --frozen-lockfile
+      - name: Validate production cloud configuration
+        if: github.event_name != 'workflow_dispatch' || inputs.release_type == 'production'
+        shell: pwsh
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_URL) -or
+              [string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_ANON_KEY) -or
+              $env:VITE_SUPABASE_URL.Contains("YOUR_PROJECT") -or
+              $env:VITE_SUPABASE_ANON_KEY.Contains("YOUR_PUBLIC_ANON_KEY")) {
+            throw "Production build stopped: add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as GitHub Actions repository secrets."
+          }
+      - name: Frontend adapter and Supabase payload tests
+        run: pnpm test
+      - name: TypeScript and production frontend build
+        run: pnpm build
+      - name: Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      - name: Windows Rust and NVAPI bridge compile-check
+        run: cargo check --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
+      - name: Rust adapter tests (CS2, Display, NVIDIA, Mouse, PUBG)
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+      - name: Build real MSI and NSIS installers
+        uses: tauri-apps/tauri-action@v0
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DEMO_MODE: "false"
+          VITE_FIELD_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type == 'field-test' }}
+        with:
+          args: --target x86_64-pc-windows-msvc
+      - name: Verify and stage Windows installers
+        shell: pwsh
+        run: |
+          $nsis = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe"
+          $msi = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi"
+          if ($nsis.Count -lt 1 -or $msi.Count -lt 1) { throw "Both NSIS and MSI installers are required." }
+          New-Item -ItemType Directory -Force "windows-artifacts" | Out-Null
+          $installerFiles = @($nsis.FullName) + @($msi.FullName)
+          Copy-Item -Path $installerFiles -Destination "windows-artifacts"
+          Get-ChildItem "windows-artifacts" -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Set-Content "windows-artifacts/SHA256SUMS.txt"
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-passport-windows-${{ inputs.release_type || github.ref_name }}-${{ github.run_number }}
+          if-no-files-found: error
+          retention-days: 14
+          path: windows-artifacts/*
+      - name: Publish field-test installers as a private prerelease
+        if: github.event_name == 'workflow_dispatch' && inputs.release_type == 'field-test'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "field-test-${{ github.run_number }}" "windows-artifacts/*" `
+            --title "Game Passport v0.6.0 RC — Field Test #${{ github.run_number }}" `
+            --notes "Unsigned field-test build for club validation. Profiles are stored locally on this PC; real Windows game and hardware adapters are enabled. Download the NSIS setup EXE for normal installation. SHA-256 checksums are included." `
+            --prerelease

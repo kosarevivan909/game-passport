@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Game Passport",
+  "version": "0.6.0-rc.1",
+  "identifier": "app.gamepassport.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Game Passport",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 650,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false,
+        "backgroundColor": "#08090c",
+        "devtools": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "shortDescription": "Your setup. Everywhere.",
+    "longDescription": "Game Passport keeps gaming profiles available across Windows PCs.",
+    "copyright": "Copyright © 2026 Game Passport",
+    "windows": {
+      "webviewInstallMode": { "type": "offlineInstaller", "silent": true },
+      "wix": { "language": "en-US" },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English", "Russian"],
+        "displayLanguageSelector": true,
+        "startMenuFolder": "Game Passport",
+        "installerHooks": "windows/installer-hooks.nsh",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico"
+      }
+    }
+  }
+}
