@@ -1471,7 +1471,11 @@ mod windows {
         });
         let mut details: Vec<String> = instruction.into_iter().collect();
         details.push(reason.to_string());
-        if diagnostic.devices.iter().any(|device| device.vendor_id == "046D") {
+        if diagnostic
+            .devices
+            .iter()
+            .any(|device| device.vendor_id == "046D")
+        {
             details.push("Logitech G HUB управляет настройками мыши, но не гарантирует доступ к ним для другого приложения. Проверьте выбранный профиль/режим встроенной памяти G HUB.".into());
         }
         details.extend(diagnostic.probe_errors.iter().cloned());

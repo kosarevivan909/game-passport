@@ -233,7 +233,10 @@ mod windows {
         let message = if state == "success" {
             format!("Сохранено файлов настроек CS2: {}.", files.len())
         } else {
-            format!("Сохранено файлов настроек CS2: {} (есть пояснения).", files.len())
+            format!(
+                "Сохранено файлов настроек CS2: {} (есть пояснения).",
+                files.len()
+            )
         };
         let custom_count = files.len().saturating_sub(core_files_found.len());
         let video_captured = core_files_found.iter().any(|name| name == "cs2_video.txt");
@@ -251,10 +254,14 @@ mod windows {
             "Сохранены привязки клавиш из cs2_user_keys_0_slot0.vcfg.".into(),
         ];
         if video_captured {
-            summary.push("Сохранены переносимые параметры видео и разрешения из cs2_video.txt.".into());
+            summary.push(
+                "Сохранены переносимые параметры видео и разрешения из cs2_video.txt.".into(),
+            );
         }
         if custom_count > 0 {
-            summary.push(format!("Сохранено дополнительных CFG-файлов: {custom_count}."));
+            summary.push(format!(
+                "Сохранено дополнительных CFG-файлов: {custom_count}."
+            ));
         }
         summary.push("Не сохраняются идентификаторы монитора, видеокарты и аудиоустройства; точная герцовка выбирается заново на целевом ПК.".into());
         summary.append(&mut details);
