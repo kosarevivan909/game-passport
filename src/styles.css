@@ -145,6 +145,12 @@ legend { margin-bottom: 10px; }
 .game-choice small { font-size: 9px; }
 .game-choice.selected { border-color: color-mix(in srgb, var(--game-accent) 45%, transparent); background: color-mix(in srgb, var(--game-accent) 6%, #16171c); }
 .modal .info-box { margin-top: 0; }
+.mouse-fallback { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.018); }
+.mouse-fallback legend { float: left; width: 100%; margin-bottom: 2px; color: #d8dadf; font-weight: 750; }
+.mouse-fallback .muted { clear: both; font-size: 11px; line-height: 1.5; }
+.mouse-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mouse-fields label { gap: 7px; font-size: 10px; }
+.mouse-fields input, .mouse-fields select { width: 100%; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 9px; }
 
 .process-shell { min-height: 100vh; display: grid; place-items: center; padding: 45px; background: radial-gradient(circle at 50% 30%, rgba(166,255,63,.06), transparent 28%), #08090c; }
