@@ -115,6 +115,8 @@ pub struct MouseDeviceDiagnostics {
 #[serde(rename_all = "camelCase")]
 pub struct MouseDiagnostics {
     pub devices: Vec<MouseDeviceDiagnostics>,
+    #[serde(default)]
+    pub probe_errors: Vec<String>,
     pub selected_instance_id: Option<String>,
     pub selection_ambiguous: bool,
     pub current_dpi: Option<u32>,
@@ -433,11 +435,11 @@ mod windows {
                 response(
                     state,
                     if diagnostic.selection_ambiguous {
-                        "Multiple controllable gaming mice were detected; no device was selected."
+                        "Обнаружено несколько управляемых мышей — безопасный выбор не выполнен."
                     } else if diagnostic.selected_instance_id.is_some() {
-                        "Mouse detection completed."
+                        "Мышь обнаружена, текущие параметры считаны."
                     } else {
-                        "No controllable gaming mouse was found."
+                        "Совместимая мышь не найдена. Откройте сведения ниже."
                     },
                     vec![],
                     Some(diagnostic),
@@ -460,7 +462,7 @@ mod windows {
                 return manual_response(
                     &mut diagnostic,
                     None,
-                    "No supported readable gaming mouse was found.",
+                    "Мышь обнаружена, но её DPI не удалось безопасно считать автоматически.",
                 )
             }
             Err(message) => return manual_response(&mut diagnostic, None, &message),
@@ -486,15 +488,15 @@ mod windows {
                 response(
                     state,
                     if polling.is_some() {
-                        "Saved current mouse DPI and polling rate."
+                        "Текущие DPI и частота опроса мыши сохранены."
                     } else {
-                        "Saved current mouse DPI; polling rate could not be read."
+                        "DPI мыши сохранён; частоту опроса считать не удалось."
                     },
                     vec![
                         format!("DPI: {dpi}"),
                         polling
                             .map(|rate| format!("Polling rate: {rate} Hz"))
-                            .unwrap_or_else(|| "Polling rate: unavailable".into()),
+                            .unwrap_or_else(|| "Частота опроса: недоступна".into()),
                     ],
                     Some(diagnostic),
                     Some(payload),
@@ -742,20 +744,39 @@ mod windows {
         }
         let mut targets = Vec::new();
         let mut target_keys = HashSet::new();
+        let mut probe_errors = Vec::new();
         for endpoint in &endpoints {
             if classify_vid_pid(endpoint.vendor_id, endpoint.product_id)
                 == MouseAdapterKind::LogitechProbe
             {
-                for index in [0xFF, 1, 2, 3, 4, 5, 6] {
-                    if let Ok(target) = probe_logitech(&api, endpoint, index) {
-                        let key = format!("{}:{index}", endpoint.physical_key);
-                        if target_keys.insert(key) {
-                            devices
-                                .insert(endpoint.physical_key.clone(), target.diagnostics.clone());
-                            targets.push(target);
+                let mut found = false;
+                let mut last_error = None;
+                for index in [0xFF, 1, 2, 3, 4, 5, 6, 0] {
+                    match probe_logitech(&api, endpoint, index) {
+                        Ok(target) => {
+                            let key = format!("{}:{index}", endpoint.physical_key);
+                            if target_keys.insert(key) {
+                                devices.insert(
+                                    endpoint.physical_key.clone(),
+                                    target.diagnostics.clone(),
+                                );
+                                targets.push(target);
+                            }
+                            found = true;
+                            break;
                         }
-                        break;
+                        Err(error) => last_error = Some(error),
                     }
+                }
+                if !found && probe_errors.len() < 12 {
+                    probe_errors.push(format!(
+                        "Logitech {} (VID {:04X}, PID {:04X}, interface {}): {}",
+                        endpoint.product,
+                        endpoint.vendor_id,
+                        endpoint.product_id,
+                        endpoint.interface_number,
+                        last_error.unwrap_or_else(|| "HID++ Adjustable DPI недоступен".into())
+                    ));
                 }
             } else if classify_vid_pid(endpoint.vendor_id, endpoint.product_id)
                 == MouseAdapterKind::Razer
@@ -765,12 +786,21 @@ mod windows {
                     .find(|model| model.product_id == endpoint.product_id)
                     .copied()
                 {
-                    if let Ok(target) = probe_razer(&api, endpoint, model) {
-                        if target_keys.insert(endpoint.physical_key.clone()) {
-                            devices
-                                .insert(endpoint.physical_key.clone(), target.diagnostics.clone());
-                            targets.push(target);
+                    match probe_razer(&api, endpoint, model) {
+                        Ok(target) => {
+                            if target_keys.insert(endpoint.physical_key.clone()) {
+                                devices.insert(
+                                    endpoint.physical_key.clone(),
+                                    target.diagnostics.clone(),
+                                );
+                                targets.push(target);
+                            }
                         }
+                        Err(error) if probe_errors.len() < 12 => probe_errors.push(format!(
+                            "Razer {} (PID {:04X}): {error}",
+                            endpoint.product, endpoint.product_id
+                        )),
+                        Err(_) => {}
                     }
                 }
             }
@@ -786,6 +816,7 @@ mod windows {
             .map(|index| index.map(|index| targets[index].clone()));
         let mut diagnostics = MouseDiagnostics {
             devices: devices.into_values().collect(),
+            probe_errors,
             selection_ambiguous: selection.is_err(),
             ..Default::default()
         };
@@ -1430,7 +1461,7 @@ mod windows {
         remember(diagnostic);
         let instruction = payload.map(|value| {
             format!(
-                "Set mouse manually: {} DPI{}",
+                "Если автоматическое применение не сработало, выставьте в G HUB: {} DPI{}",
                 value.dpi,
                 value
                     .polling_rate_hz
@@ -1438,13 +1469,15 @@ mod windows {
                     .unwrap_or_default()
             )
         });
-        let details = instruction
-            .into_iter()
-            .chain(std::iter::once(reason.to_string()))
-            .collect();
+        let mut details: Vec<String> = instruction.into_iter().collect();
+        details.push(reason.to_string());
+        if diagnostic.devices.iter().any(|device| device.vendor_id == "046D") {
+            details.push("Logitech G HUB управляет настройками мыши, но не гарантирует доступ к ним для другого приложения. Проверьте выбранный профиль/режим встроенной памяти G HUB.".into());
+        }
+        details.extend(diagnostic.probe_errors.iter().cloned());
         response(
             "warning",
-            "Mouse settings were not automatically applied.",
+            "Настройки мыши не применены автоматически.",
             details,
             Some(diagnostic.clone()),
             None,

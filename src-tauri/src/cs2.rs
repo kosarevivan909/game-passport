@@ -231,13 +231,12 @@ mod windows {
             "warning"
         };
         let message = if state == "success" {
-            format!("Captured {} CS2 configuration files.", files.len())
+            format!("Сохранено файлов настроек CS2: {}.", files.len())
         } else {
-            format!(
-                "Captured {} CS2 configuration files with warnings.",
-                files.len()
-            )
+            format!("Сохранено файлов настроек CS2: {} (есть пояснения).", files.len())
         };
+        let custom_count = files.len().saturating_sub(core_files_found.len());
+        let video_captured = core_files_found.iter().any(|name| name == "cs2_video.txt");
         let payload = Cs2Payload {
             schema_version: 1,
             captured_at: Utc::now().to_rfc3339(),
@@ -247,10 +246,23 @@ mod windows {
             optional_files_missing: optional_files_missing.clone(),
         };
         let retryable = !optional_files_missing.is_empty();
+        let mut summary = vec![
+            "Сохранены чувствительность, игровые параметры и звук из cs2_user_convars_0_slot0.vcfg.".into(),
+            "Сохранены привязки клавиш из cs2_user_keys_0_slot0.vcfg.".into(),
+        ];
+        if video_captured {
+            summary.push("Сохранены переносимые параметры видео и разрешения из cs2_video.txt.".into());
+        }
+        if custom_count > 0 {
+            summary.push(format!("Сохранено дополнительных CFG-файлов: {custom_count}."));
+        }
+        summary.push("Не сохраняются идентификаторы монитора, видеокарты и аудиоустройства; точная герцовка выбирается заново на целевом ПК.".into());
+        summary.append(&mut details);
+        details = summary;
         details.extend(
             optional_files_missing
                 .iter()
-                .map(|name| format!("Optional file not captured: {name}")),
+                .map(|name| format!("Необязательный файл не найден: {name}")),
         );
         Ok(Cs2CommandResponse {
             state: state.into(),
@@ -329,6 +341,26 @@ mod windows {
             }
             committed.push((item, previous));
         }
+        for (item, _) in &committed {
+            let written = match fs::read(&item.target) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    rollback(&committed);
+                    return Err(io_error(
+                        "Не удалось проверить записанный файл CS2; изменения отменены.",
+                        error,
+                    ));
+                }
+            };
+            if written != item.content {
+                rollback(&committed);
+                return Err(UserFacingError::new(
+                    "Проверка записанных настроек CS2 не пройдена; изменения отменены.",
+                    true,
+                )
+                .detail(format!("Файл не совпал: {}", item.relative_path)));
+            }
+        }
         for (_, previous) in &committed {
             if let Some(path) = previous {
                 let _ = fs::remove_file(path);
@@ -341,13 +373,16 @@ mod windows {
                 "cs2_machine_convars.vcfg" | "cs2_video.txt"
             )
         });
-        let mut details = vec![format!("Backup created locally: {}", backup_root.display())];
+        let mut details = vec![
+            format!("Локальная резервная копия: {}", backup_root.display()),
+            format!("Записано и проверено файлов: {}.", committed.len()),
+        ];
         if hardware_specific {
-            details.push("Resolution and video values were written, but CS2 may adjust values unsupported by this PC.".into());
+            details.push("Разрешение и переносимые параметры видео записаны. После запуска CS2 может заменить значения, которые не поддерживаются этим компьютером.".into());
         }
         Ok(Cs2CommandResponse {
             state: if hardware_specific { "warning".into() } else { "success".into() },
-            message: format!("Applied {} CS2 configuration files. Launch CS2 to verify the final in-game values.", committed.len()),
+            message: format!("Настройки CS2 применены и проверены: {} файлов. Запустите CS2 и проверьте итоговые значения в игре.", committed.len()),
             details,
             retryable: false,
             payload: None,
