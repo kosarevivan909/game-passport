@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getMousePayload, normalizeDesiredDpi, normalizePollingRate } from "../domain/mouse";
+import { createManualMousePayload, getMousePayload, normalizeDesiredDpi, normalizePollingRate } from "../domain/mouse";
 
 describe("Mouse Passport profile", () => {
   it("stores normalized preferences without physical identity", () => {
@@ -25,5 +25,12 @@ describe("Mouse Passport profile", () => {
   it("rejects corrupted profile shapes", () => {
     expect(getMousePayload({ adapters: { mouse: { schemaVersion: 2, dpi: 800 } } })).toBeNull();
     expect(getMousePayload({ adapters: { mouse: { schemaVersion: 1, dpi: "800" } } })).toBeNull();
+  });
+
+  it("creates a portable manual fallback without a device identity", () => {
+    const payload = createManualMousePayload(800, 1000);
+    expect(payload).toMatchObject({ schemaVersion: 1, dpi: 800, pollingRateHz: 1000 });
+    expect(createManualMousePayload(0, 1000)).toBeNull();
+    expect(createManualMousePayload(800, 10)).toBeNull();
   });
 });
