@@ -38,6 +38,7 @@ export interface MouseDeviceDiagnostics {
 
 export interface MouseDiagnostics {
   devices: MouseDeviceDiagnostics[];
+  probeErrors: string[];
   selectedInstanceId?: string;
   selectionAmbiguous: boolean;
   currentDpi?: number;
@@ -49,6 +50,17 @@ export interface MouseDiagnostics {
   verificationResult?: string;
   backupResult?: string;
   restoreResult?: string;
+}
+
+export function createManualMousePayload(dpi: number, pollingRateHz?: number): MousePayload | null {
+  if (!Number.isInteger(dpi) || dpi < 50 || dpi > 100_000) return null;
+  if (pollingRateHz !== undefined && (!Number.isInteger(pollingRateHz) || pollingRateHz < 125 || pollingRateHz > 8_000)) return null;
+  return {
+    schemaVersion: 1,
+    capturedAt: new Date().toISOString(),
+    dpi,
+    ...(pollingRateHz !== undefined && { pollingRateHz })
+  };
 }
 
 export interface MouseCommandResponse {
