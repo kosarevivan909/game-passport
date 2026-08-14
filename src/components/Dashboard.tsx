@@ -13,6 +13,7 @@ import { Diagnostics } from "./Diagnostics";
 import { InitialSetup } from "./InitialSetup";
 import { FieldValidationWizard } from "./FieldValidationWizard";
 import type { CloudState } from "../domain/release";
+import type { MousePayload } from "../domain/mouse";
 import { fieldValidation } from "../services/fieldValidation";
 import { operationHistory } from "../services/operationHistory";
 
@@ -39,9 +40,14 @@ export function Dashboard({ user, services, onSignOut }: Props) {
     return () => { window.removeEventListener("online", refresh); window.removeEventListener("offline", refresh); };
   }, [refreshCloud]);
 
-  async function save(name: string, game: GameId) {
-    if (modal?.profile) await services.profiles.update(user.id, modal.profile.id, { name, game });
-    else await services.profiles.create(user.id, { name, game, settings: {} });
+  async function save(name: string, game: GameId, manualMouse?: MousePayload) {
+    const mousePatch = manualMouse ? { adapters: { mouse: manualMouse } } : undefined;
+    if (modal?.profile) {
+      const settings = mousePatch ? mergeSettingsPatch(modal.profile.settings, mousePatch) : modal.profile.settings;
+      await services.profiles.update(user.id, modal.profile.id, { name, game, settings });
+    } else {
+      await services.profiles.create(user.id, { name, game, settings: mousePatch ?? {} });
+    }
     logger.info("profiles", modal?.profile ? "Updated selected profile" : "Created a profile"); setModal(null); await load();
   }
   async function remove(profile: GameProfile) {
