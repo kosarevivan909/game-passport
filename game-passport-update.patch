@@ -73,7 +73,7 @@ index a4a86d4..5471892 100644
          println!("cargo:rerun-if-changed=native/nvapi_bridge.h");
      }
 diff --git a/src-tauri/native/nvapi_bridge.cpp b/src-tauri/native/nvapi_bridge.cpp
-index bf36aa0..d097f6f 100644
+index bf36aa0..30f1379 100644
 --- a/src-tauri/native/nvapi_bridge.cpp
 +++ b/src-tauri/native/nvapi_bridge.cpp
 @@ -3,6 +3,8 @@
@@ -85,7 +85,7 @@ index bf36aa0..d097f6f 100644
  #include <stdio.h>
  #include <stdlib.h>
  #include <string.h>
-@@ -234,6 +236,147 @@ NvAPI_Status set_scaling(NvU32 desired) {
+@@ -234,6 +236,149 @@ NvAPI_Status set_scaling(NvU32 desired) {
      return status;
  }
  
@@ -155,7 +155,9 @@ index bf36aa0..d097f6f 100644
 +    *verified = false;
 +    HDC dc = GetDC(nullptr);
 +    if (!dc) return false;
-+    const BOOL applied = SetDeviceGammaRamp(dc, snapshot->desktop_gamma_ramp);
++    uint16_t requested[GP_NV_GAMMA_RAMP_VALUES] = {};
++    memcpy(requested, snapshot->desktop_gamma_ramp, sizeof(requested));
++    const BOOL applied = SetDeviceGammaRamp(dc, requested);
 +    uint16_t readback[GP_NV_GAMMA_RAMP_VALUES] = {};
 +    const BOOL read = applied ? GetDeviceGammaRamp(dc, readback) : FALSE;
 +    ReleaseDC(nullptr, dc);
@@ -233,7 +235,7 @@ index bf36aa0..d097f6f 100644
  }  // namespace
  
  extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
-@@ -298,6 +441,8 @@ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
+@@ -298,6 +443,8 @@ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
              snapshot->scaling_supported = 1;
              snapshot->scaling = scaling;
          }
@@ -242,7 +244,7 @@ index bf36aa0..d097f6f 100644
          return NVAPI_OK;
      }
      if (status != NVAPI_OK) {
-@@ -339,6 +484,8 @@ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
+@@ -339,6 +486,8 @@ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
          snapshot->scaling_supported = 1;
          snapshot->scaling = scaling;
      }
@@ -251,7 +253,7 @@ index bf36aa0..d097f6f 100644
      return NVAPI_OK;
  }
  
-@@ -389,7 +536,11 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
+@@ -389,7 +538,11 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
              status = NVAPI_OK;
          }
          NvAPI_DRS_DestroySession(session);
@@ -264,7 +266,7 @@ index bf36aa0..d097f6f 100644
          return status;
      }
      if (status != NVAPI_OK) {
-@@ -460,20 +611,6 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
+@@ -460,20 +613,6 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
          return status;
      }
  
