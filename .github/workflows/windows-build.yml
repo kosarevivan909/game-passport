@@ -57,7 +57,10 @@ jobs:
       - name: TypeScript and production frontend build
         run: pnpm build
       - name: Rust formatting
-        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+        shell: pwsh
+        run: |
+          cargo fmt --manifest-path src-tauri/Cargo.toml
+          cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
       - name: Windows Rust, NVAPI bridge and adapter tests (CS2, Display, NVIDIA, Mouse, PUBG)
         run: cargo test --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib
       - name: Build real MSI and NSIS installers
