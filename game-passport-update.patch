@@ -1,23 +1,50 @@
+diff --git a/README.md b/README.md
+index e75e244..c998d18 100644
+--- a/README.md
++++ b/README.md
+@@ -54,7 +54,7 @@ pnpm tauri build -- --target x86_64-pc-windows-msvc
+ ## Ограничения RC
+ 
+ - Реальный PASS для игры/изображения/оборудования требует проверки пользователем на целевом Windows-ПК; API-success хранится отдельно.
+-- NVIDIA переносит только разрешённый набор публичных NVAPI DRS параметров. Неизвестные или несовместимые значения дают Warning.
++- NVIDIA переносит разрешённый набор публичных NVAPI DRS параметров, scaling, выходной формат/диапазон/глубину цвета и системную brightness/contrast/gamma LUT. Неизвестные или несовместимые значения дают Warning; недокументированные private NVAPI вызовы не используются.
+ - DPI/polling меняются только для явно поддержанных физических устройств; виртуальные, неоднозначные и неизвестные мыши не получают Success.
+ - Аппаратные ID, monitor/audio device paths, Steam credentials/tokens/cookies и игровые anti-cheat файлы не переносятся.
+ - Автообновление не активировано: нет фиктивного endpoint и нет неподписанной установки. RC обновляется вручную только доверенным подписанным инсталлятором.
 diff --git a/docs/CLUB_QUICK_START_RU.md b/docs/CLUB_QUICK_START_RU.md
-index a83a4a4..d6be4b9 100644
---- a/docs/CLUB_QUICK_START_RU.md
+new file mode 100644
+index 0000000..d6be4b9
+--- /dev/null
 +++ b/docs/CLUB_QUICK_START_RU.md
-@@ -11,7 +11,7 @@
-    - CS2: сохранены чувствительность/параметры, клавиши и видео;
-    - Экран: указано нужное разрешение;
-    - Мышь: сохранены DPI/частота автоматически или оставлена понятная ручная инструкция;
--   - NVIDIA: предупреждение допустимо, если у игры нет отдельных переносимых настроек драйвера.
+@@ -0,0 +1,28 @@
++# Game Passport — быстрая проверка в компьютерном клубе
++
++## Сохранение профиля на первом ПК
++
++1. Войдите в Steam под аккаунтом игрока и один раз запустите CS2.
++2. В CS2 выставьте чувствительность, клавиши, звук, графику и разрешение. Закройте игру полностью.
++3. Если используется Logitech, откройте G HUB и запомните активные DPI и частоту опроса. Закройте окно G HUB; его фоновая служба может работать.
++4. В Game Passport создайте профиль. Если мышь раньше не считывалась, сразу впишите DPI и частоту из G HUB в блоке «Мышь».
++5. Нажмите «Сохранить текущие настройки». CS2 и PUBG в этот момент должны быть закрыты.
++6. В результате проверьте строки:
++   - CS2: сохранены чувствительность/параметры, клавиши и видео;
++   - Экран: указано нужное разрешение;
++   - Мышь: сохранены DPI/частота автоматически или оставлена понятная ручная инструкция;
 +   - NVIDIA: проверьте игровой профиль, масштабирование, выходной цвет и строку Desktop gamma; предупреждение допустимо, если конкретный драйвер не поддерживает один из этапов.
- 
- ## Применение профиля
- 
-@@ -24,5 +24,5 @@
- ## Что важно в текущей полевой сборке
- 
- - Идентификаторы монитора, GPU и аудиоустройства не переносятся; точная герцовка выбирается максимально доступная на каждом ПК.
--- Цветовые настройки в меню самого монитора не переносятся. Параметры рабочего стола NVIDIA тоже не равны игровому NVIDIA-профилю и могут потребовать отдельной настройки.
++
++## Применение профиля
++
++1. Закройте CS2/PUBG и войдите в нужный Steam-аккаунт.
++2. Выберите профиль и нажмите «Настроить этот ПК».
++3. Дождитесь завершения всех этапов. CS2-файлы проверяются после записи; при ошибке выполняется откат.
++4. Если мышь не поддерживает прямое управление, выставьте показанные DPI/Гц в G HUB.
++5. Запустите игру и проверьте разрешение, чувствительность и клавиши. Затем закройте и снова запустите игру: значения должны сохраниться.
++
++## Что важно в текущей полевой сборке
++
++- Идентификаторы монитора, GPU и аудиоустройства не переносятся; точная герцовка выбирается максимально доступная на каждом ПК.
 +- Цветовые настройки в меню самого монитора не переносятся. Game Passport переносит публичные выходные параметры NVIDIA и эффективные яркость/контраст/гамму; Digital Vibrance и Hue могут потребовать ручной настройки, потому что для них нет поддерживаемого публичного NVAPI setter.
- - Режим «Полевой тест» хранит профили только на текущем ПК. Для входа на другом ПК с теми же профилями нужна сборка с подключённым облаком Supabase.
++- Режим «Полевой тест» хранит профили только на текущем ПК. Для входа на другом ПК с теми же профилями нужна сборка с подключённым облаком Supabase.
 diff --git a/docs/DISPLAY_NVIDIA_ADAPTERS.md b/docs/DISPLAY_NVIDIA_ADAPTERS.md
 index aa24ae3..d1f853d 100644
 --- a/docs/DISPLAY_NVIDIA_ADAPTERS.md
@@ -332,6 +359,788 @@ index 9474e69..aedc4de 100644
  } GpNvApplyReport;
  
  #ifdef __cplusplus
+diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
+index 17b92e3..579666e 100644
+--- a/src-tauri/src/cs2.rs
++++ b/src-tauri/src/cs2.rs
+@@ -19,6 +19,8 @@ pub struct Cs2Payload {
+     pub total_bytes: u64,
+     pub core_files_found: Vec<String>,
+     pub optional_files_missing: Vec<String>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub launch_options: Option<String>,
+ }
+ 
+ #[derive(Debug, Serialize)]
+@@ -100,6 +102,8 @@ mod windows {
+     const MAX_FILE_BYTES: u64 = 512 * 1024;
+     const MAX_TOTAL_BYTES: u64 = 2 * 1024 * 1024;
+     const MAX_FILES: usize = 32;
++    const MAX_LAUNCH_OPTIONS_BYTES: usize = 1024;
++    const MAX_LOCALCONFIG_BYTES: u64 = 16 * 1024 * 1024;
+     const REQUIRED_CORE: [&str; 2] = [
+         "cs2_user_convars_0_slot0.vcfg",
+         "cs2_user_keys_0_slot0.vcfg",
+@@ -109,6 +113,7 @@ mod windows {
+     struct SteamContext {
+         userdata_cfg: PathBuf,
+         install_cfg: Option<PathBuf>,
++        localconfig_vdf: PathBuf,
+     }
+ 
+     #[derive(Debug)]
+@@ -183,7 +188,7 @@ mod windows {
+ 
+     fn capture_inner() -> Result<Cs2CommandResponse, UserFacingError> {
+         ensure_game_closed()?;
+-        let context = discover_steam_context()?;
++        let context = discover_steam_context(true)?;
+         let mut files = Vec::new();
+         let mut details = Vec::new();
+         let mut core_files_found = Vec::new();
+@@ -211,6 +216,8 @@ mod windows {
+             optional_files_missing.push("autoexec.cfg (CS2 installation not located)".into());
+         }
+ 
++        let launch_options = capture_launch_options(&context.localconfig_vdf, &mut details)?;
++
+         if files.len() > MAX_FILES {
+             return Err(UserFacingError::new(
+                 "Too many CS2 configuration files were found. Nothing was saved.",
+@@ -231,13 +238,15 @@ mod windows {
+             "warning"
+         };
+         let message = if state == "success" {
+-            format!("Captured {} CS2 configuration files.", files.len())
++            format!("Сохранено файлов настроек CS2: {}.", files.len())
+         } else {
+             format!(
+-                "Captured {} CS2 configuration files with warnings.",
++                "Сохранено файлов настроек CS2: {} (есть пояснения).",
+                 files.len()
+             )
+         };
++        let custom_count = files.len().saturating_sub(core_files_found.len());
++        let video_captured = core_files_found.iter().any(|name| name == "cs2_video.txt");
+         let payload = Cs2Payload {
+             schema_version: 1,
+             captured_at: Utc::now().to_rfc3339(),
+@@ -245,12 +254,35 @@ mod windows {
+             total_bytes,
+             core_files_found,
+             optional_files_missing: optional_files_missing.clone(),
++            launch_options: launch_options.clone(),
+         };
+         let retryable = !optional_files_missing.is_empty();
++        let mut summary = vec![
++            "Сохранены чувствительность, игровые параметры и звук из cs2_user_convars_0_slot0.vcfg.".into(),
++            "Сохранены привязки клавиш из cs2_user_keys_0_slot0.vcfg.".into(),
++        ];
++        if video_captured {
++            summary.push(
++                "Сохранены переносимые параметры видео и разрешения из cs2_video.txt.".into(),
++            );
++        }
++        if custom_count > 0 {
++            summary.push(format!(
++                "Сохранено дополнительных CFG-файлов: {custom_count}."
++            ));
++        }
++        if launch_options.is_some() {
++            summary.push("Сохранены безопасные параметры запуска CS2 из Steam.".into());
++        } else {
++            summary.push("Параметры запуска CS2 в Steam не заданы или исключены как чувствительные.".into());
++        }
++        summary.push("Не сохраняются идентификаторы монитора, видеокарты и аудиоустройства; точная герцовка выбирается заново на целевом ПК.".into());
++        summary.append(&mut details);
++        details = summary;
+         details.extend(
+             optional_files_missing
+                 .iter()
+-                .map(|name| format!("Optional file not captured: {name}")),
++                .map(|name| format!("Необязательный файл не найден: {name}")),
+         );
+         Ok(Cs2CommandResponse {
+             state: state.into(),
+@@ -264,7 +296,10 @@ mod windows {
+     fn apply_inner(payload: Cs2Payload) -> Result<Cs2CommandResponse, UserFacingError> {
+         ensure_game_closed()?;
+         validate_payload(&payload)?;
+-        let context = discover_steam_context()?;
++        if payload.launch_options.is_some() {
++            ensure_steam_closed()?;
++        }
++        let context = discover_steam_context(payload.launch_options.is_none())?;
+         let needs_install = payload.files.iter().any(|file| file.scope == "install");
+         if needs_install && context.install_cfg.is_none() {
+             return Err(UserFacingError::new(
+@@ -273,7 +308,10 @@ mod windows {
+             ));
+         }
+ 
+-        let decoded = decode_and_resolve(&payload, &context)?;
++        let mut decoded = decode_and_resolve(&payload, &context)?;
++        if let Some(item) = prepare_launch_options_update(&payload, &context)? {
++            decoded.push(item);
++        }
+         let backup_root = backup_root()?;
+         fs::create_dir_all(&backup_root)
+             .map_err(|error| io_error("Could not create a CS2 backup folder.", error))?;
+@@ -296,6 +334,12 @@ mod windows {
+             cleanup_staged(&staged);
+             return Err(error);
+         }
++        if payload.launch_options.is_some() {
++            if let Err(error) = ensure_steam_closed() {
++                cleanup_staged(&staged);
++                return Err(error);
++            }
++        }
+         let mut committed: Vec<(&DecodedFile, Option<PathBuf>)> = Vec::new();
+         for (index, (item, temporary)) in staged.iter().enumerate() {
+             let previous = if item.target.exists() {
+@@ -329,6 +373,26 @@ mod windows {
+             }
+             committed.push((item, previous));
+         }
++        for (item, _) in &committed {
++            let written = match fs::read(&item.target) {
++                Ok(bytes) => bytes,
++                Err(error) => {
++                    rollback(&committed);
++                    return Err(io_error(
++                        "Не удалось проверить записанный файл CS2; изменения отменены.",
++                        error,
++                    ));
++                }
++            };
++            if written != item.content {
++                rollback(&committed);
++                return Err(UserFacingError::new(
++                    "Проверка записанных настроек CS2 не пройдена; изменения отменены.",
++                    true,
++                )
++                .detail(format!("Файл не совпал: {}", item.relative_path)));
++            }
++        }
+         for (_, previous) in &committed {
+             if let Some(path) = previous {
+                 let _ = fs::remove_file(path);
+@@ -341,13 +405,19 @@ mod windows {
+                 "cs2_machine_convars.vcfg" | "cs2_video.txt"
+             )
+         });
+-        let mut details = vec![format!("Backup created locally: {}", backup_root.display())];
++        let mut details = vec![
++            format!("Локальная резервная копия: {}", backup_root.display()),
++            format!("Записано и проверено файлов: {}.", committed.len()),
++        ];
++        if payload.launch_options.is_some() {
++            details.push("Параметры запуска CS2 записаны в Steam и проверены.".into());
++        }
+         if hardware_specific {
+-            details.push("Resolution and video values were written, but CS2 may adjust values unsupported by this PC.".into());
++            details.push("Разрешение и переносимые параметры видео записаны. После запуска CS2 может заменить значения, которые не поддерживаются этим компьютером.".into());
+         }
+         Ok(Cs2CommandResponse {
+             state: if hardware_specific { "warning".into() } else { "success".into() },
+-            message: format!("Applied {} CS2 configuration files. Launch CS2 to verify the final in-game values.", committed.len()),
++            message: format!("Настройки CS2 применены и проверены: {} файлов. Запустите CS2 и проверьте итоговые значения в игре.", committed.len()),
+             details,
+             retryable: false,
+             payload: None,
+@@ -356,7 +426,8 @@ mod windows {
+ 
+     fn restore_inner() -> Result<Cs2CommandResponse, UserFacingError> {
+         ensure_game_closed()?;
+-        let context = discover_steam_context()?;
++        ensure_steam_closed()?;
++        let context = discover_steam_context(false)?;
+         let backups = cs2_backup_directory()?;
+         let mut candidates = fs::read_dir(&backups)
+             .map_err(|_| UserFacingError::new("No Game Passport CS2 backup was found.", false))?
+@@ -370,7 +441,7 @@ mod windows {
+             .ok_or_else(|| UserFacingError::new("No Game Passport CS2 backup was found.", false))?;
+         let mut restored = 0usize;
+         let mut details = vec![format!("Backup used: {}", backup.display())];
+-        for scope in ["userdata", "install"] {
++        for scope in ["userdata", "install", "steam"] {
+             let source_root = backup.join(scope);
+             if !source_root.is_dir() {
+                 continue;
+@@ -384,6 +455,9 @@ mod windows {
+                         continue;
+                     }
+                 },
++                "steam" => context.localconfig_vdf.parent().ok_or_else(|| {
++                    UserFacingError::new("Steam configuration folder is unavailable.", true)
++                })?,
+                 _ => unreachable!(),
+             };
+             let mut queue = VecDeque::from([source_root.clone()]);
+@@ -580,8 +654,8 @@ mod windows {
+         Ok(())
+     }
+ 
+-    fn discover_steam_context() -> Result<SteamContext, UserFacingError> {
+-        if !is_process_running("steam.exe") {
++    fn discover_steam_context(require_steam_running: bool) -> Result<SteamContext, UserFacingError> {
++        if require_steam_running && !is_process_running("steam.exe") {
+             return Err(UserFacingError::new(
+                 "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2.",
+                 true,
+@@ -589,12 +663,15 @@ mod windows {
+         }
+         let steam_root = find_steam_root()
+             .ok_or_else(|| UserFacingError::new("Steam installation could not be found.", true))?;
+-        let account_id = active_account_id().filter(|id| *id != 0).ok_or_else(|| {
+-            UserFacingError::new(
+-                "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2.",
+-                true,
+-            )
+-        })?;
++        let account_id = active_account_id()
++            .filter(|id| *id != 0)
++            .or_else(|| most_recent_account_id(&steam_root))
++            .ok_or_else(|| {
++                UserFacingError::new(
++                    "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2.",
++                    true,
++                )
++            })?;
+         let userdata_cfg = steam_root
+             .join("userdata")
+             .join(account_id.to_string())
+@@ -605,9 +682,15 @@ mod windows {
+             return Err(UserFacingError::new("CS2 settings were not found for the active Steam user. Launch CS2 once, close it, and retry.", true));
+         }
+         let install_cfg = find_install_cfg(&steam_root);
++        let localconfig_vdf = steam_root
++            .join("userdata")
++            .join(account_id.to_string())
++            .join("config")
++            .join("localconfig.vdf");
+         Ok(SteamContext {
+             userdata_cfg,
+             install_cfg,
++            localconfig_vdf,
+         })
+     }
+ 
+@@ -622,6 +705,17 @@ mod windows {
+         }
+     }
+ 
++    fn ensure_steam_closed() -> Result<(), UserFacingError> {
++        if is_process_running("steam.exe") {
++            Err(UserFacingError::new(
++                "Полностью закройте Steam перед применением параметров запуска CS2, затем нажмите «Повторить».",
++                true,
++            ))
++        } else {
++            Ok(())
++        }
++    }
++
+     fn find_steam_root() -> Option<PathBuf> {
+         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+         if let Ok(key) = hkcu.open_subkey("Software\\Valve\\Steam") {
+@@ -651,6 +745,26 @@ mod windows {
+             .or_else(|| steam.get_value("ActiveUser").ok())
+     }
+ 
++    fn most_recent_account_id(steam_root: &Path) -> Option<u32> {
++        let text = fs::read_to_string(steam_root.join("config").join("loginusers.vdf")).ok()?;
++        let mut current_id = None;
++        for line in text.lines() {
++            let tokens = quoted_tokens(line);
++            if tokens.len() == 1 && tokens[0].chars().all(|value| value.is_ascii_digit()) {
++                current_id = tokens[0]
++                    .parse::<u64>()
++                    .ok()
++                    .map(|steam_id| (steam_id & u32::MAX as u64) as u32);
++            } else if tokens.len() >= 2
++                && tokens[0].eq_ignore_ascii_case("MostRecent")
++                && tokens[1] == "1"
++            {
++                return current_id.filter(|id| *id != 0);
++            }
++        }
++        None
++    }
++
+     fn find_install_cfg(steam_root: &Path) -> Option<PathBuf> {
+         let mut libraries = vec![steam_root.to_path_buf()];
+         let library_file = steam_root.join("steamapps").join("libraryfolders.vdf");
+@@ -719,6 +833,226 @@ mod windows {
+         result
+     }
+ 
++    fn capture_launch_options(
++        localconfig: &Path,
++        details: &mut Vec<String>,
++    ) -> Result<Option<String>, UserFacingError> {
++        if !localconfig.is_file() {
++            details.push("Файл параметров запуска Steam не найден; параметры запуска не сохранены.".into());
++            return Ok(None);
++        }
++        if localconfig
++            .metadata()
++            .map(|value| value.len() > MAX_LOCALCONFIG_BYTES)
++            .unwrap_or(true)
++        {
++            details.push("Файл Steam слишком большой или недоступен; параметры запуска не сохранены.".into());
++            return Ok(None);
++        }
++        let text = fs::read_to_string(localconfig)
++            .map_err(|error| io_error("Could not read Steam launch options.", error))?;
++        let Some(value) = find_launch_options(&text) else {
++            return Ok(None);
++        };
++        let value = value.trim().to_string();
++        if value.is_empty() {
++            return Ok(None);
++        }
++        if let Err(error) = validate_launch_options(&value) {
++            details.push(format!("Параметры запуска Steam исключены: {}", error.message));
++            return Ok(None);
++        }
++        Ok(Some(value))
++    }
++
++    fn prepare_launch_options_update(
++        payload: &Cs2Payload,
++        context: &SteamContext,
++    ) -> Result<Option<DecodedFile>, UserFacingError> {
++        let Some(value) = payload.launch_options.as_deref() else {
++            return Ok(None);
++        };
++        validate_launch_options(value)?;
++        if !context.localconfig_vdf.is_file() {
++            return Err(UserFacingError::new(
++                "Параметры запуска CS2 не найдены для этого пользователя Steam. Запустите CS2 один раз, закройте игру и Steam, затем повторите.",
++                true,
++            ));
++        }
++        if context
++            .localconfig_vdf
++            .metadata()
++            .map(|value| value.len() > MAX_LOCALCONFIG_BYTES)
++            .unwrap_or(true)
++        {
++            return Err(UserFacingError::new(
++                "Файл настроек Steam слишком большой или недоступен; параметры запуска не изменены.",
++                false,
++            ));
++        }
++        let text = fs::read_to_string(&context.localconfig_vdf)
++            .map_err(|error| io_error("Could not read Steam launch options.", error))?;
++        let updated = set_launch_options(&text, value)?;
++        Ok(Some(DecodedFile {
++            scope: "steam".into(),
++            relative_path: "localconfig.vdf".into(),
++            target: context.localconfig_vdf.clone(),
++            content: updated.into_bytes(),
++        }))
++    }
++
++    fn validate_launch_options(value: &str) -> Result<(), UserFacingError> {
++        if value.is_empty() || value.len() > MAX_LAUNCH_OPTIONS_BYTES {
++            return Err(UserFacingError::new(
++                "строка должна содержать от 1 до 1024 символов.",
++                false,
++            ));
++        }
++        if value.chars().any(|character| {
++            character == '\0'
++                || character == '\r'
++                || character == '\n'
++                || character.is_control()
++        })
++        {
++            return Err(UserFacingError::new(
++                "строка содержит недопустимые управляющие символы.",
++                false,
++            ));
++        }
++        let lower = value.to_ascii_lowercase();
++        let blocked = [
++            "password",
++            "token",
++            "authkey",
++            "cookie",
++            "+connect",
++            "-connect",
++            "rcon",
++            "setinfo",
++            "apikey",
++            "api_key",
++            "webapi",
++            "://",
++        ];
++        if blocked.iter().any(|marker| lower.contains(marker)) {
++            return Err(UserFacingError::new(
++                "обнаружена команда, которая может содержать адрес сервера, пароль или токен.",
++                false,
++            ));
++        }
++        Ok(())
++    }
++
++    fn find_launch_options(text: &str) -> Option<String> {
++        let (line, _, _) = locate_cs2_vdf_entries(text);
++        line.and_then(|index| quoted_tokens(text.lines().nth(index)?).get(1).cloned())
++    }
++
++    fn set_launch_options(text: &str, value: &str) -> Result<String, UserFacingError> {
++        let (launch_line, block_close, block_indent) = locate_cs2_vdf_entries(text);
++        let newline = if text.contains("\r\n") { "\r\n" } else { "\n" };
++        let mut lines = text.lines().map(str::to_string).collect::<Vec<_>>();
++        let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
++        if let Some(index) = launch_line {
++            let indent = lines[index]
++                .chars()
++                .take_while(|character| character.is_whitespace())
++                .collect::<String>();
++            lines[index] = format!("{indent}\"LaunchOptions\"\t\t\"{escaped}\"");
++        } else if let Some(index) = block_close {
++            lines.insert(
++                index,
++                format!("{block_indent}\t\"LaunchOptions\"\t\t\"{escaped}\""),
++            );
++        } else {
++            return Err(UserFacingError::new(
++                "В локальных настройках Steam не найден раздел CS2. Запустите CS2 один раз и повторите.",
++                true,
++            ));
++        }
++        let mut result = lines.join(newline);
++        if text.ends_with('\n') {
++            result.push_str(newline);
++        }
++        Ok(result)
++    }
++
++    fn locate_cs2_vdf_entries(text: &str) -> (Option<usize>, Option<usize>, String) {
++        const PATH: [&str; 5] = ["Software", "Valve", "Steam", "apps", "730"];
++        let mut stack = Vec::<String>::new();
++        let mut pending = None::<String>;
++        let mut launch_line = None;
++        let mut block_close = None;
++        let mut block_indent = String::new();
++        for (index, line) in text.lines().enumerate() {
++            let tokens = quoted_tokens(line);
++            if path_ends_with(&stack, &PATH)
++                && tokens.len() >= 2
++                && tokens[0].eq_ignore_ascii_case("LaunchOptions")
++            {
++                launch_line = Some(index);
++            }
++            if tokens.len() == 1 {
++                pending = Some(tokens[0].clone());
++            }
++            let (opens, closes) = unquoted_braces(line);
++            for _ in 0..opens {
++                if let Some(key) = pending.take() {
++                    stack.push(key);
++                    if path_ends_with(&stack, &PATH) {
++                        block_indent = line
++                            .chars()
++                            .take_while(|character| character.is_whitespace())
++                            .collect();
++                    }
++                }
++            }
++            for _ in 0..closes {
++                if path_ends_with(&stack, &PATH) {
++                    block_close = Some(index);
++                    block_indent = line
++                        .chars()
++                        .take_while(|character| character.is_whitespace())
++                        .collect();
++                }
++                stack.pop();
++            }
++        }
++        (launch_line, block_close, block_indent)
++    }
++
++    fn path_ends_with(stack: &[String], expected: &[&str]) -> bool {
++        stack.len() >= expected.len()
++            && stack[stack.len() - expected.len()..]
++                .iter()
++                .zip(expected)
++                .all(|(actual, expected)| actual.eq_ignore_ascii_case(expected))
++    }
++
++    fn unquoted_braces(line: &str) -> (usize, usize) {
++        let mut quoted = false;
++        let mut escaped = false;
++        let mut opens = 0;
++        let mut closes = 0;
++        for character in line.chars() {
++            if escaped {
++                escaped = false;
++                continue;
++            }
++            if quoted && character == '\\' {
++                escaped = true;
++            } else if character == '"' {
++                quoted = !quoted;
++            } else if !quoted && character == '{' {
++                opens += 1;
++            } else if !quoted && character == '}' {
++                closes += 1;
++            }
++        }
++        (opens, closes)
++    }
++
+     fn capture_userdata_cfg_files(
+         root: &Path,
+         files: &mut Vec<Cs2ConfigFile>,
+@@ -990,6 +1324,7 @@ mod windows {
+         let allowed = match scope {
+             "userdata" => core || (cfg && relative.components().count() == 1),
+             "install" => cfg,
++            "steam" => value == "localconfig.vdf",
+             _ => false,
+         };
+         if allowed {
+@@ -1104,6 +1439,51 @@ mod windows {
+             assert_eq!(removed, 1);
+             assert!(String::from_utf8(video).unwrap().contains("defaultres"));
+         }
++
++        #[test]
++        fn reads_and_replaces_only_cs2_launch_options() {
++            let input = r#""UserLocalConfigStore"
++{
++    "Software"
++    {
++        "Valve"
++        {
++            "Steam"
++            {
++                "apps"
++                {
++                    "730"
++                    {
++                        "LaunchOptions"        "-novid -console"
++                    }
++                }
++            }
++        }
++    }
++}
++"#;
++            assert_eq!(find_launch_options(input).as_deref(), Some("-novid -console"));
++            let updated = set_launch_options(input, "-novid +fps_max 400").unwrap();
++            assert_eq!(
++                find_launch_options(&updated).as_deref(),
++                Some("-novid +fps_max 400")
++            );
++            assert!(updated.contains("UserLocalConfigStore"));
++        }
++
++        #[test]
++        fn inserts_launch_options_when_cs2_block_exists() {
++            let input = "\"Software\"\n{\n\t\"Valve\"\n\t{\n\t\t\"Steam\"\n\t\t{\n\t\t\t\"apps\"\n\t\t\t{\n\t\t\t\t\"730\"\n\t\t\t\t{\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n";
++            let updated = set_launch_options(input, "-console").unwrap();
++            assert_eq!(find_launch_options(&updated).as_deref(), Some("-console"));
++        }
++
++        #[test]
++        fn blocks_sensitive_launch_options() {
++            assert!(validate_launch_options("-novid -console").is_ok());
++            assert!(validate_launch_options("+connect 10.0.0.1 +password secret").is_err());
++            assert!(validate_launch_options("-authkey abc123").is_err());
++        }
+     }
+ }
+ 
+@@ -1140,6 +1520,7 @@ mod tests {
+             total_bytes: 0,
+             core_files_found: vec![],
+             optional_files_missing: vec![],
++            launch_options: None,
+         };
+         let json = serde_json::to_value(payload).unwrap();
+         assert_eq!(json["schemaVersion"], 1);
+diff --git a/src-tauri/src/mouse.rs b/src-tauri/src/mouse.rs
+index 6c65c7a..0814d21 100644
+--- a/src-tauri/src/mouse.rs
++++ b/src-tauri/src/mouse.rs
+@@ -115,6 +115,8 @@ pub struct MouseDeviceDiagnostics {
+ #[serde(rename_all = "camelCase")]
+ pub struct MouseDiagnostics {
+     pub devices: Vec<MouseDeviceDiagnostics>,
++    #[serde(default)]
++    pub probe_errors: Vec<String>,
+     pub selected_instance_id: Option<String>,
+     pub selection_ambiguous: bool,
+     pub current_dpi: Option<u32>,
+@@ -433,11 +435,11 @@ mod windows {
+                 response(
+                     state,
+                     if diagnostic.selection_ambiguous {
+-                        "Multiple controllable gaming mice were detected; no device was selected."
++                        "Обнаружено несколько управляемых мышей — безопасный выбор не выполнен."
+                     } else if diagnostic.selected_instance_id.is_some() {
+-                        "Mouse detection completed."
++                        "Мышь обнаружена, текущие параметры считаны."
+                     } else {
+-                        "No controllable gaming mouse was found."
++                        "Совместимая мышь не найдена. Откройте сведения ниже."
+                     },
+                     vec![],
+                     Some(diagnostic),
+@@ -460,7 +462,7 @@ mod windows {
+                 return manual_response(
+                     &mut diagnostic,
+                     None,
+-                    "No supported readable gaming mouse was found.",
++                    "Мышь обнаружена, но её DPI не удалось безопасно считать автоматически.",
+                 )
+             }
+             Err(message) => return manual_response(&mut diagnostic, None, &message),
+@@ -486,15 +488,15 @@ mod windows {
+                 response(
+                     state,
+                     if polling.is_some() {
+-                        "Saved current mouse DPI and polling rate."
++                        "Текущие DPI и частота опроса мыши сохранены."
+                     } else {
+-                        "Saved current mouse DPI; polling rate could not be read."
++                        "DPI мыши сохранён; частоту опроса считать не удалось."
+                     },
+                     vec![
+                         format!("DPI: {dpi}"),
+                         polling
+                             .map(|rate| format!("Polling rate: {rate} Hz"))
+-                            .unwrap_or_else(|| "Polling rate: unavailable".into()),
++                            .unwrap_or_else(|| "Частота опроса: недоступна".into()),
+                     ],
+                     Some(diagnostic),
+                     Some(payload),
+@@ -742,21 +744,40 @@ mod windows {
+         }
+         let mut targets = Vec::new();
+         let mut target_keys = HashSet::new();
++        let mut probe_errors = Vec::new();
+         for endpoint in &endpoints {
+             if classify_vid_pid(endpoint.vendor_id, endpoint.product_id)
+                 == MouseAdapterKind::LogitechProbe
+             {
+-                for index in [0xFF, 1, 2, 3, 4, 5, 6] {
+-                    if let Ok(target) = probe_logitech(&api, endpoint, index) {
+-                        let key = format!("{}:{index}", endpoint.physical_key);
+-                        if target_keys.insert(key) {
+-                            devices
+-                                .insert(endpoint.physical_key.clone(), target.diagnostics.clone());
+-                            targets.push(target);
++                let mut found = false;
++                let mut last_error = None;
++                for index in [0xFF, 1, 2, 3, 4, 5, 6, 0] {
++                    match probe_logitech(&api, endpoint, index) {
++                        Ok(target) => {
++                            let key = format!("{}:{index}", endpoint.physical_key);
++                            if target_keys.insert(key) {
++                                devices.insert(
++                                    endpoint.physical_key.clone(),
++                                    target.diagnostics.clone(),
++                                );
++                                targets.push(target);
++                            }
++                            found = true;
++                            break;
+                         }
+-                        break;
++                        Err(error) => last_error = Some(error),
+                     }
+                 }
++                if !found && probe_errors.len() < 12 {
++                    probe_errors.push(format!(
++                        "Logitech {} (VID {:04X}, PID {:04X}, interface {}): {}",
++                        endpoint.product,
++                        endpoint.vendor_id,
++                        endpoint.product_id,
++                        endpoint.interface_number,
++                        last_error.unwrap_or_else(|| "HID++ Adjustable DPI недоступен".into())
++                    ));
++                }
+             } else if classify_vid_pid(endpoint.vendor_id, endpoint.product_id)
+                 == MouseAdapterKind::Razer
+             {
+@@ -765,12 +786,21 @@ mod windows {
+                     .find(|model| model.product_id == endpoint.product_id)
+                     .copied()
+                 {
+-                    if let Ok(target) = probe_razer(&api, endpoint, model) {
+-                        if target_keys.insert(endpoint.physical_key.clone()) {
+-                            devices
+-                                .insert(endpoint.physical_key.clone(), target.diagnostics.clone());
+-                            targets.push(target);
++                    match probe_razer(&api, endpoint, model) {
++                        Ok(target) => {
++                            if target_keys.insert(endpoint.physical_key.clone()) {
++                                devices.insert(
++                                    endpoint.physical_key.clone(),
++                                    target.diagnostics.clone(),
++                                );
++                                targets.push(target);
++                            }
+                         }
++                        Err(error) if probe_errors.len() < 12 => probe_errors.push(format!(
++                            "Razer {} (PID {:04X}): {error}",
++                            endpoint.product, endpoint.product_id
++                        )),
++                        Err(_) => {}
+                     }
+                 }
+             }
+@@ -786,6 +816,7 @@ mod windows {
+             .map(|index| index.map(|index| targets[index].clone()));
+         let mut diagnostics = MouseDiagnostics {
+             devices: devices.into_values().collect(),
++            probe_errors,
+             selection_ambiguous: selection.is_err(),
+             ..Default::default()
+         };
+@@ -1430,7 +1461,7 @@ mod windows {
+         remember(diagnostic);
+         let instruction = payload.map(|value| {
+             format!(
+-                "Set mouse manually: {} DPI{}",
++                "Если автоматическое применение не сработало, выставьте в G HUB: {} DPI{}",
+                 value.dpi,
+                 value
+                     .polling_rate_hz
+@@ -1438,13 +1469,19 @@ mod windows {
+                     .unwrap_or_default()
+             )
+         });
+-        let details = instruction
+-            .into_iter()
+-            .chain(std::iter::once(reason.to_string()))
+-            .collect();
++        let mut details: Vec<String> = instruction.into_iter().collect();
++        details.push(reason.to_string());
++        if diagnostic
++            .devices
++            .iter()
++            .any(|device| device.vendor_id == "046D")
++        {
++            details.push("Logitech G HUB управляет настройками мыши, но не гарантирует доступ к ним для другого приложения. Проверьте выбранный профиль/режим встроенной памяти G HUB.".into());
++        }
++        details.extend(diagnostic.probe_errors.iter().cloned());
+         response(
+             "warning",
+-            "Mouse settings were not automatically applied.",
++            "Настройки мыши не применены автоматически.",
+             details,
+             Some(diagnostic.clone()),
+             None,
 diff --git a/src-tauri/src/nvidia.rs b/src-tauri/src/nvidia.rs
 index 5e0a924..49a354f 100644
 --- a/src-tauri/src/nvidia.rs
@@ -723,6 +1532,79 @@ index 5e0a924..49a354f 100644
 +        assert!(validate_payload(&value).is_err());
      }
  }
+diff --git a/src/components/AuthScreen.tsx b/src/components/AuthScreen.tsx
+index fb90ae7..683e30f 100644
+--- a/src/components/AuthScreen.tsx
++++ b/src/components/AuthScreen.tsx
+@@ -12,15 +12,20 @@ export function AuthScreen({ auth, mode, onAuthenticated }: Props) {
+   const [password, setPassword] = useState(mode !== "cloud" ? "passport" : "");
+   const [busy, setBusy] = useState(false);
+   const [error, setError] = useState("");
++  const [notice, setNotice] = useState("");
+   const [technicalError, setTechnicalError] = useState("");
+ 
+   async function submit(event: FormEvent) {
+-    event.preventDefault(); setBusy(true); setError(""); setTechnicalError("");
++    event.preventDefault(); setBusy(true); setError(""); setNotice(""); setTechnicalError("");
+     if (mode === "cloud" && !navigator.onLine) { setError("Нет подключения к интернету. Подключитесь к сети, чтобы войти."); setBusy(false); return; }
+     try {
+       const user = variant === "signin" ? await auth.signIn(email, password) : await auth.signUp(email, password);
+       if (user) onAuthenticated(user);
+-      else setError("Подтвердите аккаунт по ссылке в письме, затем войдите.");
++      else {
++        setVariant("signin");
++        setPassword("");
++        setNotice("Письмо отправлено. Подтвердите email, вернитесь сюда и войдите — перезапускать приложение не нужно.");
++      }
+     } catch (cause) { const detail = cause instanceof Error ? cause.message : String(cause); setError(friendlyAuthError(detail)); setTechnicalError(detail); }
+     finally { setBusy(false); }
+   }
+@@ -42,13 +47,14 @@ export function AuthScreen({ auth, mode, onAuthenticated }: Props) {
+         <p className="muted">Ваши профили готовы к игре.</p>
+         {mode === "demo" && <div className="demo-notice"><span className="status-dot" /> Демо-режим — данные остаются на этом устройстве</div>}
+         {mode === "field-test" && <div className="demo-notice prominent"><span className="status-dot" /> ПОЛЕВОЙ ТЕСТ — профили хранятся на этом ПК; реальные Windows-адаптеры включены</div>}
++        {notice && <div className="demo-notice prominent" role="status"><span className="status-dot" /> {notice}</div>}
+         <form onSubmit={submit}>
+           <label>Email<input aria-label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+           <label>Пароль<input aria-label="Пароль" type="password" autoComplete={variant === "signin" ? "current-password" : "new-password"} minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+           {error && <div className="form-error" role="alert">{error}{technicalError && <details className="technical-details"><summary>Технические подробности</summary><span>{technicalError}</span></details>}</div>}
+           <button className="button primary wide" disabled={busy}>{busy ? "Подождите…" : variant === "signin" ? "Войти" : "Создать аккаунт"}<ArrowRight size={18} /></button>
+         </form>
+-        <button className="text-button" onClick={() => { setVariant(variant === "signin" ? "signup" : "signin"); setError(""); }}>
++        <button className="text-button" onClick={() => { setVariant(variant === "signin" ? "signup" : "signin"); setError(""); setNotice(""); }}>
+           {variant === "signin" ? "Впервые здесь? Создать аккаунт" : "Уже есть аккаунт? Войти"}
+         </button>
+       </div>
+diff --git a/src/components/Dashboard.tsx b/src/components/Dashboard.tsx
+index 1e39b5c..0603812 100644
+--- a/src/components/Dashboard.tsx
++++ b/src/components/Dashboard.tsx
+@@ -13,6 +13,7 @@ import { Diagnostics } from "./Diagnostics";
+ import { InitialSetup } from "./InitialSetup";
+ import { FieldValidationWizard } from "./FieldValidationWizard";
+ import type { CloudState } from "../domain/release";
++import type { MousePayload } from "../domain/mouse";
+ import { fieldValidation } from "../services/fieldValidation";
+ import { operationHistory } from "../services/operationHistory";
+ 
+@@ -39,9 +40,14 @@ export function Dashboard({ user, services, onSignOut }: Props) {
+     return () => { window.removeEventListener("online", refresh); window.removeEventListener("offline", refresh); };
+   }, [refreshCloud]);
+ 
+-  async function save(name: string, game: GameId) {
+-    if (modal?.profile) await services.profiles.update(user.id, modal.profile.id, { name, game });
+-    else await services.profiles.create(user.id, { name, game, settings: {} });
++  async function save(name: string, game: GameId, manualMouse?: MousePayload) {
++    const mousePatch = manualMouse ? { adapters: { mouse: manualMouse } } : undefined;
++    if (modal?.profile) {
++      const settings = mousePatch ? mergeSettingsPatch(modal.profile.settings, mousePatch) : modal.profile.settings;
++      await services.profiles.update(user.id, modal.profile.id, { name, game, settings });
++    } else {
++      await services.profiles.create(user.id, { name, game, settings: mousePatch ?? {} });
++    }
+     logger.info("profiles", modal?.profile ? "Updated selected profile" : "Created a profile"); setModal(null); await load();
+   }
+   async function remove(profile: GameProfile) {
 diff --git a/src/components/Diagnostics.tsx b/src/components/Diagnostics.tsx
 index 2f03fe6..6e97484 100644
 --- a/src/components/Diagnostics.tsx
@@ -749,6 +1631,94 @@ index 55a6243..ffa7305 100644
    mouse: { title: "7 · Проверка мыши", detail: "Если поддерживается, проверьте DPI и частоту опроса физической мыши.", software: false }
  };
  
+diff --git a/src/components/ProfileModal.tsx b/src/components/ProfileModal.tsx
+index acf075e..16be0c6 100644
+--- a/src/components/ProfileModal.tsx
++++ b/src/components/ProfileModal.tsx
+@@ -1,21 +1,29 @@
+ import { useEffect, useState, type FormEvent } from "react";
+ import { X } from "lucide-react";
+ import { GAME_META, type GameId, type GameProfile } from "../domain/types";
++import { createManualMousePayload, getMousePayload, type MousePayload } from "../domain/mouse";
+ 
+ const RELEASE_GAMES = ["cs2", "pubg"] as const;
+ 
+-interface Props { profile?: GameProfile | null; onClose: () => void; onSave: (name: string, game: GameId) => Promise<void> }
++interface Props { profile?: GameProfile | null; onClose: () => void; onSave: (name: string, game: GameId, manualMouse?: MousePayload) => Promise<void> }
+ 
+ export function ProfileModal({ profile, onClose, onSave }: Props) {
+   const [name, setName] = useState(profile?.name ?? "");
+   const [game, setGame] = useState<GameId>(profile?.game ?? "cs2");
++  const existingMouse = profile ? getMousePayload(profile.settings) : null;
++  const [dpi, setDpi] = useState(existingMouse ? String(existingMouse.dpi) : "");
++  const [polling, setPolling] = useState(existingMouse?.pollingRateHz ? String(existingMouse.pollingRateHz) : "");
+   const [busy, setBusy] = useState(false);
+   const [error, setError] = useState("");
+   useEffect(() => { const listener = (event: KeyboardEvent) => event.key === "Escape" && onClose(); window.addEventListener("keydown", listener); return () => window.removeEventListener("keydown", listener); }, [onClose]);
+ 
+   async function submit(event: FormEvent) {
+     event.preventDefault(); setBusy(true); setError("");
+-    try { await onSave(name, game); }
++    try {
++      const manualMouse = dpi ? createManualMousePayload(Number(dpi), polling ? Number(polling) : undefined) : undefined;
++      if (dpi && !manualMouse) throw new Error("Проверьте DPI и частоту опроса мыши.");
++      await onSave(name, game, manualMouse ?? undefined);
++    }
+     catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось сохранить профиль."); setBusy(false); }
+   }
+ 
+@@ -32,7 +40,8 @@ export function ProfileModal({ profile, onClose, onSave }: Props) {
+             <span>{GAME_META[id].short}</span><small>{GAME_META[id].name}</small>
+           </button>)}
+         </div></fieldset>
+-        <div className="info-box">{game === "cs2" ? "Сохранение считывает реальные настройки CS2, экрана, NVIDIA и мыши. Сначала закройте CS2 и войдите в Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
++        <fieldset className="mouse-fallback"><legend>Мышь · необязательно</legend><p className="muted">Если Logitech не считывается автоматически, впишите значения из G HUB. Они сохранятся в профиле; на другом ПК приложение применит их автоматически либо покажет точную ручную инструкцию.</p><div className="mouse-fields"><label>DPI<input inputMode="numeric" min={50} max={100000} type="number" value={dpi} onChange={(event) => setDpi(event.target.value)} placeholder="например, 800" /></label><label>Частота опроса<select value={polling} onChange={(event) => setPolling(event.target.value)}><option value="">Не указана</option>{[125, 250, 500, 1000, 2000, 4000, 8000].map((rate) => <option key={rate} value={rate}>{rate} Гц</option>)}</select></label></div></fieldset>
++        <div className="info-box">{game === "cs2" ? "Сохранение считывает настройки CS2, параметры запуска Steam, экран, NVIDIA и мышь. Закройте CS2 и войдите в Steam. При применении параметров запуска приложение попросит полностью закрыть Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
+         {error && <div className="form-error" role="alert">{error}</div>}
+         <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Отмена</button><button className="button primary" disabled={busy || !name.trim()}>{busy ? "Сохраняем…" : profile ? "Сохранить изменения" : "Создать профиль"}</button></div>
+       </form>
+diff --git a/src/domain/cs2.ts b/src/domain/cs2.ts
+index 171e206..a099536 100644
+--- a/src/domain/cs2.ts
++++ b/src/domain/cs2.ts
+@@ -15,6 +15,7 @@ export interface Cs2Payload {
+   totalBytes: number;
+   coreFilesFound: string[];
+   optionalFilesMissing: string[];
++  launchOptions?: string;
+ }
+ 
+ export interface Cs2CommandResponse {
+diff --git a/src/domain/mouse.ts b/src/domain/mouse.ts
+index 9c43a97..1ce257e 100644
+--- a/src/domain/mouse.ts
++++ b/src/domain/mouse.ts
+@@ -38,6 +38,7 @@ export interface MouseDeviceDiagnostics {
+ 
+ export interface MouseDiagnostics {
+   devices: MouseDeviceDiagnostics[];
++  probeErrors: string[];
+   selectedInstanceId?: string;
+   selectionAmbiguous: boolean;
+   currentDpi?: number;
+@@ -51,6 +52,17 @@ export interface MouseDiagnostics {
+   restoreResult?: string;
+ }
+ 
++export function createManualMousePayload(dpi: number, pollingRateHz?: number): MousePayload | null {
++  if (!Number.isInteger(dpi) || dpi < 50 || dpi > 100_000) return null;
++  if (pollingRateHz !== undefined && (!Number.isInteger(pollingRateHz) || pollingRateHz < 125 || pollingRateHz > 8_000)) return null;
++  return {
++    schemaVersion: 1,
++    capturedAt: new Date().toISOString(),
++    dpi,
++    ...(pollingRateHz !== undefined && { pollingRateHz })
++  };
++}
++
+ export interface MouseCommandResponse {
+   state: "success" | "warning" | "unsupported" | "error";
+   message: string;
 diff --git a/src/domain/nvidia.ts b/src/domain/nvidia.ts
 index 80efb4e..6b933dd 100644
 --- a/src/domain/nvidia.ts
@@ -793,6 +1763,105 @@ index 80efb4e..6b933dd 100644
  }
  
  export interface NvidiaCommandResponse {
+diff --git a/src/styles.css b/src/styles.css
+index dc3d14f..19fcc39 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -145,6 +145,12 @@ legend { margin-bottom: 10px; }
+ .game-choice small { font-size: 9px; }
+ .game-choice.selected { border-color: color-mix(in srgb, var(--game-accent) 45%, transparent); background: color-mix(in srgb, var(--game-accent) 6%, #16171c); }
+ .modal .info-box { margin-top: 0; }
++.mouse-fallback { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.018); }
++.mouse-fallback legend { float: left; width: 100%; margin-bottom: 2px; color: #d8dadf; font-weight: 750; }
++.mouse-fallback .muted { clear: both; font-size: 11px; line-height: 1.5; }
++.mouse-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
++.mouse-fields label { gap: 7px; font-size: 10px; }
++.mouse-fields input, .mouse-fields select { width: 100%; }
+ .modal-actions { display: flex; justify-content: flex-end; gap: 9px; }
+ 
+ .process-shell { min-height: 100vh; display: grid; place-items: center; padding: 45px; background: radial-gradient(circle at 50% 30%, rgba(166,255,63,.06), transparent 28%), #08090c; }
+diff --git a/src/test/AuthScreen.test.tsx b/src/test/AuthScreen.test.tsx
+index 2004b56..24ff964 100644
+--- a/src/test/AuthScreen.test.tsx
++++ b/src/test/AuthScreen.test.tsx
+@@ -1,6 +1,7 @@
+ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+ import { afterEach, describe, expect, it } from "vitest";
+ import { AuthScreen } from "../components/AuthScreen";
++import type { AuthProvider } from "../ports/AuthProvider";
+ import { LocalAuthProvider } from "../infrastructure/local/LocalAuthProvider";
+ 
+ afterEach(cleanup);
+@@ -22,4 +23,25 @@ describe("AuthScreen", () => {
+     fireEvent.click(screen.getByRole("button", { name: "Войти" }));
+     await waitFor(() => expect(email).toBe("player@example.com"));
+   });
++
++  it("returns to sign in after sending an email confirmation", async () => {
++    const auth: AuthProvider = {
++      getCurrentUser: async () => null,
++      signIn: async () => ({ id: "user-1", email: "player@example.com" }),
++      signUp: async () => null,
++      signOut: async () => undefined,
++      onAuthChange: () => () => undefined,
++    };
++
++    render(<AuthScreen auth={auth} mode="cloud" onAuthenticated={() => undefined} />);
++    fireEvent.click(screen.getByRole("button", { name: /Создать аккаунт/i }));
++    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "player@example.com" } });
++    fireEvent.change(screen.getByLabelText("Пароль"), { target: { value: "secret12" } });
++    fireEvent.click(screen.getByRole("button", { name: "Создать аккаунт" }));
++
++    expect(await screen.findByRole("status")).toHaveTextContent(/перезапускать приложение не нужно/i);
++    expect(screen.getByRole("heading", { name: "Войти в Game Passport" })).toBeInTheDocument();
++    expect(screen.getByLabelText("Email")).toHaveValue("player@example.com");
++    expect(screen.getByLabelText("Пароль")).toHaveValue("");
++  });
+ });
+diff --git a/src/test/Cs2Payload.test.ts b/src/test/Cs2Payload.test.ts
+index 76502d1..f47aacb 100644
+--- a/src/test/Cs2Payload.test.ts
++++ b/src/test/Cs2Payload.test.ts
+@@ -3,7 +3,7 @@ import { getCs2Payload, mergeSettingsPatch } from "../domain/cs2";
+ 
+ describe("CS2 profile payload", () => {
+   it("merges adapter data without deleting other settings", () => {
+-    const payload = { schemaVersion: 1, capturedAt: "now", files: [], totalBytes: 0, coreFilesFound: [], optionalFilesMissing: [] } as const;
++    const payload = { schemaVersion: 1, capturedAt: "now", files: [], totalBytes: 0, coreFilesFound: [], optionalFilesMissing: [], launchOptions: "-novid -console" } as const;
+     const merged = mergeSettingsPatch(
+       { theme: "dark", adapters: { display: { width: 1920 } } },
+       { adapters: { "game.cs2": payload } }
+@@ -11,6 +11,7 @@ describe("CS2 profile payload", () => {
+     expect(merged.theme).toBe("dark");
+     expect((merged.adapters as Record<string, unknown>).display).toEqual({ width: 1920 });
+     expect(getCs2Payload(merged)?.schemaVersion).toBe(1);
++    expect(getCs2Payload(merged)?.launchOptions).toBe("-novid -console");
+   });
+ 
+   it("merges normalized adapter fields without replacing its snapshot", () => {
+diff --git a/src/test/MouseProfile.test.ts b/src/test/MouseProfile.test.ts
+index 73110b4..5e95cbd 100644
+--- a/src/test/MouseProfile.test.ts
++++ b/src/test/MouseProfile.test.ts
+@@ -1,5 +1,5 @@
+ import { describe, expect, it } from "vitest";
+-import { getMousePayload, normalizeDesiredDpi, normalizePollingRate } from "../domain/mouse";
++import { createManualMousePayload, getMousePayload, normalizeDesiredDpi, normalizePollingRate } from "../domain/mouse";
+ 
+ describe("Mouse Passport profile", () => {
+   it("stores normalized preferences without physical identity", () => {
+@@ -26,4 +26,11 @@ describe("Mouse Passport profile", () => {
+     expect(getMousePayload({ adapters: { mouse: { schemaVersion: 2, dpi: 800 } } })).toBeNull();
+     expect(getMousePayload({ adapters: { mouse: { schemaVersion: 1, dpi: "800" } } })).toBeNull();
+   });
++
++  it("creates a portable manual fallback without a device identity", () => {
++    const payload = createManualMousePayload(800, 1000);
++    expect(payload).toMatchObject({ schemaVersion: 1, dpi: 800, pollingRateHz: 1000 });
++    expect(createManualMousePayload(0, 1000)).toBeNull();
++    expect(createManualMousePayload(800, 10)).toBeNull();
++  });
+ });
 diff --git a/supabase/migrations/202608100001_create_profiles.sql b/supabase/migrations/202608100001_create_profiles.sql
 index cb3ef3d..ebf02e8 100644
 --- a/supabase/migrations/202608100001_create_profiles.sql
