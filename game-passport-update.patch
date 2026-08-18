@@ -1,0 +1,1263 @@
+diff --git a/docs/CLUB_QUICK_START_RU.md b/docs/CLUB_QUICK_START_RU.md
+new file mode 100644
+index 0000000..d6be4b9
+--- /dev/null
++++ b/docs/CLUB_QUICK_START_RU.md
+@@ -0,0 +1,28 @@
++# Game Passport — быстрая проверка в компьютерном клубе
++
++## Сохранение профиля на первом ПК
++
++1. Войдите в Steam под аккаунтом игрока и один раз запустите CS2.
++2. В CS2 выставьте чувствительность, клавиши, звук, графику и разрешение. Закройте игру полностью.
++3. Если используется Logitech, откройте G HUB и запомните активные DPI и частоту опроса. Закройте окно G HUB; его фоновая служба может работать.
++4. В Game Passport создайте профиль. Если мышь раньше не считывалась, сразу впишите DPI и частоту из G HUB в блоке «Мышь».
++5. Нажмите «Сохранить текущие настройки». CS2 и PUBG в этот момент должны быть закрыты.
++6. В результате проверьте строки:
++   - CS2: сохранены чувствительность/параметры, клавиши и видео;
++   - Экран: указано нужное разрешение;
++   - Мышь: сохранены DPI/частота автоматически или оставлена понятная ручная инструкция;
++   - NVIDIA: проверьте игровой профиль, масштабирование, выходной цвет и строку Desktop gamma; предупреждение допустимо, если конкретный драйвер не поддерживает один из этапов.
++
++## Применение профиля
++
++1. Закройте CS2/PUBG и войдите в нужный Steam-аккаунт.
++2. Выберите профиль и нажмите «Настроить этот ПК».
++3. Дождитесь завершения всех этапов. CS2-файлы проверяются после записи; при ошибке выполняется откат.
++4. Если мышь не поддерживает прямое управление, выставьте показанные DPI/Гц в G HUB.
++5. Запустите игру и проверьте разрешение, чувствительность и клавиши. Затем закройте и снова запустите игру: значения должны сохраниться.
++
++## Что важно в текущей полевой сборке
++
++- Идентификаторы монитора, GPU и аудиоустройства не переносятся; точная герцовка выбирается максимально доступная на каждом ПК.
++- Цветовые настройки в меню самого монитора не переносятся. Game Passport переносит публичные выходные параметры NVIDIA и эффективные яркость/контраст/гамму; Digital Vibrance и Hue могут потребовать ручной настройки, потому что для них нет поддерживаемого публичного NVAPI setter.
++- Режим «Полевой тест» хранит профили только на текущем ПК. Для входа на другом ПК с теми же профилями нужна сборка с подключённым облаком Supabase.
+diff --git a/docs/DISPLAY_NVIDIA_ADAPTERS.md b/docs/DISPLAY_NVIDIA_ADAPTERS.md
+index aa24ae3..d1f853d 100644
+--- a/docs/DISPLAY_NVIDIA_ADAPTERS.md
++++ b/docs/DISPLAY_NVIDIA_ADAPTERS.md
+@@ -50,7 +50,7 @@ SDK vendored в `src-tauri/vendor/nvapi`; лицензия сохранена в
+ 
+ ## NVIDIA snapshot
+ 
+-Профиль хранит `cs2.exe`, capture timestamp, массив `{id,key,value}` и документированный scaling enum. Не копируются NVIDIA driver database, binary export или hardware-specific profile blobs.
++Профиль хранит `cs2.exe`, capture timestamp, массив `{id,key,value}`, документированный scaling enum, публичную конфигурацию выходного цвета и эффективную gamma LUT рабочего стола. Не копируются NVIDIA driver database, binary export, monitor ID или hardware-specific profile blobs.
+ 
+ Разрешены только публичные DWORD IDs из `NvApiDriverSettings.h`:
+ 
+@@ -97,11 +97,26 @@ Stretched соответствует документированному `NV_SC
+ 
+ Если primary display не NVIDIA, details отсутствуют или API возвращает ошибку, scaling становится Warning/Unsupported. Registry fallback отсутствует.
+ 
++## Цвет NVIDIA и рабочий стол
++
++Для текущего основного NVIDIA-дисплея через публичный `NvAPI_Disp_ColorControl` сохраняются и затем проверяются readback:
++
++- RGB/YCbCr format;
++- colorimetry;
++- full/limited dynamic range;
++- bits per color;
++- color selection policy;
++- desktop color depth.
++
++Дополнительно Windows GDI сохраняет эффективную 3×256 gamma LUT. Она переносит фактический результат регулировок яркости, контраста и гаммы рабочего стола, когда драйвер публикует эти регулировки через системную LUT. LUT применяется последней, после возможной перезагрузки режима дисплея, и сразу считывается обратно.
++
++Цифровая насыщенность (Digital Vibrance) и Hue не входят в публичный NVAPI SDK как поддерживаемые desktop-adjustment setters. Game Passport не использует недокументированные private NVAPI calls и поэтому не выдаёт ложный Success для этих двух ползунков. На несовместимом дисплее выходной цвет или LUT дают Warning, а не блокируют игровые настройки.
++
+ ## Backup и rollback
+ 
+ Display backup содержит только локальный Windows device name и прежний mode. Он не синхронизируется. При ошибке mode change прежний mode применяется немедленно.
+ 
+-NVIDIA backup содержит полный present/absent whitelist и scaling. Ошибка сохранения DRS запускает немедленный restore. Критическая ошибка следующего pipeline stage запускает adapter rollback через TypeScript orchestrator.
++NVIDIA backup содержит полный present/absent whitelist, scaling, выходной цвет и gamma LUT. Ошибка сохранения DRS запускает немедленный restore. Критическая ошибка следующего pipeline stage запускает adapter rollback через TypeScript orchestrator.
+ 
+ Rollback нельзя гарантировать при физическом отключении монитора, удалении драйвера, изменении topology или driver crash. В таких случаях UI показывает Error.
+ 
+diff --git a/src-tauri/build.rs b/src-tauri/build.rs
+index a4a86d4..5471892 100644
+--- a/src-tauri/build.rs
++++ b/src-tauri/build.rs
+@@ -11,6 +11,8 @@ fn main() {
+             .compile("game_passport_nvapi_bridge");
+         println!("cargo:rustc-link-search=native={manifest}/vendor/nvapi/amd64");
+         println!("cargo:rustc-link-lib=static=nvapi64");
++        println!("cargo:rustc-link-lib=dylib=gdi32");
++        println!("cargo:rustc-link-lib=dylib=user32");
+         println!("cargo:rerun-if-changed=native/nvapi_bridge.cpp");
+         println!("cargo:rerun-if-changed=native/nvapi_bridge.h");
+     }
+diff --git a/src-tauri/native/nvapi_bridge.cpp b/src-tauri/native/nvapi_bridge.cpp
+index bf36aa0..d097f6f 100644
+--- a/src-tauri/native/nvapi_bridge.cpp
++++ b/src-tauri/native/nvapi_bridge.cpp
+@@ -3,6 +3,8 @@
+ #include "nvapi.h"
+ #include "NvApiDriverSettings.h"
+ 
++#include <windows.h>
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -234,6 +236,147 @@ NvAPI_Status set_scaling(NvU32 desired) {
+     return status;
+ }
+ 
++NvAPI_Status get_output_color(GpNvSnapshot* snapshot) {
++    NvU32 display_id = 0;
++    NvAPI_Status status = NvAPI_DISP_GetGDIPrimaryDisplayId(&display_id);
++    if (status != NVAPI_OK) return status;
++    NV_COLOR_DATA color = {};
++    color.version = NV_COLOR_DATA_VER;
++    color.size = sizeof(color);
++    color.cmd = NV_COLOR_CMD_GET;
++    status = NvAPI_Disp_ColorControl(display_id, &color);
++    if (status != NVAPI_OK) return status;
++    snapshot->output_color_supported = 1;
++    snapshot->color_format = color.data.colorFormat;
++    snapshot->colorimetry = color.data.colorimetry;
++    snapshot->dynamic_range = color.data.dynamicRange;
++    snapshot->bits_per_color = static_cast<NvU32>(color.data.bpc);
++    snapshot->color_selection_policy =
++        static_cast<NvU32>(color.data.colorSelectionPolicy);
++    snapshot->desktop_color_depth = static_cast<NvU32>(color.data.depth);
++    return NVAPI_OK;
++}
++
++NvAPI_Status set_output_color(const GpNvSnapshot* snapshot, bool* verified) {
++    *verified = false;
++    NvU32 display_id = 0;
++    NvAPI_Status status = NvAPI_DISP_GetGDIPrimaryDisplayId(&display_id);
++    if (status != NVAPI_OK) return status;
++    NV_COLOR_DATA color = {};
++    color.version = NV_COLOR_DATA_VER;
++    color.size = sizeof(color);
++    color.cmd = NV_COLOR_CMD_SET;
++    color.data.colorFormat = static_cast<NvU8>(snapshot->color_format);
++    color.data.colorimetry = static_cast<NvU8>(snapshot->colorimetry);
++    color.data.dynamicRange = static_cast<NvU8>(snapshot->dynamic_range);
++    color.data.bpc = static_cast<NV_BPC>(snapshot->bits_per_color);
++    color.data.colorSelectionPolicy =
++        static_cast<NV_COLOR_SELECTION_POLICY>(snapshot->color_selection_policy);
++    color.data.depth =
++        static_cast<NV_DESKTOP_COLOR_DEPTH>(snapshot->desktop_color_depth);
++    status = NvAPI_Disp_ColorControl(display_id, &color);
++    if (status != NVAPI_OK) return status;
++
++    GpNvSnapshot readback = {};
++    status = get_output_color(&readback);
++    if (status != NVAPI_OK) return status;
++    *verified = readback.color_format == snapshot->color_format &&
++                readback.colorimetry == snapshot->colorimetry &&
++                readback.dynamic_range == snapshot->dynamic_range &&
++                readback.bits_per_color == snapshot->bits_per_color &&
++                readback.color_selection_policy == snapshot->color_selection_policy &&
++                readback.desktop_color_depth == snapshot->desktop_color_depth;
++    return NVAPI_OK;
++}
++
++bool get_desktop_gamma(GpNvSnapshot* snapshot) {
++    HDC dc = GetDC(nullptr);
++    if (!dc) return false;
++    const BOOL ok = GetDeviceGammaRamp(dc, snapshot->desktop_gamma_ramp);
++    ReleaseDC(nullptr, dc);
++    snapshot->desktop_gamma_supported = ok ? 1 : 0;
++    return ok != FALSE;
++}
++
++bool set_desktop_gamma(const GpNvSnapshot* snapshot, bool* verified) {
++    *verified = false;
++    HDC dc = GetDC(nullptr);
++    if (!dc) return false;
++    const BOOL applied = SetDeviceGammaRamp(dc, snapshot->desktop_gamma_ramp);
++    uint16_t readback[GP_NV_GAMMA_RAMP_VALUES] = {};
++    const BOOL read = applied ? GetDeviceGammaRamp(dc, readback) : FALSE;
++    ReleaseDC(nullptr, dc);
++    if (!applied) return false;
++    *verified = read && memcmp(readback, snapshot->desktop_gamma_ramp,
++                               sizeof(readback)) == 0;
++    return true;
++}
++
++void apply_display_state(const GpNvSnapshot* snapshot, GpNvApplyReport* report) {
++    NvAPI_Status status = NVAPI_OK;
++    if (snapshot->scaling_supported) {
++        report->scaling_requested = 1;
++        status = set_scaling(snapshot->scaling);
++        if (status == NVAPI_OK) {
++            report->scaling_applied = 1;
++            copy_ascii(report->scaling_message, sizeof(report->scaling_message),
++                       "NVAPI accepted the requested scaling mode.");
++        } else {
++            set_error(report->scaling_message, sizeof(report->scaling_message),
++                      "NVIDIA scaling was not applied.", status);
++        }
++    } else {
++        copy_ascii(report->scaling_message, sizeof(report->scaling_message),
++                   "No portable scaling value was available in the snapshot.");
++    }
++
++    if (snapshot->output_color_supported) {
++        report->output_color_requested = 1;
++        bool verified = false;
++        status = set_output_color(snapshot, &verified);
++        if (status == NVAPI_OK) {
++            report->output_color_applied = 1;
++            report->output_color_verified = verified ? 1 : 0;
++            copy_ascii(report->output_color_message,
++                       sizeof(report->output_color_message),
++                       verified
++                           ? "NVIDIA output color was applied and verified."
++                           : "NVIDIA accepted output color, but readback differed.");
++        } else {
++            set_error(report->output_color_message,
++                      sizeof(report->output_color_message),
++                      "NVIDIA output color was not applied.", status);
++        }
++    } else {
++        copy_ascii(report->output_color_message,
++                   sizeof(report->output_color_message),
++                   "No portable NVIDIA output color was available in the snapshot.");
++    }
++
++    // Apply the desktop LUT last because an NVIDIA display mode reload may reset it.
++    if (snapshot->desktop_gamma_supported) {
++        report->desktop_gamma_requested = 1;
++        bool verified = false;
++        if (set_desktop_gamma(snapshot, &verified)) {
++            report->desktop_gamma_applied = 1;
++            report->desktop_gamma_verified = verified ? 1 : 0;
++            copy_ascii(report->desktop_gamma_message,
++                       sizeof(report->desktop_gamma_message),
++                       verified
++                           ? "Desktop brightness/contrast/gamma LUT was applied and verified."
++                           : "Desktop color LUT was applied, but readback differed.");
++        } else {
++            copy_ascii(report->desktop_gamma_message,
++                       sizeof(report->desktop_gamma_message),
++                       "Windows rejected the desktop brightness/contrast/gamma LUT.");
++        }
++    } else {
++        copy_ascii(report->desktop_gamma_message,
++                   sizeof(report->desktop_gamma_message),
++                   "No desktop brightness/contrast/gamma LUT was available in the snapshot.");
++    }
++}
++
+ }  // namespace
+ 
+ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
+@@ -298,6 +441,8 @@ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
+             snapshot->scaling_supported = 1;
+             snapshot->scaling = scaling;
+         }
++        get_output_color(snapshot);
++        get_desktop_gamma(snapshot);
+         return NVAPI_OK;
+     }
+     if (status != NVAPI_OK) {
+@@ -339,6 +484,8 @@ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
+         snapshot->scaling_supported = 1;
+         snapshot->scaling = scaling;
+     }
++    get_output_color(snapshot);
++    get_desktop_gamma(snapshot);
+     return NVAPI_OK;
+ }
+ 
+@@ -389,7 +536,11 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
+             status = NVAPI_OK;
+         }
+         NvAPI_DRS_DestroySession(session);
+-        if (status != NVAPI_OK) set_error(error, error_size, "Could not restore NVIDIA profile state.", status);
++        if (status != NVAPI_OK) {
++            set_error(error, error_size, "Could not restore NVIDIA profile state.", status);
++            return status;
++        }
++        apply_display_state(snapshot, report);
+         return status;
+     }
+     if (status != NVAPI_OK) {
+@@ -460,20 +611,6 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
+         return status;
+     }
+ 
+-    if (snapshot->scaling_supported) {
+-        report->scaling_requested = 1;
+-        status = set_scaling(snapshot->scaling);
+-        if (status == NVAPI_OK) {
+-            report->scaling_applied = 1;
+-            copy_ascii(report->scaling_message, sizeof(report->scaling_message),
+-                       "NVAPI accepted the requested scaling mode.");
+-        } else {
+-            set_error(report->scaling_message, sizeof(report->scaling_message),
+-                      "NVIDIA scaling was not applied.", status);
+-        }
+-    } else {
+-        copy_ascii(report->scaling_message, sizeof(report->scaling_message),
+-                   "No portable scaling value was available in the snapshot.");
+-    }
++    apply_display_state(snapshot, report);
+     return NVAPI_OK;
+ }
+diff --git a/src-tauri/native/nvapi_bridge.h b/src-tauri/native/nvapi_bridge.h
+index 9474e69..aedc4de 100644
+--- a/src-tauri/native/nvapi_bridge.h
++++ b/src-tauri/native/nvapi_bridge.h
+@@ -5,6 +5,7 @@
+ 
+ #define GP_NV_MAX_SETTINGS 32
+ #define GP_NV_KEY_LENGTH 64
++#define GP_NV_GAMMA_RAMP_VALUES 768
+ 
+ typedef struct GpNvSetting {
+     uint32_t id;
+@@ -22,6 +23,15 @@ typedef struct GpNvSnapshot {
+     uint32_t profile_created;
+     uint32_t scaling_supported;
+     uint32_t scaling;
++    uint32_t output_color_supported;
++    uint32_t color_format;
++    uint32_t colorimetry;
++    uint32_t dynamic_range;
++    uint32_t bits_per_color;
++    uint32_t color_selection_policy;
++    uint32_t desktop_color_depth;
++    uint32_t desktop_gamma_supported;
++    uint16_t desktop_gamma_ramp[GP_NV_GAMMA_RAMP_VALUES];
+     uint32_t setting_count;
+     char gpu_name[128];
+     char driver_branch[64];
+@@ -37,7 +47,15 @@ typedef struct GpNvApplyReport {
+     uint32_t profile_created;
+     uint32_t scaling_requested;
+     uint32_t scaling_applied;
++    uint32_t output_color_requested;
++    uint32_t output_color_applied;
++    uint32_t output_color_verified;
++    uint32_t desktop_gamma_requested;
++    uint32_t desktop_gamma_applied;
++    uint32_t desktop_gamma_verified;
+     char scaling_message[256];
++    char output_color_message[256];
++    char desktop_gamma_message[256];
+ } GpNvApplyReport;
+ 
+ #ifdef __cplusplus
+diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
+index 17b92e3..ebda9ab 100644
+--- a/src-tauri/src/cs2.rs
++++ b/src-tauri/src/cs2.rs
+@@ -231,13 +231,15 @@ mod windows {
+             "warning"
+         };
+         let message = if state == "success" {
+-            format!("Captured {} CS2 configuration files.", files.len())
++            format!("Сохранено файлов настроек CS2: {}.", files.len())
+         } else {
+             format!(
+-                "Captured {} CS2 configuration files with warnings.",
++                "Сохранено файлов настроек CS2: {} (есть пояснения).",
+                 files.len()
+             )
+         };
++        let custom_count = files.len().saturating_sub(core_files_found.len());
++        let video_captured = core_files_found.iter().any(|name| name == "cs2_video.txt");
+         let payload = Cs2Payload {
+             schema_version: 1,
+             captured_at: Utc::now().to_rfc3339(),
+@@ -247,10 +249,27 @@ mod windows {
+             optional_files_missing: optional_files_missing.clone(),
+         };
+         let retryable = !optional_files_missing.is_empty();
++        let mut summary = vec![
++            "Сохранены чувствительность, игровые параметры и звук из cs2_user_convars_0_slot0.vcfg.".into(),
++            "Сохранены привязки клавиш из cs2_user_keys_0_slot0.vcfg.".into(),
++        ];
++        if video_captured {
++            summary.push(
++                "Сохранены переносимые параметры видео и разрешения из cs2_video.txt.".into(),
++            );
++        }
++        if custom_count > 0 {
++            summary.push(format!(
++                "Сохранено дополнительных CFG-файлов: {custom_count}."
++            ));
++        }
++        summary.push("Не сохраняются идентификаторы монитора, видеокарты и аудиоустройства; точная герцовка выбирается заново на целевом ПК.".into());
++        summary.append(&mut details);
++        details = summary;
+         details.extend(
+             optional_files_missing
+                 .iter()
+-                .map(|name| format!("Optional file not captured: {name}")),
++                .map(|name| format!("Необязательный файл не найден: {name}")),
+         );
+         Ok(Cs2CommandResponse {
+             state: state.into(),
+@@ -329,6 +348,26 @@ mod windows {
+             }
+             committed.push((item, previous));
+         }
++        for (item, _) in &committed {
++            let written = match fs::read(&item.target) {
++                Ok(bytes) => bytes,
++                Err(error) => {
++                    rollback(&committed);
++                    return Err(io_error(
++                        "Не удалось проверить записанный файл CS2; изменения отменены.",
++                        error,
++                    ));
++                }
++            };
++            if written != item.content {
++                rollback(&committed);
++                return Err(UserFacingError::new(
++                    "Проверка записанных настроек CS2 не пройдена; изменения отменены.",
++                    true,
++                )
++                .detail(format!("Файл не совпал: {}", item.relative_path)));
++            }
++        }
+         for (_, previous) in &committed {
+             if let Some(path) = previous {
+                 let _ = fs::remove_file(path);
+@@ -341,13 +380,16 @@ mod windows {
+                 "cs2_machine_convars.vcfg" | "cs2_video.txt"
+             )
+         });
+-        let mut details = vec![format!("Backup created locally: {}", backup_root.display())];
++        let mut details = vec![
++            format!("Локальная резервная копия: {}", backup_root.display()),
++            format!("Записано и проверено файлов: {}.", committed.len()),
++        ];
+         if hardware_specific {
+-            details.push("Resolution and video values were written, but CS2 may adjust values unsupported by this PC.".into());
++            details.push("Разрешение и переносимые параметры видео записаны. После запуска CS2 может заменить значения, которые не поддерживаются этим компьютером.".into());
+         }
+         Ok(Cs2CommandResponse {
+             state: if hardware_specific { "warning".into() } else { "success".into() },
+-            message: format!("Applied {} CS2 configuration files. Launch CS2 to verify the final in-game values.", committed.len()),
++            message: format!("Настройки CS2 применены и проверены: {} файлов. Запустите CS2 и проверьте итоговые значения в игре.", committed.len()),
+             details,
+             retryable: false,
+             payload: None,
+diff --git a/src-tauri/src/mouse.rs b/src-tauri/src/mouse.rs
+index 6c65c7a..0814d21 100644
+--- a/src-tauri/src/mouse.rs
++++ b/src-tauri/src/mouse.rs
+@@ -115,6 +115,8 @@ pub struct MouseDeviceDiagnostics {
+ #[serde(rename_all = "camelCase")]
+ pub struct MouseDiagnostics {
+     pub devices: Vec<MouseDeviceDiagnostics>,
++    #[serde(default)]
++    pub probe_errors: Vec<String>,
+     pub selected_instance_id: Option<String>,
+     pub selection_ambiguous: bool,
+     pub current_dpi: Option<u32>,
+@@ -433,11 +435,11 @@ mod windows {
+                 response(
+                     state,
+                     if diagnostic.selection_ambiguous {
+-                        "Multiple controllable gaming mice were detected; no device was selected."
++                        "Обнаружено несколько управляемых мышей — безопасный выбор не выполнен."
+                     } else if diagnostic.selected_instance_id.is_some() {
+-                        "Mouse detection completed."
++                        "Мышь обнаружена, текущие параметры считаны."
+                     } else {
+-                        "No controllable gaming mouse was found."
++                        "Совместимая мышь не найдена. Откройте сведения ниже."
+                     },
+                     vec![],
+                     Some(diagnostic),
+@@ -460,7 +462,7 @@ mod windows {
+                 return manual_response(
+                     &mut diagnostic,
+                     None,
+-                    "No supported readable gaming mouse was found.",
++                    "Мышь обнаружена, но её DPI не удалось безопасно считать автоматически.",
+                 )
+             }
+             Err(message) => return manual_response(&mut diagnostic, None, &message),
+@@ -486,15 +488,15 @@ mod windows {
+                 response(
+                     state,
+                     if polling.is_some() {
+-                        "Saved current mouse DPI and polling rate."
++                        "Текущие DPI и частота опроса мыши сохранены."
+                     } else {
+-                        "Saved current mouse DPI; polling rate could not be read."
++                        "DPI мыши сохранён; частоту опроса считать не удалось."
+                     },
+                     vec![
+                         format!("DPI: {dpi}"),
+                         polling
+                             .map(|rate| format!("Polling rate: {rate} Hz"))
+-                            .unwrap_or_else(|| "Polling rate: unavailable".into()),
++                            .unwrap_or_else(|| "Частота опроса: недоступна".into()),
+                     ],
+                     Some(diagnostic),
+                     Some(payload),
+@@ -742,21 +744,40 @@ mod windows {
+         }
+         let mut targets = Vec::new();
+         let mut target_keys = HashSet::new();
++        let mut probe_errors = Vec::new();
+         for endpoint in &endpoints {
+             if classify_vid_pid(endpoint.vendor_id, endpoint.product_id)
+                 == MouseAdapterKind::LogitechProbe
+             {
+-                for index in [0xFF, 1, 2, 3, 4, 5, 6] {
+-                    if let Ok(target) = probe_logitech(&api, endpoint, index) {
+-                        let key = format!("{}:{index}", endpoint.physical_key);
+-                        if target_keys.insert(key) {
+-                            devices
+-                                .insert(endpoint.physical_key.clone(), target.diagnostics.clone());
+-                            targets.push(target);
++                let mut found = false;
++                let mut last_error = None;
++                for index in [0xFF, 1, 2, 3, 4, 5, 6, 0] {
++                    match probe_logitech(&api, endpoint, index) {
++                        Ok(target) => {
++                            let key = format!("{}:{index}", endpoint.physical_key);
++                            if target_keys.insert(key) {
++                                devices.insert(
++                                    endpoint.physical_key.clone(),
++                                    target.diagnostics.clone(),
++                                );
++                                targets.push(target);
++                            }
++                            found = true;
++                            break;
+                         }
+-                        break;
++                        Err(error) => last_error = Some(error),
+                     }
+                 }
++                if !found && probe_errors.len() < 12 {
++                    probe_errors.push(format!(
++                        "Logitech {} (VID {:04X}, PID {:04X}, interface {}): {}",
++                        endpoint.product,
++                        endpoint.vendor_id,
++                        endpoint.product_id,
++                        endpoint.interface_number,
++                        last_error.unwrap_or_else(|| "HID++ Adjustable DPI недоступен".into())
++                    ));
++                }
+             } else if classify_vid_pid(endpoint.vendor_id, endpoint.product_id)
+                 == MouseAdapterKind::Razer
+             {
+@@ -765,12 +786,21 @@ mod windows {
+                     .find(|model| model.product_id == endpoint.product_id)
+                     .copied()
+                 {
+-                    if let Ok(target) = probe_razer(&api, endpoint, model) {
+-                        if target_keys.insert(endpoint.physical_key.clone()) {
+-                            devices
+-                                .insert(endpoint.physical_key.clone(), target.diagnostics.clone());
+-                            targets.push(target);
++                    match probe_razer(&api, endpoint, model) {
++                        Ok(target) => {
++                            if target_keys.insert(endpoint.physical_key.clone()) {
++                                devices.insert(
++                                    endpoint.physical_key.clone(),
++                                    target.diagnostics.clone(),
++                                );
++                                targets.push(target);
++                            }
+                         }
++                        Err(error) if probe_errors.len() < 12 => probe_errors.push(format!(
++                            "Razer {} (PID {:04X}): {error}",
++                            endpoint.product, endpoint.product_id
++                        )),
++                        Err(_) => {}
+                     }
+                 }
+             }
+@@ -786,6 +816,7 @@ mod windows {
+             .map(|index| index.map(|index| targets[index].clone()));
+         let mut diagnostics = MouseDiagnostics {
+             devices: devices.into_values().collect(),
++            probe_errors,
+             selection_ambiguous: selection.is_err(),
+             ..Default::default()
+         };
+@@ -1430,7 +1461,7 @@ mod windows {
+         remember(diagnostic);
+         let instruction = payload.map(|value| {
+             format!(
+-                "Set mouse manually: {} DPI{}",
++                "Если автоматическое применение не сработало, выставьте в G HUB: {} DPI{}",
+                 value.dpi,
+                 value
+                     .polling_rate_hz
+@@ -1438,13 +1469,19 @@ mod windows {
+                     .unwrap_or_default()
+             )
+         });
+-        let details = instruction
+-            .into_iter()
+-            .chain(std::iter::once(reason.to_string()))
+-            .collect();
++        let mut details: Vec<String> = instruction.into_iter().collect();
++        details.push(reason.to_string());
++        if diagnostic
++            .devices
++            .iter()
++            .any(|device| device.vendor_id == "046D")
++        {
++            details.push("Logitech G HUB управляет настройками мыши, но не гарантирует доступ к ним для другого приложения. Проверьте выбранный профиль/режим встроенной памяти G HUB.".into());
++        }
++        details.extend(diagnostic.probe_errors.iter().cloned());
+         response(
+             "warning",
+-            "Mouse settings were not automatically applied.",
++            "Настройки мыши не применены автоматически.",
+             details,
+             Some(diagnostic.clone()),
+             None,
+diff --git a/src-tauri/src/nvidia.rs b/src-tauri/src/nvidia.rs
+index 5e0a924..92f7d70 100644
+--- a/src-tauri/src/nvidia.rs
++++ b/src-tauri/src/nvidia.rs
+@@ -67,6 +67,23 @@ pub struct NvidiaSetting {
+     pub value: u32,
+ }
+ 
++#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
++#[serde(rename_all = "camelCase")]
++pub struct NvidiaOutputColor {
++    pub color_format: u32,
++    pub colorimetry: u32,
++    pub dynamic_range: u32,
++    pub bits_per_color: u32,
++    pub color_selection_policy: u32,
++    pub desktop_color_depth: u32,
++}
++
++#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
++#[serde(rename_all = "camelCase")]
++pub struct NvidiaDesktopGamma {
++    pub ramp: Vec<u16>,
++}
++
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct NvidiaPayload {
+@@ -77,6 +94,10 @@ pub struct NvidiaPayload {
+     pub scaling_mode: String,
+     pub scaling_value: u32,
+     pub scaling_supported: bool,
++    #[serde(default)]
++    pub output_color: Option<NvidiaOutputColor>,
++    #[serde(default)]
++    pub desktop_gamma: Option<NvidiaDesktopGamma>,
+ }
+ 
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -98,6 +119,10 @@ pub struct NvidiaDiagnostics {
+     pub scaling_supported: bool,
+     pub scaling_mode: Option<String>,
+     pub scaling_result: Option<String>,
++    pub output_color_supported: bool,
++    pub output_color_result: Option<String>,
++    pub desktop_gamma_supported: bool,
++    pub desktop_gamma_result: Option<String>,
+ }
+ 
+ #[derive(Debug, Serialize)]
+@@ -152,8 +177,13 @@ pub fn apply_state(
+     settings_skipped: u32,
+     settings_unsupported: u32,
+     scaling_ok: bool,
++    display_color_ok: bool,
+ ) -> &'static str {
+-    if settings_skipped > 0 || settings_unsupported > 0 || !scaling_ok {
++    if settings_skipped > 0
++        || settings_unsupported > 0
++        || !scaling_ok
++        || !display_color_ok
++    {
+         "warning"
+     } else {
+         "success"
+@@ -188,6 +218,24 @@ pub fn validate_payload(payload: &NvidiaPayload) -> Result<(), String> {
+     {
+         return Err("NVIDIA snapshot contains an unknown scaling mode.".into());
+     }
++    if let Some(color) = &payload.output_color {
++        if !matches!(color.color_format, 0..=3 | 0xFE | 0xFF)
++            || !matches!(color.colorimetry, 0..=10 | 0xFE | 0xFF)
++            || !matches!(color.dynamic_range, 0 | 1 | 0xFF)
++            || !matches!(color.bits_per_color, 0..=5)
++            || !matches!(color.color_selection_policy, 0 | 1 | 0xFF)
++            || !matches!(color.desktop_color_depth, 0..=5)
++        {
++            return Err("NVIDIA snapshot contains invalid output color values.".into());
++        }
++    }
++    if payload
++        .desktop_gamma
++        .as_ref()
++        .is_some_and(|gamma| gamma.ramp.len() != 768)
++    {
++        return Err("NVIDIA snapshot contains an invalid desktop gamma ramp.".into());
++    }
+     Ok(())
+ }
+ 
+@@ -242,6 +290,15 @@ mod windows {
+         profile_created: u32,
+         scaling_supported: u32,
+         scaling: u32,
++        output_color_supported: u32,
++        color_format: u32,
++        colorimetry: u32,
++        dynamic_range: u32,
++        bits_per_color: u32,
++        color_selection_policy: u32,
++        desktop_color_depth: u32,
++        desktop_gamma_supported: u32,
++        desktop_gamma_ramp: [u16; 768],
+         setting_count: u32,
+         gpu_name: [c_char; 128],
+         driver_branch: [c_char; 64],
+@@ -259,7 +316,15 @@ mod windows {
+         profile_created: u32,
+         scaling_requested: u32,
+         scaling_applied: u32,
++        output_color_requested: u32,
++        output_color_applied: u32,
++        output_color_verified: u32,
++        desktop_gamma_requested: u32,
++        desktop_gamma_applied: u32,
++        desktop_gamma_verified: u32,
+         scaling_message: [c_char; 256],
++        output_color_message: [c_char; 256],
++        desktop_gamma_message: [c_char; 256],
+     }
+ 
+     #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -281,6 +346,10 @@ mod windows {
+         profile_found: bool,
+         scaling_supported: bool,
+         scaling_value: u32,
++        #[serde(default)]
++        output_color: Option<NvidiaOutputColor>,
++        #[serde(default)]
++        desktop_gamma: Option<NvidiaDesktopGamma>,
+         settings: Vec<BackupSetting>,
+     }
+ 
+@@ -322,6 +391,8 @@ mod windows {
+         let diagnostics = diagnostics_from_raw(&raw);
+         let settings = present_settings(&raw);
+         let scaling_supported = raw.scaling_supported != 0;
++        let output_color = output_color_from_raw(&raw);
++        let desktop_gamma = desktop_gamma_from_raw(&raw);
+         let payload = NvidiaPayload {
+             schema_version: 1,
+             captured_at: Utc::now().to_rfc3339(),
+@@ -330,8 +401,13 @@ mod windows {
+             scaling_mode: scaling_name(raw.scaling).into(),
+             scaling_value: raw.scaling,
+             scaling_supported,
++            output_color: output_color.clone(),
++            desktop_gamma: desktop_gamma.clone(),
+         };
+-        let has_warning = settings.is_empty() || !scaling_supported;
++        let has_warning = settings.is_empty()
++            || !scaling_supported
++            || output_color.is_none()
++            || desktop_gamma.is_none();
+         let mut details = vec![format!("Portable DRS settings read: {}", settings.len())];
+         if settings.is_empty() {
+             details.push("The game profile currently has no explicit portable overrides.".into());
+@@ -344,6 +420,19 @@ mod windows {
+                 scaling_name(raw.scaling)
+             ));
+         }
++        details.push(if let Some(color) = &output_color {
++            format!(
++                "Captured NVIDIA output color: format {}, range {}, {} bpc.",
++                color.color_format, color.dynamic_range, color.bits_per_color
++            )
++        } else {
++            "NVIDIA output color — Unsupported for the primary display path.".into()
++        });
++        details.push(if desktop_gamma.is_some() {
++            "Captured the effective desktop brightness/contrast/gamma LUT.".into()
++        } else {
++            "Desktop brightness/contrast/gamma LUT — Unsupported for this display path.".into()
++        });
+         NvidiaCommandResponse {
+             state: if has_warning { "warning" } else { "success" }.into(),
+             message: format!(
+@@ -395,16 +484,29 @@ mod windows {
+             }
+         };
+         let scaling_ok = report.scaling_requested == 0 || report.scaling_applied != 0;
++        let output_color_ok = report.output_color_requested == 0
++            || (report.output_color_applied != 0 && report.output_color_verified != 0);
++        let desktop_gamma_ok = report.desktop_gamma_requested == 0
++            || (report.desktop_gamma_applied != 0 && report.desktop_gamma_verified != 0);
+         let state = apply_state(
+             report.settings_skipped,
+             report.settings_unsupported,
+             scaling_ok,
++            output_color_ok && desktop_gamma_ok,
+         );
+         let mut details = vec![
+             format!("DRS settings applied: {}", report.settings_applied),
+             format!("DRS settings skipped: {}", report.settings_skipped),
+             format!("DRS settings unsupported: {}", report.settings_unsupported),
+             format!("Scaling: {}", char_array(&report.scaling_message)),
++            format!(
++                "Output color: {}",
++                char_array(&report.output_color_message)
++            ),
++            format!(
++                "Desktop color: {}",
++                char_array(&report.desktop_gamma_message)
++            ),
+             format!("NVIDIA backup: {}", backup_path.display()),
+         ];
+         if payload.scaling_mode == "stretched" && scaling_ok {
+@@ -444,6 +546,10 @@ mod windows {
+                 scaling_supported: payload.scaling_supported,
+                 scaling_mode: Some(payload.scaling_mode),
+                 scaling_result: nonempty(char_array(&report.scaling_message)),
++                output_color_supported: payload.output_color.is_some(),
++                output_color_result: nonempty(char_array(&report.output_color_message)),
++                desktop_gamma_supported: payload.desktop_gamma.is_some(),
++                desktop_gamma_result: nonempty(char_array(&report.desktop_gamma_message)),
+             }),
+             backup_token: Some(backup_path.to_string_lossy().into_owned()),
+         }
+@@ -484,8 +590,17 @@ mod windows {
+         match apply_raw(&raw, true, target) {
+             Ok(report) => {
+                 let scaling_ok = report.scaling_requested == 0 || report.scaling_applied != 0;
++                let output_color_ok = report.output_color_requested == 0
++                    || (report.output_color_applied != 0 && report.output_color_verified != 0);
++                let desktop_gamma_ok = report.desktop_gamma_requested == 0
++                    || (report.desktop_gamma_applied != 0
++                        && report.desktop_gamma_verified != 0);
+                 NvidiaCommandResponse {
+-                    state: if scaling_ok && report.settings_skipped == 0 {
++                    state: if scaling_ok
++                        && output_color_ok
++                        && desktop_gamma_ok
++                        && report.settings_skipped == 0
++                    {
+                         "success"
+                     } else {
+                         "warning"
+@@ -497,8 +612,16 @@ mod windows {
+                         format!("Settings restored/deleted: {}", report.settings_applied),
+                         format!("Settings skipped: {}", report.settings_skipped),
+                         format!("Scaling: {}", char_array(&report.scaling_message)),
++                        format!(
++                            "Output color: {}",
++                            char_array(&report.output_color_message)
++                        ),
++                        format!(
++                            "Desktop color: {}",
++                            char_array(&report.desktop_gamma_message)
++                        ),
+                     ],
+-                    retryable: !scaling_ok,
++                    retryable: !scaling_ok || !output_color_ok || !desktop_gamma_ok,
+                     payload: None,
+                     diagnostics: None,
+                     backup_token: None,
+@@ -581,6 +704,43 @@ mod windows {
+             .collect()
+     }
+ 
++    fn output_color_from_raw(raw: &RawSnapshot) -> Option<NvidiaOutputColor> {
++        (raw.output_color_supported != 0).then_some(NvidiaOutputColor {
++            color_format: raw.color_format,
++            colorimetry: raw.colorimetry,
++            dynamic_range: raw.dynamic_range,
++            bits_per_color: raw.bits_per_color,
++            color_selection_policy: raw.color_selection_policy,
++            desktop_color_depth: raw.desktop_color_depth,
++        })
++    }
++
++    fn desktop_gamma_from_raw(raw: &RawSnapshot) -> Option<NvidiaDesktopGamma> {
++        (raw.desktop_gamma_supported != 0).then(|| NvidiaDesktopGamma {
++            ramp: raw.desktop_gamma_ramp.to_vec(),
++        })
++    }
++
++    fn copy_desktop_state_to_raw(
++        raw: &mut RawSnapshot,
++        output_color: &Option<NvidiaOutputColor>,
++        desktop_gamma: &Option<NvidiaDesktopGamma>,
++    ) {
++        if let Some(color) = output_color {
++            raw.output_color_supported = 1;
++            raw.color_format = color.color_format;
++            raw.colorimetry = color.colorimetry;
++            raw.dynamic_range = color.dynamic_range;
++            raw.bits_per_color = color.bits_per_color;
++            raw.color_selection_policy = color.color_selection_policy;
++            raw.desktop_color_depth = color.desktop_color_depth;
++        }
++        if let Some(gamma) = desktop_gamma {
++            raw.desktop_gamma_supported = 1;
++            raw.desktop_gamma_ramp.copy_from_slice(&gamma.ramp);
++        }
++    }
++
+     fn diagnostics_from_raw(raw: &RawSnapshot) -> NvidiaDiagnostics {
+         NvidiaDiagnostics {
+             gpu_detected: raw.gpu_found != 0,
+@@ -599,6 +759,10 @@ mod windows {
+             scaling_supported: raw.scaling_supported != 0,
+             scaling_mode: (raw.scaling_supported != 0).then(|| scaling_name(raw.scaling).into()),
+             scaling_result: None,
++            output_color_supported: raw.output_color_supported != 0,
++            output_color_result: None,
++            desktop_gamma_supported: raw.desktop_gamma_supported != 0,
++            desktop_gamma_result: None,
+         }
+     }
+ 
+@@ -608,6 +772,7 @@ mod windows {
+         raw.profile_found = u32::from(profile_found);
+         raw.scaling_supported = u32::from(payload.scaling_supported);
+         raw.scaling = payload.scaling_value;
++        copy_desktop_state_to_raw(&mut raw, &payload.output_color, &payload.desktop_gamma);
+         raw.setting_count = payload.settings.len() as u32;
+         for (index, setting) in payload.settings.iter().enumerate() {
+             raw.settings[index].id = setting.id;
+@@ -626,6 +791,8 @@ mod windows {
+             profile_found: raw.profile_found != 0,
+             scaling_supported: raw.scaling_supported != 0,
+             scaling_value: raw.scaling,
++            output_color: output_color_from_raw(raw),
++            desktop_gamma: desktop_gamma_from_raw(raw),
+             settings: raw
+                 .settings
+                 .iter()
+@@ -646,6 +813,7 @@ mod windows {
+         raw.profile_found = u32::from(backup.profile_found);
+         raw.scaling_supported = u32::from(backup.scaling_supported);
+         raw.scaling = backup.scaling_value;
++        copy_desktop_state_to_raw(&mut raw, &backup.output_color, &backup.desktop_gamma);
+         raw.setting_count = backup.settings.len().min(MAX_SETTINGS) as u32;
+         for (index, setting) in backup.settings.iter().take(MAX_SETTINGS).enumerate() {
+             raw.settings[index].id = setting.id;
+@@ -745,6 +913,24 @@ mod windows {
+                 return Err("NVIDIA backup contains an unknown setting.".into());
+             }
+         }
++        if backup
++            .desktop_gamma
++            .as_ref()
++            .is_some_and(|gamma| gamma.ramp.len() != 768)
++        {
++            return Err("NVIDIA backup contains an invalid desktop gamma ramp.".into());
++        }
++        if let Some(color) = &backup.output_color {
++            if !matches!(color.color_format, 0..=3 | 0xFE | 0xFF)
++                || !matches!(color.colorimetry, 0..=10 | 0xFE | 0xFF)
++                || !matches!(color.dynamic_range, 0 | 1 | 0xFF)
++                || !matches!(color.bits_per_color, 0..=5)
++                || !matches!(color.color_selection_policy, 0 | 1 | 0xFF)
++                || !matches!(color.desktop_color_depth, 0..=5)
++            {
++                return Err("NVIDIA backup contains invalid output color values.".into());
++            }
++        }
+         Ok(backup)
+     }
+ 
+@@ -801,6 +987,17 @@ mod tests {
+             scaling_mode: "stretched".into(),
+             scaling_value: 2,
+             scaling_supported: true,
++            output_color: Some(NvidiaOutputColor {
++                color_format: 0,
++                colorimetry: 0,
++                dynamic_range: 0,
++                bits_per_color: 2,
++                color_selection_policy: 0,
++                desktop_color_depth: 1,
++            }),
++            desktop_gamma: Some(NvidiaDesktopGamma {
++                ramp: vec![0; 768],
++            }),
+         }
+     }
+ 
+@@ -850,9 +1047,21 @@ mod tests {
+ 
+     #[test]
+     fn reports_incompatible_driver_settings_as_partial_success() {
+-        assert_eq!(apply_state(1, 0, true), "warning");
+-        assert_eq!(apply_state(0, 1, true), "warning");
+-        assert_eq!(apply_state(0, 0, false), "warning");
+-        assert_eq!(apply_state(0, 0, true), "success");
++        assert_eq!(apply_state(1, 0, true, true), "warning");
++        assert_eq!(apply_state(0, 1, true, true), "warning");
++        assert_eq!(apply_state(0, 0, false, true), "warning");
++        assert_eq!(apply_state(0, 0, true, false), "warning");
++        assert_eq!(apply_state(0, 0, true, true), "success");
++    }
++
++    #[test]
++    fn rejects_invalid_desktop_color_payloads() {
++        let mut value = payload();
++        value.desktop_gamma.as_mut().unwrap().ramp.pop();
++        assert!(validate_payload(&value).is_err());
++
++        let mut value = payload();
++        value.output_color.as_mut().unwrap().bits_per_color = 99;
++        assert!(validate_payload(&value).is_err());
+     }
+ }
+diff --git a/src/components/Dashboard.tsx b/src/components/Dashboard.tsx
+index 1e39b5c..0603812 100644
+--- a/src/components/Dashboard.tsx
++++ b/src/components/Dashboard.tsx
+@@ -13,6 +13,7 @@ import { Diagnostics } from "./Diagnostics";
+ import { InitialSetup } from "./InitialSetup";
+ import { FieldValidationWizard } from "./FieldValidationWizard";
+ import type { CloudState } from "../domain/release";
++import type { MousePayload } from "../domain/mouse";
+ import { fieldValidation } from "../services/fieldValidation";
+ import { operationHistory } from "../services/operationHistory";
+ 
+@@ -39,9 +40,14 @@ export function Dashboard({ user, services, onSignOut }: Props) {
+     return () => { window.removeEventListener("online", refresh); window.removeEventListener("offline", refresh); };
+   }, [refreshCloud]);
+ 
+-  async function save(name: string, game: GameId) {
+-    if (modal?.profile) await services.profiles.update(user.id, modal.profile.id, { name, game });
+-    else await services.profiles.create(user.id, { name, game, settings: {} });
++  async function save(name: string, game: GameId, manualMouse?: MousePayload) {
++    const mousePatch = manualMouse ? { adapters: { mouse: manualMouse } } : undefined;
++    if (modal?.profile) {
++      const settings = mousePatch ? mergeSettingsPatch(modal.profile.settings, mousePatch) : modal.profile.settings;
++      await services.profiles.update(user.id, modal.profile.id, { name, game, settings });
++    } else {
++      await services.profiles.create(user.id, { name, game, settings: mousePatch ?? {} });
++    }
+     logger.info("profiles", modal?.profile ? "Updated selected profile" : "Created a profile"); setModal(null); await load();
+   }
+   async function remove(profile: GameProfile) {
+diff --git a/src/components/Diagnostics.tsx b/src/components/Diagnostics.tsx
+index 2f03fe6..6e97484 100644
+--- a/src/components/Diagnostics.tsx
++++ b/src/components/Diagnostics.tsx
+@@ -69,7 +69,7 @@ export function Diagnostics({ mode, cloudState }: Props) {
+         {display?.diagnostics ? <><div className="metric-grid"><Metric label="Монитор" value={display.diagnostics.primaryMonitor ?? "Неизвестно"} /><Metric label="Экранов" value={String(display.diagnostics.monitorCount)} /><Metric label="Текущий режим" value={formatMode(display.diagnostics.currentMode)} /><Metric label="Режимов" value={String(display.diagnostics.supportedModes.length)} /></div><div className="mode-list">{groupModes(display.diagnostics.supportedModes).map((entry) => <div key={entry.resolution}><strong>{entry.resolution}</strong><span>{entry.rates.join(" · ")} Гц</span></div>)}</div></> : <p className="validation-message">{display?.message ?? "Считываем настройки экрана Windows…"}</p>}
+       </div>
+       <div className="panel validation-panel"><header><div><h2>NVIDIA</h2><p>Проверка возможностей NVAPI/DRS.</p></div><span className={`status-pill ${nvidia?.state === "success" ? "implemented" : "unsupported"}`}>{stateLabel(nvidia?.state)}</span></header>
+-        {nvidia?.diagnostics ? <div className="metric-grid"><Metric label="GPU" value={nvidia.diagnostics.gpuName ?? (nvidia.diagnostics.gpuDetected ? "Detected" : "Not detected")} /><Metric label="NVAPI" value={nvidia.diagnostics.nvapiInitialized ? "Initialized" : "Unavailable"} /><Metric label="Driver" value={nvidia.diagnostics.driverVersion ? `${nvidia.diagnostics.driverVersion} ${nvidia.diagnostics.driverBranch ?? ""}` : "Unavailable"} /><Metric label="CS2 profile" value={nvidia.diagnostics.cs2ProfileFound ? "Found" : "Not found"} /><Metric label="Portable settings" value={String(nvidia.diagnostics.settingsRead)} /><Metric label="Scaling" value={nvidia.diagnostics.scalingSupported ? nvidia.diagnostics.scalingMode ?? "Supported" : "Unsupported"} /></div> : <p className="validation-message">{nvidia?.message ?? "Initializing NVIDIA NVAPI…"}</p>}
++        {nvidia?.diagnostics ? <div className="metric-grid"><Metric label="GPU" value={nvidia.diagnostics.gpuName ?? (nvidia.diagnostics.gpuDetected ? "Detected" : "Not detected")} /><Metric label="NVAPI" value={nvidia.diagnostics.nvapiInitialized ? "Initialized" : "Unavailable"} /><Metric label="Driver" value={nvidia.diagnostics.driverVersion ? `${nvidia.diagnostics.driverVersion} ${nvidia.diagnostics.driverBranch ?? ""}` : "Unavailable"} /><Metric label="CS2 profile" value={nvidia.diagnostics.cs2ProfileFound ? "Found" : "Not found"} /><Metric label="Portable settings" value={String(nvidia.diagnostics.settingsRead)} /><Metric label="Scaling" value={nvidia.diagnostics.scalingSupported ? nvidia.diagnostics.scalingMode ?? "Supported" : "Unsupported"} /><Metric label="Output color" value={nvidia.diagnostics.outputColorSupported ? "Supported" : "Unsupported"} /><Metric label="Desktop gamma" value={nvidia.diagnostics.desktopGammaSupported ? "Supported" : "Unsupported"} /></div> : <p className="validation-message">{nvidia?.message ?? "Initializing NVIDIA NVAPI…"}</p>}
+       </div>
+       <div className="panel validation-panel mouse-validation"><header><div><h2>Паспорт мыши</h2><p>Физические HID-устройства Windows и их возможности.</p></div><span className={`status-pill ${mouse?.state === "success" ? "implemented" : "unsupported"}`}>{stateLabel(mouse?.state)}</span></header>
+         {mouse?.diagnostics ? <><div className="metric-grid"><Metric label="Detected HID mice" value={String(mouse.diagnostics.devices.length)} /><Metric label="Selection" value={mouse.diagnostics.selectionAmbiguous ? "Ambiguous — no writes" : mouse.diagnostics.selectedInstanceId ? "One physical mouse" : "No controllable mouse"} /><Metric label="Current DPI" value={formatOptional(mouse.diagnostics.currentDpi, " DPI")} /><Metric label="Requested DPI" value={formatOptional(mouse.diagnostics.requestedDpi, " DPI")} /><Metric label="Applied DPI" value={formatOptional(mouse.diagnostics.appliedDpi, " DPI")} /><Metric label="Current polling" value={formatOptional(mouse.diagnostics.currentPollingRateHz, " Hz")} /><Metric label="Requested polling" value={formatOptional(mouse.diagnostics.requestedPollingRateHz, " Hz")} /><Metric label="Applied polling" value={formatOptional(mouse.diagnostics.appliedPollingRateHz, " Hz")} /><Metric label="Backup" value={mouse.diagnostics.backupResult ?? "Not created"} /><Metric label="Restore" value={mouse.diagnostics.restoreResult ?? "Not attempted"} /></div>
+diff --git a/src/components/FieldValidationWizard.tsx b/src/components/FieldValidationWizard.tsx
+index 55a6243..ffa7305 100644
+--- a/src/components/FieldValidationWizard.tsx
++++ b/src/components/FieldValidationWizard.tsx
+@@ -17,7 +17,7 @@ const LABELS: Record<FieldValidationEntry["stage"], { title: string; detail: str
+   gameplay: { title: "3 · Проверка управления", detail: "Запустите игру и проверьте чувствительность, клавиши, HUD, звук и игровые предпочтения.", software: false },
+   visual: { title: "4 · Проверка изображения", detail: "Проверьте графику, разрешение, соотношение сторон и оконный режим.", software: false },
+   display: { title: "5 · Проверка монитора", detail: "Проверьте нужное разрешение и максимальную доступную частоту на этом ПК.", software: false },
+-  nvidia: { title: "6 · Проверка NVIDIA", detail: "Если поддерживается, проверьте профиль игры в панели управления NVIDIA.", software: false },
++  nvidia: { title: "6 · Проверка NVIDIA", detail: "Проверьте профиль игры, масштабирование и параметры цвета рабочего стола NVIDIA.", software: false },
+   mouse: { title: "7 · Проверка мыши", detail: "Если поддерживается, проверьте DPI и частоту опроса физической мыши.", software: false }
+ };
+ 
+diff --git a/src/components/ProfileModal.tsx b/src/components/ProfileModal.tsx
+index acf075e..1155800 100644
+--- a/src/components/ProfileModal.tsx
++++ b/src/components/ProfileModal.tsx
+@@ -1,21 +1,29 @@
+ import { useEffect, useState, type FormEvent } from "react";
+ import { X } from "lucide-react";
+ import { GAME_META, type GameId, type GameProfile } from "../domain/types";
++import { createManualMousePayload, getMousePayload, type MousePayload } from "../domain/mouse";
+ 
+ const RELEASE_GAMES = ["cs2", "pubg"] as const;
+ 
+-interface Props { profile?: GameProfile | null; onClose: () => void; onSave: (name: string, game: GameId) => Promise<void> }
++interface Props { profile?: GameProfile | null; onClose: () => void; onSave: (name: string, game: GameId, manualMouse?: MousePayload) => Promise<void> }
+ 
+ export function ProfileModal({ profile, onClose, onSave }: Props) {
+   const [name, setName] = useState(profile?.name ?? "");
+   const [game, setGame] = useState<GameId>(profile?.game ?? "cs2");
++  const existingMouse = profile ? getMousePayload(profile.settings) : null;
++  const [dpi, setDpi] = useState(existingMouse ? String(existingMouse.dpi) : "");
++  const [polling, setPolling] = useState(existingMouse?.pollingRateHz ? String(existingMouse.pollingRateHz) : "");
+   const [busy, setBusy] = useState(false);
+   const [error, setError] = useState("");
+   useEffect(() => { const listener = (event: KeyboardEvent) => event.key === "Escape" && onClose(); window.addEventListener("keydown", listener); return () => window.removeEventListener("keydown", listener); }, [onClose]);
+ 
+   async function submit(event: FormEvent) {
+     event.preventDefault(); setBusy(true); setError("");
+-    try { await onSave(name, game); }
++    try {
++      const manualMouse = dpi ? createManualMousePayload(Number(dpi), polling ? Number(polling) : undefined) : undefined;
++      if (dpi && !manualMouse) throw new Error("Проверьте DPI и частоту опроса мыши.");
++      await onSave(name, game, manualMouse ?? undefined);
++    }
+     catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось сохранить профиль."); setBusy(false); }
+   }
+ 
+@@ -32,6 +40,7 @@ export function ProfileModal({ profile, onClose, onSave }: Props) {
+             <span>{GAME_META[id].short}</span><small>{GAME_META[id].name}</small>
+           </button>)}
+         </div></fieldset>
++        <fieldset className="mouse-fallback"><legend>Мышь · необязательно</legend><p className="muted">Если Logitech не считывается автоматически, впишите значения из G HUB. Они сохранятся в профиле; на другом ПК приложение применит их автоматически либо покажет точную ручную инструкцию.</p><div className="mouse-fields"><label>DPI<input inputMode="numeric" min={50} max={100000} type="number" value={dpi} onChange={(event) => setDpi(event.target.value)} placeholder="например, 800" /></label><label>Частота опроса<select value={polling} onChange={(event) => setPolling(event.target.value)}><option value="">Не указана</option>{[125, 250, 500, 1000, 2000, 4000, 8000].map((rate) => <option key={rate} value={rate}>{rate} Гц</option>)}</select></label></div></fieldset>
+         <div className="info-box">{game === "cs2" ? "Сохранение считывает реальные настройки CS2, экрана, NVIDIA и мыши. Сначала закройте CS2 и войдите в Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
+         {error && <div className="form-error" role="alert">{error}</div>}
+         <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Отмена</button><button className="button primary" disabled={busy || !name.trim()}>{busy ? "Сохраняем…" : profile ? "Сохранить изменения" : "Создать профиль"}</button></div>
+diff --git a/src/domain/mouse.ts b/src/domain/mouse.ts
+index 9c43a97..1ce257e 100644
+--- a/src/domain/mouse.ts
++++ b/src/domain/mouse.ts
+@@ -38,6 +38,7 @@ export interface MouseDeviceDiagnostics {
+ 
+ export interface MouseDiagnostics {
+   devices: MouseDeviceDiagnostics[];
++  probeErrors: string[];
+   selectedInstanceId?: string;
+   selectionAmbiguous: boolean;
+   currentDpi?: number;
+@@ -51,6 +52,17 @@ export interface MouseDiagnostics {
+   restoreResult?: string;
+ }
+ 
++export function createManualMousePayload(dpi: number, pollingRateHz?: number): MousePayload | null {
++  if (!Number.isInteger(dpi) || dpi < 50 || dpi > 100_000) return null;
++  if (pollingRateHz !== undefined && (!Number.isInteger(pollingRateHz) || pollingRateHz < 125 || pollingRateHz > 8_000)) return null;
++  return {
++    schemaVersion: 1,
++    capturedAt: new Date().toISOString(),
++    dpi,
++    ...(pollingRateHz !== undefined && { pollingRateHz })
++  };
++}
++
+ export interface MouseCommandResponse {
+   state: "success" | "warning" | "unsupported" | "error";
+   message: string;
+diff --git a/src/domain/nvidia.ts b/src/domain/nvidia.ts
+index 80efb4e..6b933dd 100644
+--- a/src/domain/nvidia.ts
++++ b/src/domain/nvidia.ts
+@@ -4,6 +4,19 @@ export interface NvidiaSetting {
+   value: number;
+ }
+ 
++export interface NvidiaOutputColor {
++  colorFormat: number;
++  colorimetry: number;
++  dynamicRange: number;
++  bitsPerColor: number;
++  colorSelectionPolicy: number;
++  desktopColorDepth: number;
++}
++
++export interface NvidiaDesktopGamma {
++  ramp: number[];
++}
++
+ export interface NvidiaPayload {
+   schemaVersion: 1;
+   capturedAt: string;
+@@ -12,6 +25,8 @@ export interface NvidiaPayload {
+   scalingMode: string;
+   scalingValue: number;
+   scalingSupported: boolean;
++  outputColor?: NvidiaOutputColor;
++  desktopGamma?: NvidiaDesktopGamma;
+ }
+ 
+ export interface NvidiaDiagnostics {
+@@ -31,6 +46,10 @@ export interface NvidiaDiagnostics {
+   scalingSupported: boolean;
+   scalingMode?: string;
+   scalingResult?: string;
++  outputColorSupported: boolean;
++  outputColorResult?: string;
++  desktopGammaSupported: boolean;
++  desktopGammaResult?: string;
+ }
+ 
+ export interface NvidiaCommandResponse {
+diff --git a/src/styles.css b/src/styles.css
+index dc3d14f..19fcc39 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -145,6 +145,12 @@ legend { margin-bottom: 10px; }
+ .game-choice small { font-size: 9px; }
+ .game-choice.selected { border-color: color-mix(in srgb, var(--game-accent) 45%, transparent); background: color-mix(in srgb, var(--game-accent) 6%, #16171c); }
+ .modal .info-box { margin-top: 0; }
++.mouse-fallback { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.018); }
++.mouse-fallback legend { float: left; width: 100%; margin-bottom: 2px; color: #d8dadf; font-weight: 750; }
++.mouse-fallback .muted { clear: both; font-size: 11px; line-height: 1.5; }
++.mouse-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
++.mouse-fields label { gap: 7px; font-size: 10px; }
++.mouse-fields input, .mouse-fields select { width: 100%; }
+ .modal-actions { display: flex; justify-content: flex-end; gap: 9px; }
+ 
+ .process-shell { min-height: 100vh; display: grid; place-items: center; padding: 45px; background: radial-gradient(circle at 50% 30%, rgba(166,255,63,.06), transparent 28%), #08090c; }
+diff --git a/src/test/MouseProfile.test.ts b/src/test/MouseProfile.test.ts
+index 73110b4..5e95cbd 100644
+--- a/src/test/MouseProfile.test.ts
++++ b/src/test/MouseProfile.test.ts
+@@ -1,5 +1,5 @@
+ import { describe, expect, it } from "vitest";
+-import { getMousePayload, normalizeDesiredDpi, normalizePollingRate } from "../domain/mouse";
++import { createManualMousePayload, getMousePayload, normalizeDesiredDpi, normalizePollingRate } from "../domain/mouse";
+ 
+ describe("Mouse Passport profile", () => {
+   it("stores normalized preferences without physical identity", () => {
+@@ -26,4 +26,11 @@ describe("Mouse Passport profile", () => {
+     expect(getMousePayload({ adapters: { mouse: { schemaVersion: 2, dpi: 800 } } })).toBeNull();
+     expect(getMousePayload({ adapters: { mouse: { schemaVersion: 1, dpi: "800" } } })).toBeNull();
+   });
++
++  it("creates a portable manual fallback without a device identity", () => {
++    const payload = createManualMousePayload(800, 1000);
++    expect(payload).toMatchObject({ schemaVersion: 1, dpi: 800, pollingRateHz: 1000 });
++    expect(createManualMousePayload(0, 1000)).toBeNull();
++    expect(createManualMousePayload(800, 10)).toBeNull();
++  });
+ });
+diff --git a/supabase/migrations/202608100001_create_profiles.sql b/supabase/migrations/202608100001_create_profiles.sql
+index cb3ef3d..ebf02e8 100644
+--- a/supabase/migrations/202608100001_create_profiles.sql
++++ b/supabase/migrations/202608100001_create_profiles.sql
+@@ -16,15 +16,22 @@ create index if not exists profiles_user_id_updated_at_idx
+ 
+ alter table public.profiles enable row level security;
+ 
++drop policy if exists "Users can read own profiles" on public.profiles;
+ create policy "Users can read own profiles" on public.profiles
+   for select using (auth.uid() = user_id);
++drop policy if exists "Users can insert own profiles" on public.profiles;
+ create policy "Users can insert own profiles" on public.profiles
+   for insert with check (auth.uid() = user_id);
++drop policy if exists "Users can update own profiles" on public.profiles;
+ create policy "Users can update own profiles" on public.profiles
+   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
++drop policy if exists "Users can delete own profiles" on public.profiles;
+ create policy "Users can delete own profiles" on public.profiles
+   for delete using (auth.uid() = user_id);
+ 
++revoke all on table public.profiles from anon;
++grant select, insert, update, delete on table public.profiles to authenticated;
++
+ create or replace function public.set_updated_at()
+ returns trigger language plpgsql security invoker set search_path = '' as $$
+ begin
