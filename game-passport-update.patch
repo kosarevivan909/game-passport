@@ -331,7 +331,7 @@ index 9474e69..aedc4de 100644
  
  #ifdef __cplusplus
 diff --git a/src-tauri/src/nvidia.rs b/src-tauri/src/nvidia.rs
-index 5e0a924..92f7d70 100644
+index 5e0a924..49a354f 100644
 --- a/src-tauri/src/nvidia.rs
 +++ b/src-tauri/src/nvidia.rs
 @@ -67,6 +67,23 @@ pub struct NvidiaSetting {
@@ -380,22 +380,18 @@ index 5e0a924..92f7d70 100644
  }
  
  #[derive(Debug, Serialize)]
-@@ -152,8 +177,13 @@ pub fn apply_state(
+@@ -152,8 +177,9 @@ pub fn apply_state(
      settings_skipped: u32,
      settings_unsupported: u32,
      scaling_ok: bool,
 +    display_color_ok: bool,
  ) -> &'static str {
 -    if settings_skipped > 0 || settings_unsupported > 0 || !scaling_ok {
-+    if settings_skipped > 0
-+        || settings_unsupported > 0
-+        || !scaling_ok
-+        || !display_color_ok
-+    {
++    if settings_skipped > 0 || settings_unsupported > 0 || !scaling_ok || !display_color_ok {
          "warning"
      } else {
          "success"
-@@ -188,6 +218,24 @@ pub fn validate_payload(payload: &NvidiaPayload) -> Result<(), String> {
+@@ -188,6 +214,24 @@ pub fn validate_payload(payload: &NvidiaPayload) -> Result<(), String> {
      {
          return Err("NVIDIA snapshot contains an unknown scaling mode.".into());
      }
@@ -420,7 +416,7 @@ index 5e0a924..92f7d70 100644
      Ok(())
  }
  
-@@ -242,6 +290,15 @@ mod windows {
+@@ -242,6 +286,15 @@ mod windows {
          profile_created: u32,
          scaling_supported: u32,
          scaling: u32,
@@ -436,7 +432,7 @@ index 5e0a924..92f7d70 100644
          setting_count: u32,
          gpu_name: [c_char; 128],
          driver_branch: [c_char; 64],
-@@ -259,7 +316,15 @@ mod windows {
+@@ -259,7 +312,15 @@ mod windows {
          profile_created: u32,
          scaling_requested: u32,
          scaling_applied: u32,
@@ -452,7 +448,7 @@ index 5e0a924..92f7d70 100644
      }
  
      #[derive(Debug, Clone, Serialize, Deserialize)]
-@@ -281,6 +346,10 @@ mod windows {
+@@ -281,6 +342,10 @@ mod windows {
          profile_found: bool,
          scaling_supported: bool,
          scaling_value: u32,
@@ -463,7 +459,7 @@ index 5e0a924..92f7d70 100644
          settings: Vec<BackupSetting>,
      }
  
-@@ -322,6 +391,8 @@ mod windows {
+@@ -322,6 +387,8 @@ mod windows {
          let diagnostics = diagnostics_from_raw(&raw);
          let settings = present_settings(&raw);
          let scaling_supported = raw.scaling_supported != 0;
@@ -472,7 +468,7 @@ index 5e0a924..92f7d70 100644
          let payload = NvidiaPayload {
              schema_version: 1,
              captured_at: Utc::now().to_rfc3339(),
-@@ -330,8 +401,13 @@ mod windows {
+@@ -330,8 +397,13 @@ mod windows {
              scaling_mode: scaling_name(raw.scaling).into(),
              scaling_value: raw.scaling,
              scaling_supported,
@@ -487,7 +483,7 @@ index 5e0a924..92f7d70 100644
          let mut details = vec![format!("Portable DRS settings read: {}", settings.len())];
          if settings.is_empty() {
              details.push("The game profile currently has no explicit portable overrides.".into());
-@@ -344,6 +420,19 @@ mod windows {
+@@ -344,6 +416,19 @@ mod windows {
                  scaling_name(raw.scaling)
              ));
          }
@@ -507,7 +503,7 @@ index 5e0a924..92f7d70 100644
          NvidiaCommandResponse {
              state: if has_warning { "warning" } else { "success" }.into(),
              message: format!(
-@@ -395,16 +484,29 @@ mod windows {
+@@ -395,16 +480,26 @@ mod windows {
              }
          };
          let scaling_ok = report.scaling_requested == 0 || report.scaling_applied != 0;
@@ -526,10 +522,7 @@ index 5e0a924..92f7d70 100644
              format!("DRS settings skipped: {}", report.settings_skipped),
              format!("DRS settings unsupported: {}", report.settings_unsupported),
              format!("Scaling: {}", char_array(&report.scaling_message)),
-+            format!(
-+                "Output color: {}",
-+                char_array(&report.output_color_message)
-+            ),
++            format!("Output color: {}", char_array(&report.output_color_message)),
 +            format!(
 +                "Desktop color: {}",
 +                char_array(&report.desktop_gamma_message)
@@ -537,7 +530,7 @@ index 5e0a924..92f7d70 100644
              format!("NVIDIA backup: {}", backup_path.display()),
          ];
          if payload.scaling_mode == "stretched" && scaling_ok {
-@@ -444,6 +546,10 @@ mod windows {
+@@ -444,6 +539,10 @@ mod windows {
                  scaling_supported: payload.scaling_supported,
                  scaling_mode: Some(payload.scaling_mode),
                  scaling_result: nonempty(char_array(&report.scaling_message)),
@@ -548,15 +541,14 @@ index 5e0a924..92f7d70 100644
              }),
              backup_token: Some(backup_path.to_string_lossy().into_owned()),
          }
-@@ -484,8 +590,17 @@ mod windows {
+@@ -484,8 +583,16 @@ mod windows {
          match apply_raw(&raw, true, target) {
              Ok(report) => {
                  let scaling_ok = report.scaling_requested == 0 || report.scaling_applied != 0;
 +                let output_color_ok = report.output_color_requested == 0
 +                    || (report.output_color_applied != 0 && report.output_color_verified != 0);
 +                let desktop_gamma_ok = report.desktop_gamma_requested == 0
-+                    || (report.desktop_gamma_applied != 0
-+                        && report.desktop_gamma_verified != 0);
++                    || (report.desktop_gamma_applied != 0 && report.desktop_gamma_verified != 0);
                  NvidiaCommandResponse {
 -                    state: if scaling_ok && report.settings_skipped == 0 {
 +                    state: if scaling_ok
@@ -567,14 +559,11 @@ index 5e0a924..92f7d70 100644
                          "success"
                      } else {
                          "warning"
-@@ -497,8 +612,16 @@ mod windows {
+@@ -497,8 +604,13 @@ mod windows {
                          format!("Settings restored/deleted: {}", report.settings_applied),
                          format!("Settings skipped: {}", report.settings_skipped),
                          format!("Scaling: {}", char_array(&report.scaling_message)),
-+                        format!(
-+                            "Output color: {}",
-+                            char_array(&report.output_color_message)
-+                        ),
++                        format!("Output color: {}", char_array(&report.output_color_message)),
 +                        format!(
 +                            "Desktop color: {}",
 +                            char_array(&report.desktop_gamma_message)
@@ -585,7 +574,7 @@ index 5e0a924..92f7d70 100644
                      payload: None,
                      diagnostics: None,
                      backup_token: None,
-@@ -581,6 +704,43 @@ mod windows {
+@@ -581,6 +693,43 @@ mod windows {
              .collect()
      }
  
@@ -629,7 +618,7 @@ index 5e0a924..92f7d70 100644
      fn diagnostics_from_raw(raw: &RawSnapshot) -> NvidiaDiagnostics {
          NvidiaDiagnostics {
              gpu_detected: raw.gpu_found != 0,
-@@ -599,6 +759,10 @@ mod windows {
+@@ -599,6 +748,10 @@ mod windows {
              scaling_supported: raw.scaling_supported != 0,
              scaling_mode: (raw.scaling_supported != 0).then(|| scaling_name(raw.scaling).into()),
              scaling_result: None,
@@ -640,7 +629,7 @@ index 5e0a924..92f7d70 100644
          }
      }
  
-@@ -608,6 +772,7 @@ mod windows {
+@@ -608,6 +761,7 @@ mod windows {
          raw.profile_found = u32::from(profile_found);
          raw.scaling_supported = u32::from(payload.scaling_supported);
          raw.scaling = payload.scaling_value;
@@ -648,7 +637,7 @@ index 5e0a924..92f7d70 100644
          raw.setting_count = payload.settings.len() as u32;
          for (index, setting) in payload.settings.iter().enumerate() {
              raw.settings[index].id = setting.id;
-@@ -626,6 +791,8 @@ mod windows {
+@@ -626,6 +780,8 @@ mod windows {
              profile_found: raw.profile_found != 0,
              scaling_supported: raw.scaling_supported != 0,
              scaling_value: raw.scaling,
@@ -657,7 +646,7 @@ index 5e0a924..92f7d70 100644
              settings: raw
                  .settings
                  .iter()
-@@ -646,6 +813,7 @@ mod windows {
+@@ -646,6 +802,7 @@ mod windows {
          raw.profile_found = u32::from(backup.profile_found);
          raw.scaling_supported = u32::from(backup.scaling_supported);
          raw.scaling = backup.scaling_value;
@@ -665,7 +654,7 @@ index 5e0a924..92f7d70 100644
          raw.setting_count = backup.settings.len().min(MAX_SETTINGS) as u32;
          for (index, setting) in backup.settings.iter().take(MAX_SETTINGS).enumerate() {
              raw.settings[index].id = setting.id;
-@@ -745,6 +913,24 @@ mod windows {
+@@ -745,6 +902,24 @@ mod windows {
                  return Err("NVIDIA backup contains an unknown setting.".into());
              }
          }
@@ -690,7 +679,7 @@ index 5e0a924..92f7d70 100644
          Ok(backup)
      }
  
-@@ -801,6 +987,17 @@ mod tests {
+@@ -801,6 +976,15 @@ mod tests {
              scaling_mode: "stretched".into(),
              scaling_value: 2,
              scaling_supported: true,
@@ -702,13 +691,11 @@ index 5e0a924..92f7d70 100644
 +                color_selection_policy: 0,
 +                desktop_color_depth: 1,
 +            }),
-+            desktop_gamma: Some(NvidiaDesktopGamma {
-+                ramp: vec![0; 768],
-+            }),
++            desktop_gamma: Some(NvidiaDesktopGamma { ramp: vec![0; 768] }),
          }
      }
  
-@@ -850,9 +1047,21 @@ mod tests {
+@@ -850,9 +1034,21 @@ mod tests {
  
      #[test]
      fn reports_incompatible_driver_settings_as_partial_success() {
