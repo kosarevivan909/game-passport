@@ -1,17 +1,17 @@
 diff --git a/README.md b/README.md
-index c998d18..5cd851c 100644
+index c998d18..711cf17 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,14 +1,14 @@
 -# Game Passport v0.6.0 RC
-+# Game Passport v0.6.2 RC
++# Game Passport v0.6.3 RC
  
  Windows Release Candidate существующего Game Passport на Tauri 2, React, TypeScript, Rust и Supabase. Реальные адаптеры CS2, PUBG, Display, NVIDIA и Mouse сохранены; Dota 2 убрана из основного пользовательского пути.
  
  ## Как установить в компьютерном клубе
  
 -1. Возьмите файл `Game Passport_0.6.0_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
-+1. Возьмите файл `Game Passport_0.6.2_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
++1. Возьмите файл `Game Passport_0.6.3_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
  2. Запустите EXE обычным пользователем Windows. Постоянные права администратора не нужны.
  3. Выберите язык и завершите установку. Установщик создаёт ярлыки в меню «Пуск» и на рабочем столе; WebView2 включён внутрь инсталлятора и не требует отдельной загрузки.
  4. Запустите Game Passport и войдите в аккаунт Supabase. Пароль Steam приложение не запрашивает.
@@ -25,7 +25,7 @@ index c998d18..5cd851c 100644
  - Initial Setup: версия Windows, сеть, Supabase, Steam и активный Steam-пользователь, CS2, PUBG config, мониторы, NVIDIA и мышь. Предупреждения не блокируют вход в приложение.
  - Test Game Passport: отдельные статусы `PASS / FAIL / WARNING / SKIPPED` для программного Capture/Apply и ручного подтверждения игры, изображения, дисплея, NVIDIA и мыши.
 -- Diagnostics: версия `0.6.0 RC`, build id, реальная доступность облака, права, политика обновления, путь логов, состояние адаптеров и обезличенный отчёт.
-+- Diagnostics: версия `0.6.2 RC`, build id, реальная доступность облака, права, политика обновления, путь логов, состояние адаптеров и обезличенный отчёт.
++- Diagnostics: версия `0.6.3 RC`, build id, реальная доступность облака, права, политика обновления, путь логов, состояние адаптеров и обезличенный отчёт.
  - Production logging: JSONL в `%LOCALAPPDATA%\app.gamepassport.desktop\logs`, ротация 1 MB × 3 файла, без паролей, токенов, cookies и Steam auth.
  - Offline: ранее синхронизированные профили доступны только из локального кэша при ещё действующей локальной сессии. Вход, создание, изменение и удаление профилей офлайн не имитируются.
  - Demo mode всегда помечен как `DEMO MODE`, не запускает адаптеры и не заявляет успешную проверку оборудования.
@@ -35,13 +35,33 @@ index c998d18..5cd851c 100644
  ```text
 -Game Passport_0.6.0_x64-setup.exe   (NSIS, основной)
 -Game Passport_0.6.0_x64_en-US.msi   (WiX, дополнительный)
-+Game Passport_0.6.2_x64-setup.exe   (NSIS, основной)
-+Game Passport_0.6.2_x64_ru-RU.msi   (WiX, дополнительный)
++Game Passport_0.6.3_x64-setup.exe   (NSIS, основной)
++Game Passport_0.6.3_x64_ru-RU.msi   (WiX, дополнительный)
  SHA256SUMS.txt
  ```
  
+@@ -54,7 +54,7 @@ pnpm tauri build -- --target x86_64-pc-windows-msvc
+ ## Ограничения RC
+ 
+ - Реальный PASS для игры/изображения/оборудования требует проверки пользователем на целевом Windows-ПК; API-success хранится отдельно.
+-- NVIDIA переносит разрешённый набор публичных NVAPI DRS параметров, scaling, выходной формат/диапазон/глубину цвета и системную brightness/contrast/gamma LUT. Неизвестные или несовместимые значения дают Warning; недокументированные private NVAPI вызовы не используются.
++- NVIDIA переносит разрешённые игровые и глобальные NVAPI DRS параметры, scaling, выходной формат/диапазон/глубину цвета и фактическую системную gamma curve. Digital Vibrance/Hue, preview selector и custom underscan не имеют публичного API и честно дают Warning; недокументированные private NVAPI вызовы не используются.
+ - DPI/polling меняются только для явно поддержанных физических устройств; виртуальные, неоднозначные и неизвестные мыши не получают Success.
+ - Аппаратные ID, monitor/audio device paths, Steam credentials/tokens/cookies и игровые anti-cheat файлы не переносятся.
+ - Автообновление не активировано: нет фиктивного endpoint и нет неподписанной установки. RC обновляется вручную только доверенным подписанным инсталлятором.
+diff --git a/docs/CLUB_QUICK_START_RU.md b/docs/CLUB_QUICK_START_RU.md
+index a83a4a4..4ad7756 100644
+--- a/docs/CLUB_QUICK_START_RU.md
++++ b/docs/CLUB_QUICK_START_RU.md
+@@ -24,5 +24,5 @@
+ ## Что важно в текущей полевой сборке
+ 
+ - Идентификаторы монитора, GPU и аудиоустройства не переносятся; точная герцовка выбирается максимально доступная на каждом ПК.
+-- Цветовые настройки в меню самого монитора не переносятся. Параметры рабочего стола NVIDIA тоже не равны игровому NVIDIA-профилю и могут потребовать отдельной настройки.
++- Цветовые настройки в меню самого монитора не переносятся. Game Passport переносит публично доступные NVIDIA output color и фактическую desktop gamma curve, но отдельные ползунки Digital Vibrance/Hue и пользовательский underscan публичным NVAPI не предоставлены и показываются как Warning.
+ - Режим «Полевой тест» хранит профили только на текущем ПК. Для входа на другом ПК с теми же профилями нужна сборка с подключённым облаком Supabase.
 diff --git a/docs/CS2_ADAPTER.md b/docs/CS2_ADAPTER.md
-index ce58938..a0f048c 100644
+index ce58938..1260dff 100644
 --- a/docs/CS2_ADAPTER.md
 +++ b/docs/CS2_ADAPTER.md
 @@ -31,12 +31,13 @@ Steam хранит данные игр по схеме `Steam\userdata\<account-
@@ -79,17 +99,20 @@ index ce58938..a0f048c 100644
  - только относительные пути без `..`, drive prefix и UNC;
  - разрешены только известные core-файлы и `.cfg`;
  - максимум 32 файла, 512 КБ на файл и 2 МБ суммарно;
-@@ -73,6 +76,9 @@ SteamID/AccountID и абсолютные пути не записываются
+@@ -73,6 +76,12 @@ SteamID/AccountID и абсолютные пути не записываются
  - перед заменой создаётся backup в `%LOCALAPPDATA%\Game Passport\Backups\CS2\<timestamp>`;
  - файлы сначала записываются во временные цели; при ошибке выполняется rollback уже заменённых файлов;
  - непосредственно перед commit ещё раз проверяется, что CS2 не запущена.
 +- после автоматического закрытия Steam используется уже определённая папка пользователя; повторный вход и чтение пароля не требуются;
 +- после записи каждый CS2-файл и параметры запуска перечитываются; несовпадение возвращает Error;
 +- `cs2_video.txt` применяется как exclusive fullscreen: `setting.fullscreen=1`, `setting.nowindowborder=0`.
++- Переносимые графические значения объединяются с локальными `VendorID`, `DeviceID`, monitor index и refresh metadata нового компьютера, чтобы CS2 не пересоздавала весь файл как несовместимый.
++- Конфликтующие Steam-флаги `-windowed`, `-window`, `-sw`, `-startwindowed`, `-noborder` удаляются; при Apply добавляется `-fullscreen`.
++- После автоматического запуска Steam повторно проверяются графика, exclusive fullscreen и параметры запуска. Если Steam Cloud или драйвер изменил значения, итог — Warning с перечнем несовпавших ключей.
  
  ## Намеренно не переносится
  
-@@ -85,7 +91,6 @@ SteamID/AccountID и абсолютные пути не записываются
+@@ -85,7 +94,6 @@ SteamID/AccountID и абсолютные пути не записываются
  
  Также не переносятся:
  
@@ -97,8 +120,80 @@ index ce58938..a0f048c 100644
  - Steam Input/controller layout;
  - workshop content, карты, demos, screenshots;
  - cloud metadata и файлы `*_lastclouded`;
+diff --git a/docs/DISPLAY_NVIDIA_ADAPTERS.md b/docs/DISPLAY_NVIDIA_ADAPTERS.md
+index aa24ae3..be7f239 100644
+--- a/docs/DISPLAY_NVIDIA_ADAPTERS.md
++++ b/docs/DISPLAY_NVIDIA_ADAPTERS.md
+@@ -1,6 +1,6 @@
+-# Display + NVIDIA Adapters: технический контракт v1
++# Display + NVIDIA Adapters: технический контракт v2
+ 
+-Дата исследования: 11 августа 2026 года. Версия приложения: Game Passport v0.3.0.
++Дата актуализации: 20 августа 2026 года. Версия приложения: Game Passport v0.6.3.
+ 
+ ## Официальные API
+ 
+@@ -15,6 +15,9 @@ NVIDIA Adapter использует официальный публичный NV
+ - официальный MIT-репозиторий и static libraries: <https://github.com/NVIDIA/nvapi>
+ - DRS API: <https://docs.nvidia.com/nvapi/group__drsapi.html>
+ - Display Control и `NV_SCALING`: <https://docs.nvidia.com/nvapi/group__dispcontrol.html>
++- `NvAPI_Disp_ColorControl` / `NV_COLOR_DATA_V5`: тот же официальный Display Control API.
++
++Эффективная desktop gamma curve считывается и устанавливается документированными Windows GDI `GetDeviceGammaRamp` / `SetDeviceGammaRamp`. Недокументированные NVAPI entry points и бинарные NVIDIA registry blobs не используются.
+ 
+ SDK vendored в `src-tauri/vendor/nvapi`; лицензия сохранена в `License.txt`. Фактическую реализацию NVAPI предоставляет установленный NVIDIA Driver.
+ 
+@@ -50,7 +53,7 @@ SDK vendored в `src-tauri/vendor/nvapi`; лицензия сохранена в
+ 
+ ## NVIDIA snapshot
+ 
+-Профиль хранит `cs2.exe`, capture timestamp, массив `{id,key,value}` и документированный scaling enum. Не копируются NVIDIA driver database, binary export или hardware-specific profile blobs.
++Профиль schema v2 хранит `cs2.exe`, capture timestamp, игровые и глобальные массивы `{id,key,value,present}`, документированный scaling enum, output color и эффективную desktop gamma curve. Не копируются NVIDIA driver database, binary export или hardware-specific profile blobs.
+ 
+ Разрешены только публичные DWORD IDs из `NvApiDriverSettings.h`:
+ 
+@@ -73,9 +76,20 @@ SDK vendored в `src-tauri/vendor/nvapi`; лицензия сохранена в
+ | mfaa | `0x0098C1AC` |
+ | preferred_refresh_rate | `0x0064B541` |
+ 
+-Capture сохраняет только явные current-profile overrides. Inherited global/base settings не превращаются в новые application overrides. При Apply неизвестные или отсутствующие в новой версии драйвера параметры пропускаются.
++Дополнительно разрешены публичные DWORD IDs для OpenGL presentation/threading/triple buffering, antialiasing mode/transparency/gamma correction, background FPS, Image Scaling, VR pre-rendering, VRR controls, ambient occlusion, LOD bias и texture-quality substitution. Полный allowlist одинаков в Rust и native bridge; неизвестный ID отклоняет весь snapshot до изменения компьютера.
++
++Capture сохраняет полный present/absent allowlist отдельно для application profile и текущего global profile. Поэтому Apply не только устанавливает сохранённые overrides, но и удаляет переносимые overrides, которых не было на исходном компьютере. Inherited base-profile значения не превращаются в application overrides. Параметр, отсутствующий в конкретной версии драйвера, даёт Warning.
++
++`preferred_refresh_rate` больше не подменяется значением `HIGHEST_AVAILABLE`: применяется ровно сохранённый публичный DRS value. Реальную частоту и разрешение затем отдельно выбирает и проверяет Display Adapter.
++
++## Четыре окна NVIDIA Control Panel
++
++1. **Регулировка параметров цвета рабочего стола.** Переносится фактическая 3×256 desktop gamma curve и проверяется readback. Это переносит доступный Windows результат brightness/contrast/gamma curve, но публичный API не раскрывает отдельные значения Digital Vibrance и Hue и не гарантирует совпадение положения ползунков интерфейса.
++2. **Регулировка настроек изображения с просмотром.** Сам radio selector/preview slider публичным NVAPI не предоставлен. Вместо него переносится доступный эффективный global DRS allowlist. Результат этого этапа всегда Warning с явным описанием ограничения.
++3. **Регулировка размера и положения рабочего стола.** Переносится документированный `NV_SCALING` основного NVIDIA display path. Пользовательский resize/underscan и абсолютная позиция монитора аппаратно-зависимы и не переносятся.
++4. **Управление параметрами 3D.** Переносятся отдельные application overrides для `cs2.exe`/`TslGame.exe` и переносимая часть current global profile.
+ 
+-`preferred_refresh_rate` независимо от сохранённого значения применяется как публичное `REFRESH_RATE_OVERRIDE_HIGHEST_AVAILABLE`; фиксированная частота не переносится.
++Для выхода монитора через `NV_COLOR_DATA_V5` переносятся RGB/YUV format, colorimetry, full/limited dynamic range, bits per component, selection policy и desktop color depth. Если новый монитор, кабель или драйвер не поддерживает комбинацию, NVIDIA получает Warning/Error, а не Success.
+ 
+ ## NVIDIA application profile
+ 
+@@ -101,7 +115,7 @@ Stretched соответствует документированному `NV_SC
+ 
+ Display backup содержит только локальный Windows device name и прежний mode. Он не синхронизируется. При ошибке mode change прежний mode применяется немедленно.
+ 
+-NVIDIA backup содержит полный present/absent whitelist и scaling. Ошибка сохранения DRS запускает немедленный restore. Критическая ошибка следующего pipeline stage запускает adapter rollback через TypeScript orchestrator.
++NVIDIA backup содержит application/global present/absent allowlist, scaling, output color и desktop gamma curve. Display controls применяются после точного Windows display mode, чтобы смена разрешения не затёрла цвет. Ошибка сохранения DRS запускает немедленный restore. Критическая ошибка следующего pipeline stage запускает adapter rollback через TypeScript orchestrator.
+ 
+ Rollback нельзя гарантировать при физическом отключении монитора, удалении драйвера, изменении topology или driver crash. В таких случаях UI показывает Error.
+ 
+@@ -111,5 +125,7 @@ Rollback нельзя гарантировать при физическом о
+ - принятие 360/400/500 Hz конкретным соединением;
+ - визуальное подтверждение 4:3 stretched после запуска CS2;
+ - существование и доступность каждого whitelist ID в конкретной версии драйвера;
++- принятие output color и gamma curve конкретной связкой GPU/драйвер/монитор;
++- визуальное сравнение Digital Vibrance/Hue, поскольку публичного read/write API для этих ползунков нет;
+ - поведение multi-GPU, Optimus/MUX, clone/spanning и remote desktop topology;
+ - создание NSIS/MSI и runtime loading `nvapi64.dll` на целевой машине.
 diff --git a/package.json b/package.json
-index 8d90a32..206076f 100644
+index 8d90a32..a4e1672 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,7 +1,7 @@
@@ -106,12 +201,12 @@ index 8d90a32..206076f 100644
    "name": "game-passport",
    "private": true,
 -  "version": "0.6.0",
-+  "version": "0.6.2",
++  "version": "0.6.3",
    "type": "module",
    "scripts": {
      "dev": "vite",
 diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
-index ee99788..835befd 100644
+index ee99788..8eb3223 100644
 --- a/src-tauri/Cargo.lock
 +++ b/src-tauri/Cargo.lock
 @@ -911,7 +911,7 @@ dependencies = [
@@ -119,36 +214,487 @@ index ee99788..835befd 100644
  [[package]]
  name = "game-passport"
 -version = "0.6.0"
-+version = "0.6.2"
++version = "0.6.3"
  dependencies = [
   "base64 0.22.1",
   "cc",
 diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
-index 76495e5..3f1fedd 100644
+index 76495e5..179b550 100644
 --- a/src-tauri/Cargo.toml
 +++ b/src-tauri/Cargo.toml
 @@ -1,6 +1,6 @@
  [package]
  name = "game-passport"
 -version = "0.6.0"
-+version = "0.6.2"
++version = "0.6.3"
  description = "Portable gaming profiles for Windows PCs"
  authors = ["Game Passport"]
  license = "Proprietary"
+@@ -26,7 +26,7 @@ tauri = { version = "2", features = [] }
+ 
+ [target.'cfg(windows)'.dependencies]
+ hidapi = { version = "2.6.3", default-features = false, features = ["windows-native"] }
+-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Diagnostics_ToolHelp"] }
++windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Diagnostics_ToolHelp", "Win32_UI_ColorSystem"] }
+ winreg = "0.55"
+ 
+ [dev-dependencies]
+diff --git a/src-tauri/native/nvapi_bridge.cpp b/src-tauri/native/nvapi_bridge.cpp
+index bf36aa0..a9cb882 100644
+--- a/src-tauri/native/nvapi_bridge.cpp
++++ b/src-tauri/native/nvapi_bridge.cpp
+@@ -17,8 +17,20 @@ struct PortableSetting {
+ 
+ // Only public DWORD settings from NVIDIA's NvApiDriverSettings.h are accepted.
+ static const PortableSetting kPortableSettings[] = {
++    {OGL_CPL_GDI_COMPATIBILITY_ID, "opengl_gdi_compatibility"},
++    {OGL_CPL_PREFER_DXPRESENT_ID, "opengl_dx_present"},
++    {OGL_MAX_FRAMES_ALLOWED_ID, "opengl_max_queued_frames"},
++    {OGL_QUALITY_ENHANCEMENTS_ID, "opengl_texture_filtering_quality"},
++    {OGL_THREAD_CONTROL_ID, "opengl_threaded_optimization"},
++    {OGL_TRIPLE_BUFFER_ID, "opengl_triple_buffering"},
++    {AA_MODE_ALPHATOCOVERAGE_ID, "antialiasing_transparency"},
++    {AA_MODE_GAMMACORRECTION_ID, "antialiasing_gamma_correction"},
++    {AA_MODE_METHOD_ID, "antialiasing_mode_method"},
++    {AA_MODE_REPLAY_ID, "antialiasing_replay"},
++    {AA_MODE_SELECTOR_ID, "antialiasing_mode_selector"},
+     {PREFERRED_PSTATE_ID, "power_management_mode"},
+     {FRL_FPS_ID, "max_frame_rate"},
++    {APPIDLE_DYNAMIC_FRL_FPS_ID, "background_max_frame_rate"},
+     {VSYNCMODE_ID, "vertical_sync"},
+     {QUALITY_ENHANCEMENTS_ID, "texture_filtering_quality"},
+     {PS_SHADERDISKCACHE_ID, "shader_cache"},
+@@ -33,6 +45,17 @@ static const PortableSetting kPortableSettings[] = {
+     {FXAA_ENABLE_ID, "fxaa"},
+     {MAXWELL_B_SAMPLE_INTERLEAVE_ID, "mfaa"},
+     {REFRESH_RATE_OVERRIDE_ID, "preferred_refresh_rate"},
++    {NV_QUALITY_UPSCALING_ID, "image_scaling"},
++    {PREVENT_UI_AF_OVERRIDE_ID, "application_controlled_anisotropic_filtering"},
++    {VRPRERENDERLIMIT_ID, "vr_pre_rendered_frames"},
++    {VRR_APP_OVERRIDE_ID, "vrr_application_override"},
++    {VSYNCVRRCONTROL_ID, "vrr_vertical_sync_control"},
++    {AO_MODE_ID, "ambient_occlusion_mode"},
++    {AO_MODE_ACTIVE_ID, "ambient_occlusion_active"},
++    {AUTO_LODBIASADJUST_ID, "driver_controlled_lod_bias"},
++    {LODBIASADJUST_ID, "lod_bias"},
++    {QUALITY_ENHANCEMENT_SUBSTITUTION_ID, "texture_filtering_quality_substitution"},
++    {VSYNCTEARCONTROL_ID, "vertical_sync_tear_control"},
+ };
+ 
+ void set_error(char* buffer, size_t size, const char* message, NvAPI_Status status) {
+@@ -216,6 +239,116 @@ NvAPI_Status get_scaling(NvU32* scaling) {
+     return NVAPI_OK;
+ }
+ 
++NvAPI_Status get_primary_display_id(NvU32* display_id) {
++    NvU32 count = 0;
++    NV_DISPLAYCONFIG_PATH_INFO* paths = nullptr;
++    NvAPI_Status status = allocate_display_config(&count, &paths);
++    if (status != NVAPI_OK) return status;
++    auto* path = primary_nvidia_path(count, paths);
++    if (!path) {
++        free_display_config(count, paths);
++        return NVAPI_NVIDIA_DEVICE_NOT_FOUND;
++    }
++    *display_id = path->targetInfo[0].displayId;
++    free_display_config(count, paths);
++    return NVAPI_OK;
++}
++
++NvAPI_Status get_output_color(GpNvColorControl* output) {
++    if (!output) return NVAPI_INVALID_POINTER;
++    memset(output, 0, sizeof(*output));
++    NvU32 display_id = 0;
++    NvAPI_Status status = get_primary_display_id(&display_id);
++    if (status != NVAPI_OK) return status;
++    NV_COLOR_DATA color = {};
++    color.version = NV_COLOR_DATA_VER;
++    color.size = sizeof(color);
++    color.cmd = NV_COLOR_CMD_GET;
++    status = NvAPI_Disp_ColorControl(display_id, &color);
++    if (status != NVAPI_OK) return status;
++    output->supported = 1;
++    output->color_format = color.data.colorFormat;
++    output->colorimetry = color.data.colorimetry;
++    output->dynamic_range = color.data.dynamicRange;
++    output->bpc = static_cast<NvU32>(color.data.bpc);
++    output->selection_policy = static_cast<NvU32>(color.data.colorSelectionPolicy);
++    output->desktop_color_depth = static_cast<NvU32>(color.data.depth);
++    return NVAPI_OK;
++}
++
++NvAPI_Status set_output_color(const GpNvColorControl* input) {
++    if (!input || !input->supported) return NVAPI_INVALID_ARGUMENT;
++    NvU32 display_id = 0;
++    NvAPI_Status status = get_primary_display_id(&display_id);
++    if (status != NVAPI_OK) return status;
++    NV_COLOR_DATA color = {};
++    color.version = NV_COLOR_DATA_VER;
++    color.size = sizeof(color);
++    color.cmd = NV_COLOR_CMD_SET;
++    color.data.colorFormat = static_cast<NvU8>(input->color_format);
++    color.data.colorimetry = static_cast<NvU8>(input->colorimetry);
++    color.data.dynamicRange = static_cast<NvU8>(input->dynamic_range);
++    color.data.bpc = static_cast<NV_BPC>(input->bpc);
++    color.data.colorSelectionPolicy =
++        static_cast<NV_COLOR_SELECTION_POLICY>(input->selection_policy);
++    color.data.depth = static_cast<NV_DESKTOP_COLOR_DEPTH>(input->desktop_color_depth);
++    return NvAPI_Disp_ColorControl(display_id, &color);
++}
++
++void capture_profile_settings(NvDRSSessionHandle session, NvDRSProfileHandle profile,
++                              GpNvSetting* settings, uint32_t* setting_count) {
++    if (!profile || !settings || !setting_count) return;
++    const size_t count = sizeof(kPortableSettings) / sizeof(kPortableSettings[0]);
++    for (size_t i = 0; i < count && i < GP_NV_MAX_SETTINGS; ++i) {
++        auto& output = settings[(*setting_count)++];
++        output.id = kPortableSettings[i].id;
++        copy_ascii(output.key, sizeof(output.key), kPortableSettings[i].key);
++        NVDRS_SETTING setting = {};
++        setting.version = NVDRS_SETTING_VER;
++        NvAPI_Status status = NvAPI_DRS_GetSetting(session, profile, output.id, &setting);
++        if (status == NVAPI_OK && setting.settingType == NVDRS_DWORD_TYPE &&
++            setting.settingLocation == NVDRS_CURRENT_PROFILE_LOCATION) {
++            output.present = 1;
++            output.value = setting.u32CurrentValue;
++        }
++    }
++}
++
++void apply_profile_settings(NvDRSSessionHandle session, NvDRSProfileHandle profile,
++                            const GpNvSetting* settings, uint32_t count,
++                            uint32_t* applied, uint32_t* skipped,
++                            uint32_t* unsupported, bool force_highest_refresh) {
++    if (!profile) return;
++    const uint32_t safe_count = count > GP_NV_MAX_SETTINGS ? GP_NV_MAX_SETTINGS : count;
++    for (uint32_t i = 0; i < safe_count; ++i) {
++        const auto& input = settings[i];
++        if (!is_whitelisted(input.id)) {
++            if (unsupported) ++*unsupported;
++            continue;
++        }
++        NvAPI_Status status = NVAPI_OK;
++        if (!input.present) {
++            status = NvAPI_DRS_DeleteProfileSetting(session, profile, input.id);
++            if (status == NVAPI_SETTING_NOT_FOUND) status = NVAPI_OK;
++        } else {
++            NVDRS_SETTING setting = {};
++            setting.version = NVDRS_SETTING_VER;
++            setting.settingId = input.id;
++            setting.settingType = NVDRS_DWORD_TYPE;
++            setting.u32CurrentValue =
++                (force_highest_refresh && input.id == REFRESH_RATE_OVERRIDE_ID)
++                    ? REFRESH_RATE_OVERRIDE_HIGHEST_AVAILABLE
++                    : input.value;
++            status = NvAPI_DRS_SetSetting(session, profile, &setting);
++        }
++        if (status == NVAPI_OK) {
++            if (applied) ++*applied;
++        } else if (skipped) {
++            ++*skipped;
++        }
++    }
++}
++
+ NvAPI_Status set_scaling(NvU32 desired) {
+     NvU32 count = 0;
+     NV_DISPLAYCONFIG_PATH_INFO* paths = nullptr;
+@@ -292,38 +425,24 @@ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
+         snapshot->profile_created = 0;
+         copy_ascii(snapshot->profile_name, sizeof(snapshot->profile_name),
+                    "No existing application profile");
+-        NvAPI_DRS_DestroySession(session);
+-        NvU32 scaling = 0;
+-        if (get_scaling(&scaling) == NVAPI_OK) {
+-            snapshot->scaling_supported = 1;
+-            snapshot->scaling = scaling;
+-        }
+-        return NVAPI_OK;
+-    }
+-    if (status != NVAPI_OK) {
++        profile = nullptr;
++        status = NVAPI_OK;
++    } else if (status != NVAPI_OK) {
+         set_error(error, error_size, "Could not find or create the NVIDIA application profile.", status);
+         NvAPI_DRS_DestroySession(session);
+         return status;
++    } else {
++        snapshot->profile_found = found ? 1 : 0;
++        snapshot->profile_created = created ? 1 : 0;
++        copy_ascii(snapshot->profile_name, sizeof(snapshot->profile_name),
++                   "Game Passport application profile");
+     }
+-    snapshot->profile_found = found ? 1 : 0;
+-    snapshot->profile_created = created ? 1 : 0;
+-    copy_ascii(snapshot->profile_name, sizeof(snapshot->profile_name),
+-               "Game Passport application profile");
+ 
+-    const size_t count = sizeof(kPortableSettings) / sizeof(kPortableSettings[0]);
+-    for (size_t i = 0; i < count && i < GP_NV_MAX_SETTINGS; ++i) {
+-        auto& output = snapshot->settings[snapshot->setting_count++];
+-        output.id = kPortableSettings[i].id;
+-        copy_ascii(output.key, sizeof(output.key), kPortableSettings[i].key);
+-        NVDRS_SETTING setting = {};
+-        setting.version = NVDRS_SETTING_VER;
+-        status = NvAPI_DRS_GetSetting(session, profile, output.id, &setting);
+-        if (status == NVAPI_OK && setting.settingType == NVDRS_DWORD_TYPE &&
+-            setting.settingLocation == NVDRS_CURRENT_PROFILE_LOCATION) {
+-            output.present = 1;
+-            output.value = setting.u32CurrentValue;
+-        }
+-    }
++    capture_profile_settings(session, profile, snapshot->settings, &snapshot->setting_count);
++    NvDRSProfileHandle global_profile = nullptr;
++    if (NvAPI_DRS_GetCurrentGlobalProfile(session, &global_profile) == NVAPI_OK)
++        capture_profile_settings(session, global_profile, snapshot->global_settings,
++                                 &snapshot->global_setting_count);
+     if (created) {
+         status = NvAPI_DRS_SaveSettings(session);
+         if (status != NVAPI_OK) {
+@@ -339,6 +458,7 @@ extern "C" int gp_nvapi_capture(GpNvSnapshot* snapshot, uint32_t create_profile,
+         snapshot->scaling_supported = 1;
+         snapshot->scaling = scaling;
+     }
++    get_output_color(&snapshot->output_color);
+     return NVAPI_OK;
+ }
+ 
+@@ -381,16 +501,15 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
+             if (NvAPI_DRS_GetProfileInfo(session, profile, &info) == NVAPI_OK &&
+                 wcscmp(reinterpret_cast<const wchar_t*>(info.profileName), reinterpret_cast<const wchar_t*>(profile_name)) == 0) {
+                 status = NvAPI_DRS_DeleteProfile(session, profile);
+-                if (status == NVAPI_OK) status = NvAPI_DRS_SaveSettings(session);
++                profile = nullptr;
+             } else {
+                 status = NVAPI_OK;
++                profile = nullptr;
+             }
+         } else if (status == NVAPI_EXECUTABLE_NOT_FOUND) {
+             status = NVAPI_OK;
++            profile = nullptr;
+         }
+-        NvAPI_DRS_DestroySession(session);
+-        if (status != NVAPI_OK) set_error(error, error_size, "Could not restore NVIDIA profile state.", status);
+-        return status;
+     }
+     if (status != NVAPI_OK) {
+         set_error(error, error_size, "Could not find or create the NVIDIA application profile.", status);
+@@ -403,56 +522,22 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
+     const uint32_t count = snapshot->setting_count > GP_NV_MAX_SETTINGS
+                                ? GP_NV_MAX_SETTINGS
+                                : snapshot->setting_count;
+-    for (uint32_t i = 0; i < count; ++i) {
+-        const auto& input = snapshot->settings[i];
+-        if (!is_whitelisted(input.id)) {
+-            ++report->settings_unsupported;
+-            continue;
+-        }
+-        if (restore_mode && !input.present) {
+-            status = NvAPI_DRS_DeleteProfileSetting(session, profile, input.id);
+-            if (status == NVAPI_OK || status == NVAPI_SETTING_NOT_FOUND) {
+-                ++report->settings_applied;
+-            } else {
+-                ++report->settings_skipped;
+-            }
+-            continue;
+-        }
+-        if (!input.present) continue;
+-        NVDRS_SETTING setting = {};
+-        setting.version = NVDRS_SETTING_VER;
+-        setting.settingId = input.id;
+-        setting.settingType = NVDRS_DWORD_TYPE;
+-        setting.u32CurrentValue =
+-            (!restore_mode && input.id == REFRESH_RATE_OVERRIDE_ID)
+-                ? REFRESH_RATE_OVERRIDE_HIGHEST_AVAILABLE
+-                : input.value;
+-        status = NvAPI_DRS_SetSetting(session, profile, &setting);
+-        if (status == NVAPI_OK)
+-            ++report->settings_applied;
+-        else
+-            ++report->settings_skipped;
+-    }
+-
+-    if (!restore_mode) {
+-        bool refresh_in_snapshot = false;
+-        for (uint32_t i = 0; i < count; ++i)
+-            if (snapshot->settings[i].id == REFRESH_RATE_OVERRIDE_ID &&
+-                snapshot->settings[i].present)
+-                refresh_in_snapshot = true;
+-        if (!refresh_in_snapshot) {
+-            NVDRS_SETTING refresh = {};
+-            refresh.version = NVDRS_SETTING_VER;
+-            refresh.settingId = REFRESH_RATE_OVERRIDE_ID;
+-            refresh.settingType = NVDRS_DWORD_TYPE;
+-            refresh.u32CurrentValue = REFRESH_RATE_OVERRIDE_HIGHEST_AVAILABLE;
+-            status = NvAPI_DRS_SetSetting(session, profile, &refresh);
+-            if (status == NVAPI_OK)
+-                ++report->settings_applied;
+-            else
+-                ++report->settings_skipped;
+-        }
++    apply_profile_settings(session, profile, snapshot->settings, count,
++                           &report->settings_applied, &report->settings_skipped,
++                           &report->settings_unsupported, false);
++
++    NvDRSProfileHandle global_profile = nullptr;
++    status = NvAPI_DRS_GetCurrentGlobalProfile(session, &global_profile);
++    if (status == NVAPI_OK) {
++        apply_profile_settings(session, global_profile, snapshot->global_settings,
++                               snapshot->global_setting_count,
++                               &report->global_settings_applied,
++                               &report->global_settings_skipped,
++                               &report->settings_unsupported, false);
++    } else if (snapshot->global_setting_count > 0) {
++        report->global_settings_skipped += snapshot->global_setting_count;
+     }
++
+     status = NvAPI_DRS_SaveSettings(session);
+     NvAPI_DRS_DestroySession(session);
+     if (status != NVAPI_OK) {
+@@ -477,3 +562,44 @@ extern "C" int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mod
+     }
+     return NVAPI_OK;
+ }
++
++extern "C" int gp_nvapi_apply_display_controls(
++    const GpNvSnapshot* snapshot, GpNvDisplayControlsReport* report,
++    char* error, size_t error_size) {
++    if (!snapshot || !report) return -1;
++    memset(report, 0, sizeof(*report));
++    NvAPI_Status status = NvAPI_Initialize();
++    if (status != NVAPI_OK) {
++        set_error(error, error_size, "NvAPI_Initialize failed.", status);
++        return status;
++    }
++    if (!snapshot->output_color.supported) {
++        copy_ascii(report->color_message, sizeof(report->color_message),
++                   "No portable NVIDIA output color value was available.");
++        return NVAPI_OK;
++    }
++    report->color_requested = 1;
++    status = set_output_color(&snapshot->output_color);
++    if (status != NVAPI_OK) {
++        set_error(report->color_message, sizeof(report->color_message),
++                  "NVIDIA output color was not applied.", status);
++        return NVAPI_OK;
++    }
++    GpNvColorControl verified = {};
++    status = get_output_color(&verified);
++    if (status == NVAPI_OK &&
++        verified.color_format == snapshot->output_color.color_format &&
++        verified.colorimetry == snapshot->output_color.colorimetry &&
++        verified.dynamic_range == snapshot->output_color.dynamic_range &&
++        verified.bpc == snapshot->output_color.bpc &&
++        verified.selection_policy == snapshot->output_color.selection_policy &&
++        verified.desktop_color_depth == snapshot->output_color.desktop_color_depth) {
++        report->color_applied = 1;
++        copy_ascii(report->color_message, sizeof(report->color_message),
++                   "NVIDIA output color was applied and verified.");
++    } else {
++        copy_ascii(report->color_message, sizeof(report->color_message),
++                   "NVIDIA accepted output color but verification did not match.");
++    }
++    return NVAPI_OK;
++}
+diff --git a/src-tauri/native/nvapi_bridge.h b/src-tauri/native/nvapi_bridge.h
+index 9474e69..d10b72e 100644
+--- a/src-tauri/native/nvapi_bridge.h
++++ b/src-tauri/native/nvapi_bridge.h
+@@ -3,7 +3,7 @@
+ #include <stddef.h>
+ #include <stdint.h>
+ 
+-#define GP_NV_MAX_SETTINGS 32
++#define GP_NV_MAX_SETTINGS 64
+ #define GP_NV_KEY_LENGTH 64
+ 
+ typedef struct GpNvSetting {
+@@ -13,6 +13,16 @@ typedef struct GpNvSetting {
+     char key[GP_NV_KEY_LENGTH];
+ } GpNvSetting;
+ 
++typedef struct GpNvColorControl {
++    uint32_t supported;
++    uint32_t color_format;
++    uint32_t colorimetry;
++    uint32_t dynamic_range;
++    uint32_t bpc;
++    uint32_t selection_policy;
++    uint32_t desktop_color_depth;
++} GpNvColorControl;
++
+ typedef struct GpNvSnapshot {
+     uint32_t schema_version;
+     uint32_t initialized;
+@@ -23,16 +33,21 @@ typedef struct GpNvSnapshot {
+     uint32_t scaling_supported;
+     uint32_t scaling;
+     uint32_t setting_count;
++    uint32_t global_setting_count;
++    GpNvColorControl output_color;
+     char gpu_name[128];
+     char driver_branch[64];
+     char profile_name[128];
+     GpNvSetting settings[GP_NV_MAX_SETTINGS];
++    GpNvSetting global_settings[GP_NV_MAX_SETTINGS];
+ } GpNvSnapshot;
+ 
+ typedef struct GpNvApplyReport {
+     uint32_t settings_applied;
+     uint32_t settings_skipped;
+     uint32_t settings_unsupported;
++    uint32_t global_settings_applied;
++    uint32_t global_settings_skipped;
+     uint32_t profile_found;
+     uint32_t profile_created;
+     uint32_t scaling_requested;
+@@ -40,6 +55,12 @@ typedef struct GpNvApplyReport {
+     char scaling_message[256];
+ } GpNvApplyReport;
+ 
++typedef struct GpNvDisplayControlsReport {
++    uint32_t color_requested;
++    uint32_t color_applied;
++    char color_message[256];
++} GpNvDisplayControlsReport;
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+@@ -52,6 +73,9 @@ int gp_nvapi_apply(const GpNvSnapshot* snapshot, uint32_t restore_mode,
+                    const uint16_t* executable, const uint16_t* profile_name,
+                    const uint16_t* friendly_name,
+                    GpNvApplyReport* report, char* error, size_t error_size);
++int gp_nvapi_apply_display_controls(const GpNvSnapshot* snapshot,
++                                    GpNvDisplayControlsReport* report,
++                                    char* error, size_t error_size);
+ 
+ #ifdef __cplusplus
+ }
 diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
-index ebda9ab..f8f6dfc 100644
+index ebda9ab..64d1267 100644
 --- a/src-tauri/src/cs2.rs
 +++ b/src-tauri/src/cs2.rs
-@@ -19,6 +19,8 @@ pub struct Cs2Payload {
+@@ -19,6 +19,10 @@ pub struct Cs2Payload {
      pub total_bytes: u64,
      pub core_files_found: Vec<String>,
      pub optional_files_missing: Vec<String>,
 +    #[serde(default, skip_serializing_if = "Option::is_none")]
 +    pub launch_options: Option<String>,
++    #[serde(default)]
++    pub launch_options_captured: bool,
  }
  
  #[derive(Debug, Serialize)]
-@@ -86,6 +88,9 @@ mod windows {
+@@ -79,13 +83,16 @@ mod windows {
+     use chrono::Utc;
+     use sha2::{Digest, Sha256};
+     use std::{
+-        collections::{HashSet, VecDeque},
++        collections::{HashMap, HashSet, VecDeque},
+         env,
+         ffi::OsStr,
+         fs::{self, File},
          io::Write,
          mem::{size_of, zeroed},
          path::{Component, Path, PathBuf},
@@ -158,7 +704,7 @@ index ebda9ab..f8f6dfc 100644
      };
      use windows_sys::Win32::{
          Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
-@@ -100,6 +105,8 @@ mod windows {
+@@ -100,6 +107,8 @@ mod windows {
      const MAX_FILE_BYTES: u64 = 512 * 1024;
      const MAX_TOTAL_BYTES: u64 = 2 * 1024 * 1024;
      const MAX_FILES: usize = 32;
@@ -167,7 +713,7 @@ index ebda9ab..f8f6dfc 100644
      const REQUIRED_CORE: [&str; 2] = [
          "cs2_user_convars_0_slot0.vcfg",
          "cs2_user_keys_0_slot0.vcfg",
-@@ -107,8 +114,10 @@ mod windows {
+@@ -107,8 +116,10 @@ mod windows {
      const OPTIONAL_CORE: [&str; 2] = ["cs2_machine_convars.vcfg", "cs2_video.txt"];
  
      struct SteamContext {
@@ -178,7 +724,7 @@ index ebda9ab..f8f6dfc 100644
      }
  
      #[derive(Debug)]
-@@ -165,12 +174,30 @@ mod windows {
+@@ -165,12 +176,30 @@ mod windows {
                  payload: None,
              };
          }
@@ -215,7 +761,7 @@ index ebda9ab..f8f6dfc 100644
          }
      }
  
-@@ -183,7 +210,7 @@ mod windows {
+@@ -183,7 +212,7 @@ mod windows {
  
      fn capture_inner() -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
@@ -224,29 +770,42 @@ index ebda9ab..f8f6dfc 100644
          let mut files = Vec::new();
          let mut details = Vec::new();
          let mut core_files_found = Vec::new();
-@@ -211,6 +238,8 @@ mod windows {
+@@ -211,6 +240,9 @@ mod windows {
              optional_files_missing.push("autoexec.cfg (CS2 installation not located)".into());
          }
  
-+        let launch_options = capture_launch_options(&context.localconfig_vdf, &mut details)?;
++        let (launch_options, launch_options_captured) =
++            capture_launch_options(&context.localconfig_vdf, &mut details)?;
 +
          if files.len() > MAX_FILES {
              return Err(UserFacingError::new(
                  "Too many CS2 configuration files were found. Nothing was saved.",
-@@ -247,6 +276,7 @@ mod windows {
+@@ -241,12 +273,14 @@ mod windows {
+         let custom_count = files.len().saturating_sub(core_files_found.len());
+         let video_captured = core_files_found.iter().any(|name| name == "cs2_video.txt");
+         let payload = Cs2Payload {
+-            schema_version: 1,
++            schema_version: 2,
+             captured_at: Utc::now().to_rfc3339(),
+             files,
              total_bytes,
              core_files_found,
              optional_files_missing: optional_files_missing.clone(),
 +            launch_options: launch_options.clone(),
++            launch_options_captured,
          };
          let retryable = !optional_files_missing.is_empty();
          let mut summary = vec![
-@@ -263,6 +293,13 @@ mod windows {
+@@ -263,6 +297,17 @@ mod windows {
                  "Сохранено дополнительных CFG-файлов: {custom_count}."
              ));
          }
-+        if launch_options.is_some() {
-+            summary.push("Сохранены безопасные параметры запуска CS2 из Steam.".into());
++        if launch_options_captured {
++            summary.push(if launch_options.is_some() {
++                "Сохранены безопасные параметры запуска CS2 из Steam.".into()
++            } else {
++                "Сохранено, что параметры запуска CS2 в Steam не заданы.".into()
++            });
 +        } else {
 +            summary.push(
 +                "Параметры запуска CS2 в Steam не заданы или исключены как чувствительные.".into(),
@@ -255,13 +814,14 @@ index ebda9ab..f8f6dfc 100644
          summary.push("Не сохраняются идентификаторы монитора, видеокарты и аудиоустройства; точная герцовка выбирается заново на целевом ПК.".into());
          summary.append(&mut details);
          details = summary;
-@@ -283,7 +320,57 @@ mod windows {
+@@ -283,7 +328,142 @@ mod windows {
      fn apply_inner(payload: Cs2Payload) -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
          validate_payload(&payload)?;
 -        let context = discover_steam_context()?;
 +        let context = discover_steam_context(false, false)?;
 +        let restart_steam_after_apply = stop_steam_for_apply(&context.steam_root)?;
++        let verification_payload = payload.clone();
 +        let result = apply_with_closed_steam(payload, &context);
 +
 +        if !restart_steam_after_apply {
@@ -274,6 +834,17 @@ index ebda9ab..f8f6dfc 100644
 +                    response
 +                        .details
 +                        .push("Steam автоматически запущен после применения настроек.".into());
++                    thread::sleep(Duration::from_secs(3));
++                    match verify_after_steam_restart(&verification_payload, &context) {
++                        Ok(details) => response.details.extend(details),
++                        Err(error) => {
++                            response.state = "warning".into();
++                            response.retryable = true;
++                            response.message = "Настройки записаны, но после запуска Steam часть значений не прошла повторную проверку.".into();
++                            response.details.push(error.message);
++                            response.details.extend(error.details);
++                        }
++                    }
 +                    Ok(response)
 +                }
 +                Err(mut error) => {
@@ -305,6 +876,79 @@ index ebda9ab..f8f6dfc 100644
 +        }
 +    }
 +
++    fn verify_after_steam_restart(
++        payload: &Cs2Payload,
++        context: &SteamContext,
++    ) -> Result<Vec<String>, UserFacingError> {
++        let mut details = Vec::new();
++        if let Some(video) = payload.files.iter().find(|file| {
++            file.scope == "userdata" && file.relative_path.eq_ignore_ascii_case("cs2_video.txt")
++        }) {
++            let saved = BASE64.decode(&video.content_base64).map_err(|_| {
++                UserFacingError::new(
++                    "Не удалось повторно проверить сохранённый cs2_video.txt.",
++                    false,
++                )
++            })?;
++            let expected = force_exclusive_fullscreen(&sanitize_hardware_config(&saved)?.0)?;
++            let actual_path = context.userdata_cfg.join("cs2_video.txt");
++            let actual = fs::read(&actual_path).map_err(|error| {
++                io_error("После запуска Steam файл cs2_video.txt не найден.", error)
++            })?;
++            let actual = sanitize_hardware_config(&actual)?.0;
++            let expected_values = video_key_values(&expected)?;
++            let actual_values = video_key_values(&actual)?;
++            let mismatched = expected_values
++                .iter()
++                .filter(|(key, value)| actual_values.get(*key) != Some(*value))
++                .map(|(key, _)| key.clone())
++                .collect::<Vec<_>>();
++            if !mismatched.is_empty() {
++                return Err(UserFacingError::new(
++                    "Steam или драйвер изменил параметры видео CS2 после записи.",
++                    true,
++                )
++                .detail(format!("Не совпали параметры: {}", mismatched.join(", "))));
++            }
++            details.push("После запуска Steam графика CS2 и эксклюзивный полноэкранный режим повторно проверены.".into());
++        }
++        if payload.launch_options_captured || payload.launch_options.is_some() {
++            let expected = exclusive_fullscreen_launch_options(
++                payload.launch_options.as_deref().unwrap_or(""),
++            );
++            let text = fs::read_to_string(&context.localconfig_vdf).map_err(|error| {
++                io_error(
++                    "Не удалось повторно проверить параметры запуска Steam.",
++                    error,
++                )
++            })?;
++            let actual = find_launch_options(&text).unwrap_or_default();
++            if actual.trim() != expected {
++                return Err(UserFacingError::new(
++                    "Steam изменил параметры запуска CS2 после записи.",
++                    true,
++                )
++                .detail(format!("Ожидалось: {expected}"))
++                .detail(format!("Найдено: {}", actual.trim())));
++            }
++            details.push("Параметры запуска CS2 повторно проверены после запуска Steam.".into());
++        }
++        Ok(details)
++    }
++
++    fn video_key_values(bytes: &[u8]) -> Result<HashMap<String, String>, UserFacingError> {
++        let text = std::str::from_utf8(bytes).map_err(|_| {
++            UserFacingError::new("cs2_video.txt has an unsupported text encoding.", false)
++        })?;
++        Ok(text
++            .lines()
++            .filter_map(|line| {
++                let tokens = quoted_tokens(line);
++                (tokens.len() >= 2).then(|| (tokens[0].to_ascii_lowercase(), tokens[1].clone()))
++            })
++            .collect())
++    }
++
 +    fn apply_with_closed_steam(
 +        payload: Cs2Payload,
 +        context: &SteamContext,
@@ -314,7 +958,7 @@ index ebda9ab..f8f6dfc 100644
          let needs_install = payload.files.iter().any(|file| file.scope == "install");
          if needs_install && context.install_cfg.is_none() {
              return Err(UserFacingError::new(
-@@ -292,7 +379,23 @@ mod windows {
+@@ -292,7 +472,23 @@ mod windows {
              ));
          }
  
@@ -339,7 +983,7 @@ index ebda9ab..f8f6dfc 100644
          let backup_root = backup_root()?;
          fs::create_dir_all(&backup_root)
              .map_err(|error| io_error("Could not create a CS2 backup folder.", error))?;
-@@ -311,7 +414,7 @@ mod windows {
+@@ -311,7 +507,7 @@ mod windows {
              }
          }
  
@@ -348,7 +992,7 @@ index ebda9ab..f8f6dfc 100644
              cleanup_staged(&staged);
              return Err(error);
          }
-@@ -384,11 +487,19 @@ mod windows {
+@@ -384,11 +580,19 @@ mod windows {
              format!("Локальная резервная копия: {}", backup_root.display()),
              format!("Записано и проверено файлов: {}.", committed.len()),
          ];
@@ -369,7 +1013,7 @@ index ebda9ab..f8f6dfc 100644
              message: format!("Настройки CS2 применены и проверены: {} файлов. Запустите CS2 и проверьте итоговые значения в игре.", committed.len()),
              details,
              retryable: false,
-@@ -398,7 +509,56 @@ mod windows {
+@@ -398,7 +602,56 @@ mod windows {
  
      fn restore_inner() -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
@@ -427,7 +1071,7 @@ index ebda9ab..f8f6dfc 100644
          let backups = cs2_backup_directory()?;
          let mut candidates = fs::read_dir(&backups)
              .map_err(|_| UserFacingError::new("No Game Passport CS2 backup was found.", false))?
-@@ -412,7 +572,7 @@ mod windows {
+@@ -412,7 +665,7 @@ mod windows {
              .ok_or_else(|| UserFacingError::new("No Game Passport CS2 backup was found.", false))?;
          let mut restored = 0usize;
          let mut details = vec![format!("Backup used: {}", backup.display())];
@@ -436,7 +1080,7 @@ index ebda9ab..f8f6dfc 100644
              let source_root = backup.join(scope);
              if !source_root.is_dir() {
                  continue;
-@@ -426,6 +586,9 @@ mod windows {
+@@ -426,6 +679,9 @@ mod windows {
                          continue;
                      }
                  },
@@ -446,19 +1090,36 @@ index ebda9ab..f8f6dfc 100644
                  _ => unreachable!(),
              };
              let mut queue = VecDeque::from([source_root.clone()]);
-@@ -578,6 +741,11 @@ mod windows {
+@@ -578,6 +834,19 @@ mod windows {
                      false,
                  ));
              }
 +            let content = if file.relative_path.eq_ignore_ascii_case("cs2_video.txt") {
-+                force_exclusive_fullscreen(&content)?
++                let merged = if target.is_file() {
++                    let target_content = fs::read(&target).map_err(|error| {
++                        io_error("Could not read the current CS2 video configuration.", error)
++                    })?;
++                    merge_video_with_target_hardware(&content, &target_content)?
++                } else {
++                    content
++                };
++                force_exclusive_fullscreen(&merged)?
 +            } else {
 +                content
 +            };
              result.push(DecodedFile {
                  scope: file.scope.clone(),
                  relative_path: file.relative_path.clone(),
-@@ -622,8 +790,11 @@ mod windows {
+@@ -595,7 +864,7 @@ mod windows {
+     }
+ 
+     fn validate_payload(payload: &Cs2Payload) -> Result<(), UserFacingError> {
+-        if payload.schema_version != 1 {
++        if !matches!(payload.schema_version, 1 | 2) {
+             return Err(UserFacingError::new(
+                 "This CS2 profile format is not supported by this app version.",
+                 false,
+@@ -622,8 +891,11 @@ mod windows {
          Ok(())
      }
  
@@ -472,7 +1133,7 @@ index ebda9ab..f8f6dfc 100644
              return Err(UserFacingError::new(
                  "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2.",
                  true,
-@@ -631,25 +802,35 @@ mod windows {
+@@ -631,25 +903,35 @@ mod windows {
          }
          let steam_root = find_steam_root()
              .ok_or_else(|| UserFacingError::new("Steam installation could not be found.", true))?;
@@ -515,7 +1176,7 @@ index ebda9ab..f8f6dfc 100644
          })
      }
  
-@@ -664,6 +845,78 @@ mod windows {
+@@ -664,6 +946,78 @@ mod windows {
          }
      }
  
@@ -594,7 +1255,7 @@ index ebda9ab..f8f6dfc 100644
      fn find_steam_root() -> Option<PathBuf> {
          let hkcu = RegKey::predef(HKEY_CURRENT_USER);
          if let Ok(key) = hkcu.open_subkey("Software\\Valve\\Steam") {
-@@ -693,6 +946,26 @@ mod windows {
+@@ -693,6 +1047,26 @@ mod windows {
              .or_else(|| steam.get_value("ActiveUser").ok())
      }
  
@@ -621,19 +1282,19 @@ index ebda9ab..f8f6dfc 100644
      fn find_install_cfg(steam_root: &Path) -> Option<PathBuf> {
          let mut libraries = vec![steam_root.to_path_buf()];
          let library_file = steam_root.join("steamapps").join("libraryfolders.vdf");
-@@ -761,6 +1034,274 @@ mod windows {
+@@ -761,6 +1135,293 @@ mod windows {
          result
      }
  
 +    fn capture_launch_options(
 +        localconfig: &Path,
 +        details: &mut Vec<String>,
-+    ) -> Result<Option<String>, UserFacingError> {
++    ) -> Result<(Option<String>, bool), UserFacingError> {
 +        if !localconfig.is_file() {
 +            details.push(
 +                "Файл параметров запуска Steam не найден; параметры запуска не сохранены.".into(),
 +            );
-+            return Ok(None);
++            return Ok((None, false));
 +        }
 +        if localconfig
 +            .metadata()
@@ -643,35 +1304,38 @@ index ebda9ab..f8f6dfc 100644
 +            details.push(
 +                "Файл Steam слишком большой или недоступен; параметры запуска не сохранены.".into(),
 +            );
-+            return Ok(None);
++            return Ok((None, false));
 +        }
 +        let text = fs::read_to_string(localconfig)
 +            .map_err(|error| io_error("Could not read Steam launch options.", error))?;
 +        let Some(value) = find_launch_options(&text) else {
-+            return Ok(None);
++            return Ok((None, true));
 +        };
 +        let value = value.trim().to_string();
 +        if value.is_empty() {
-+            return Ok(None);
++            return Ok((None, true));
 +        }
 +        if let Err(error) = validate_launch_options(&value) {
 +            details.push(format!(
 +                "Параметры запуска Steam исключены: {}",
 +                error.message
 +            ));
-+            return Ok(None);
++            return Ok((None, false));
 +        }
-+        Ok(Some(value))
++        Ok((Some(value), true))
 +    }
 +
 +    fn prepare_launch_options_update(
 +        payload: &Cs2Payload,
 +        context: &SteamContext,
 +    ) -> Result<Option<DecodedFile>, UserFacingError> {
-+        let Some(value) = payload.launch_options.as_deref() else {
++        let should_apply = payload.launch_options_captured || payload.launch_options.is_some();
++        if !should_apply {
 +            return Ok(None);
-+        };
-+        validate_launch_options(value)?;
++        }
++        let value =
++            exclusive_fullscreen_launch_options(payload.launch_options.as_deref().unwrap_or(""));
++        validate_launch_options(&value)?;
 +        if !context.localconfig_vdf.is_file() {
 +            return Err(UserFacingError::new(
 +                "Параметры запуска CS2 не найдены для этого пользователя Steam. Запустите CS2 один раз, закройте игру и Steam, затем повторите.",
@@ -691,13 +1355,29 @@ index ebda9ab..f8f6dfc 100644
 +        }
 +        let text = fs::read_to_string(&context.localconfig_vdf)
 +            .map_err(|error| io_error("Could not read Steam launch options.", error))?;
-+        let updated = set_launch_options(&text, value)?;
++        let updated = set_launch_options(&text, &value)?;
 +        Ok(Some(DecodedFile {
 +            scope: "steam".into(),
 +            relative_path: "localconfig.vdf".into(),
 +            target: context.localconfig_vdf.clone(),
 +            content: updated.into_bytes(),
 +        }))
++    }
++
++    fn exclusive_fullscreen_launch_options(value: &str) -> String {
++        let conflicting = ["-windowed", "-window", "-sw", "-startwindowed", "-noborder"];
++        let mut tokens = value
++            .split_whitespace()
++            .filter(|token| {
++                !conflicting
++                    .iter()
++                    .any(|blocked| token.eq_ignore_ascii_case(blocked))
++                    && !token.eq_ignore_ascii_case("-fullscreen")
++            })
++            .map(str::to_string)
++            .collect::<Vec<_>>();
++        tokens.push("-fullscreen".into());
++        tokens.join(" ")
 +    }
 +
 +    fn validate_launch_options(value: &str) -> Result<(), UserFacingError> {
@@ -896,10 +1576,55 @@ index ebda9ab..f8f6dfc 100644
      fn capture_userdata_cfg_files(
          root: &Path,
          files: &mut Vec<Cs2ConfigFile>,
-@@ -951,6 +1492,88 @@ mod windows {
+@@ -951,6 +1612,133 @@ mod windows {
          Ok((output.into_bytes(), removed))
      }
  
++    fn is_hardware_specific_video_line(line: &str) -> bool {
++        let lower = line.to_ascii_lowercase();
++        [
++            "sound_device_override",
++            "audio_device",
++            "vendorid",
++            "deviceid",
++            "monitor_index",
++            "refreshrate_numerator",
++            "refreshrate_denominator",
++        ]
++        .iter()
++        .any(|marker| lower.contains(marker))
++    }
++
++    fn merge_video_with_target_hardware(
++        saved: &[u8],
++        target: &[u8],
++    ) -> Result<Vec<u8>, UserFacingError> {
++        let (portable, _) = sanitize_hardware_config(saved)?;
++        let portable = String::from_utf8(portable)
++            .map_err(|_| UserFacingError::new("Saved cs2_video.txt is not valid UTF-8.", false))?;
++        let target = std::str::from_utf8(target)
++            .map_err(|_| UserFacingError::new("Current cs2_video.txt is not valid UTF-8.", true))?;
++        let hardware = target
++            .lines()
++            .filter(|line| is_hardware_specific_video_line(line))
++            .collect::<Vec<_>>();
++        if hardware.is_empty() {
++            return Ok(portable.into_bytes());
++        }
++        let newline = if portable.contains("\r\n") {
++            "\r\n"
++        } else {
++            "\n"
++        };
++        let insertion = hardware.join(newline);
++        let closing = portable.rfind('}').ok_or_else(|| {
++            UserFacingError::new("Saved cs2_video.txt has an invalid structure.", false)
++        })?;
++        let mut merged = portable;
++        merged.insert_str(closing, &format!("{insertion}{newline}"));
++        Ok(merged.into_bytes())
++    }
++
 +    fn force_exclusive_fullscreen(bytes: &[u8]) -> Result<Vec<u8>, UserFacingError> {
 +        let text = std::str::from_utf8(bytes).map_err(|_| {
 +            UserFacingError::new("cs2_video.txt has an unsupported text encoding.", false)
@@ -985,7 +1710,7 @@ index ebda9ab..f8f6dfc 100644
      fn sensitive_line(line: &str) -> bool {
          let value = line.trim().to_ascii_lowercase();
          [
-@@ -1032,6 +1655,7 @@ mod windows {
+@@ -1032,6 +1820,7 @@ mod windows {
          let allowed = match scope {
              "userdata" => core || (cfg && relative.components().count() == 1),
              "install" => cfg,
@@ -993,7 +1718,7 @@ index ebda9ab..f8f6dfc 100644
              _ => false,
          };
          if allowed {
-@@ -1146,6 +1770,83 @@ mod windows {
+@@ -1146,6 +1935,108 @@ mod windows {
              assert_eq!(removed, 1);
              assert!(String::from_utf8(video).unwrap().contains("defaultres"));
          }
@@ -1074,17 +1799,47 @@ index ebda9ab..f8f6dfc 100644
 +            assert!(output.contains("\"setting.nowindowborder\"\t\t\"0\""));
 +            assert!(output.contains("\"setting.defaultres\"\t\t\"1280\""));
 +        }
++
++        #[test]
++        fn merges_saved_graphics_with_target_gpu_and_monitor_identity() {
++            let saved = b"\"video.cfg\"\n{\n\t\"setting.fullscreen\"\t\"2\"\n\t\"setting.nowindowborder\"\t\"1\"\n\t\"setting.defaultres\"\t\"1280\"\n\t\"setting.mat_vsync\"\t\"0\"\n}\n";
++            let target = b"\"video.cfg\"\n{\n\t\"VendorID\"\t\"4318\"\n\t\"DeviceID\"\t\"9860\"\n\t\"setting.monitor_index\"\t\"1\"\n\t\"setting.refreshrate_numerator\"\t\"240000\"\n\t\"setting.defaultres\"\t\"1920\"\n}\n";
++            let merged = merge_video_with_target_hardware(saved, target).unwrap();
++            let output = String::from_utf8(force_exclusive_fullscreen(&merged).unwrap()).unwrap();
++            assert!(output.contains("\"VendorID\"\t\"4318\""));
++            assert!(output.contains("\"DeviceID\"\t\"9860\""));
++            assert!(output.contains("\"setting.monitor_index\"\t\"1\""));
++            assert!(output.contains("\"setting.refreshrate_numerator\"\t\"240000\""));
++            assert!(output.contains("\"setting.defaultres\"\t\"1280\""));
++            assert!(output.contains("\"setting.mat_vsync\"\t\"0\""));
++            assert!(output.contains("\"setting.fullscreen\"\t\"1\""));
++            assert!(output.contains("\"setting.nowindowborder\"\t\"0\""));
++        }
++
++        #[test]
++        fn launch_options_remove_windowed_flags_and_force_fullscreen() {
++            assert_eq!(
++                exclusive_fullscreen_launch_options("-novid -windowed -noborder +fps_max 400"),
++                "-novid +fps_max 400 -fullscreen"
++            );
++            assert_eq!(exclusive_fullscreen_launch_options(""), "-fullscreen");
++        }
      }
  }
  
-@@ -1182,6 +1883,7 @@ mod tests {
+@@ -1182,9 +2073,12 @@ mod tests {
              total_bytes: 0,
              core_files_found: vec![],
              optional_files_missing: vec![],
 +            launch_options: None,
++            launch_options_captured: true,
          };
          let json = serde_json::to_value(payload).unwrap();
          assert_eq!(json["schemaVersion"], 1);
+         assert!(json.get("totalBytes").is_some());
++        assert_eq!(json["launchOptionsCaptured"], true);
+     }
+ }
 diff --git a/src-tauri/src/display.rs b/src-tauri/src/display.rs
 index 4a96bfe..63c4280 100644
 --- a/src-tauri/src/display.rs
@@ -1152,8 +1907,830 @@ index 4a96bfe..63c4280 100644
                          format!("Display backup: {}", backup_path.display()),
                      ],
                      retryable: result == "restart_required",
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 664e070..5188828 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -78,6 +78,11 @@ fn apply_nvidia_settings(payload: nvidia::NvidiaPayload) -> nvidia::NvidiaComman
+     nvidia::apply(payload)
+ }
+ 
++#[tauri::command]
++fn apply_nvidia_display_controls(payload: nvidia::NvidiaPayload) -> nvidia::NvidiaCommandResponse {
++    nvidia::apply_display_controls(payload)
++}
++
+ #[tauri::command]
+ fn get_nvidia_diagnostics() -> nvidia::NvidiaCommandResponse {
+     nvidia::diagnostics()
+@@ -163,6 +168,7 @@ pub fn run() {
+             restore_display_settings,
+             capture_nvidia_settings,
+             apply_nvidia_settings,
++            apply_nvidia_display_controls,
+             get_nvidia_diagnostics,
+             restore_nvidia_settings,
+             capture_mouse_settings,
+diff --git a/src-tauri/src/nvidia.rs b/src-tauri/src/nvidia.rs
+index 5e0a924..6208800 100644
+--- a/src-tauri/src/nvidia.rs
++++ b/src-tauri/src/nvidia.rs
+@@ -1,11 +1,23 @@
+ use serde::{Deserialize, Serialize};
+ use std::collections::HashSet;
+ 
+-const MAX_SETTINGS: usize = 32;
++const MAX_SETTINGS: usize = 64;
+ 
+ const PORTABLE_SETTINGS: &[(u32, &str)] = &[
++    (0x2072C5A3, "opengl_gdi_compatibility"),
++    (0x20D690F8, "opengl_dx_present"),
++    (0x208E55E3, "opengl_max_queued_frames"),
++    (0x20797D6C, "opengl_texture_filtering_quality"),
++    (0x20C1221E, "opengl_threaded_optimization"),
++    (0x20FDD1F9, "opengl_triple_buffering"),
++    (0x10FC2D9C, "antialiasing_transparency"),
++    (0x107D639D, "antialiasing_gamma_correction"),
++    (0x10D773D2, "antialiasing_mode_method"),
++    (0x10D48A85, "antialiasing_replay"),
++    (0x107EFC5B, "antialiasing_mode_selector"),
+     (0x1057EB71, "power_management_mode"),
+     (0x10835002, "max_frame_rate"),
++    (0x10835016, "background_max_frame_rate"),
+     (0x00A879CF, "vertical_sync"),
+     (0x00CE2691, "texture_filtering_quality"),
+     (0x00198FFF, "shader_cache"),
+@@ -20,8 +32,23 @@ const PORTABLE_SETTINGS: &[(u32, &str)] = &[
+     (0x1074C972, "fxaa"),
+     (0x0098C1AC, "mfaa"),
+     (0x0064B541, "preferred_refresh_rate"),
++    (0x10444444, "image_scaling"),
++    (0x103BCCB5, "application_controlled_anisotropic_filtering"),
++    (0x10111133, "vr_pre_rendered_frames"),
++    (0x10A879CF, "vrr_application_override"),
++    (0x10A879CE, "vrr_vertical_sync_control"),
++    (0x00667329, "ambient_occlusion_mode"),
++    (0x00664339, "ambient_occlusion_active"),
++    (0x00638E8F, "driver_controlled_lod_bias"),
++    (0x00738E8F, "lod_bias"),
++    (0x00CE2692, "texture_filtering_quality_substitution"),
++    (0x005A375C, "vertical_sync_tear_control"),
+ ];
+ 
++fn default_present() -> bool {
++    true
++}
++
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct NvidiaCaptureRequest {
+@@ -65,6 +92,27 @@ pub struct NvidiaSetting {
+     pub id: u32,
+     pub key: String,
+     pub value: u32,
++    #[serde(default = "default_present")]
++    pub present: bool,
++}
++
++#[derive(Debug, Clone, Serialize, Deserialize)]
++#[serde(rename_all = "camelCase")]
++pub struct NvidiaOutputColor {
++    pub color_format: u32,
++    pub colorimetry: u32,
++    pub dynamic_range: u32,
++    pub bits_per_component: u32,
++    pub selection_policy: u32,
++    pub desktop_color_depth: u32,
++}
++
++#[derive(Debug, Clone, Serialize, Deserialize)]
++#[serde(rename_all = "camelCase")]
++pub struct NvidiaGammaRamp {
++    pub red: Vec<u16>,
++    pub green: Vec<u16>,
++    pub blue: Vec<u16>,
+ }
+ 
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -74,9 +122,15 @@ pub struct NvidiaPayload {
+     pub captured_at: String,
+     pub profile_executable: String,
+     pub settings: Vec<NvidiaSetting>,
++    #[serde(default)]
++    pub global_settings: Vec<NvidiaSetting>,
+     pub scaling_mode: String,
+     pub scaling_value: u32,
+     pub scaling_supported: bool,
++    #[serde(default)]
++    pub output_color: Option<NvidiaOutputColor>,
++    #[serde(default)]
++    pub desktop_gamma_ramp: Option<NvidiaGammaRamp>,
+ }
+ 
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+@@ -161,14 +215,42 @@ pub fn apply_state(
+ }
+ 
+ pub fn validate_payload(payload: &NvidiaPayload) -> Result<(), String> {
+-    if payload.schema_version != 1 || target_for_executable(&payload.profile_executable).is_err() {
++    if !matches!(payload.schema_version, 1 | 2)
++        || target_for_executable(&payload.profile_executable).is_err()
++    {
+         return Err("Unsupported or corrupted NVIDIA snapshot.".into());
+     }
+-    if payload.settings.len() > MAX_SETTINGS {
++    if payload.settings.len() > MAX_SETTINGS || payload.global_settings.len() > MAX_SETTINGS {
+         return Err("NVIDIA snapshot contains too many settings.".into());
+     }
++    validate_settings(&payload.settings)?;
++    validate_settings(&payload.global_settings)?;
++    if payload.scaling_supported && !matches!(payload.scaling_value, 0 | 1 | 2 | 3 | 5 | 6 | 7 | 8)
++    {
++        return Err("NVIDIA snapshot contains an unknown scaling mode.".into());
++    }
++    if let Some(color) = &payload.output_color {
++        if !matches!(color.color_format, 0..=3 | 0xFE | 0xFF)
++            || !matches!(color.colorimetry, 0..=10 | 0xFE | 0xFF)
++            || !matches!(color.dynamic_range, 0 | 1 | 0xFF)
++            || color.bits_per_component > 5
++            || !matches!(color.selection_policy, 0 | 1 | 0xFF)
++            || color.desktop_color_depth > 5
++        {
++            return Err("NVIDIA snapshot contains invalid output color values.".into());
++        }
++    }
++    if let Some(gamma) = &payload.desktop_gamma_ramp {
++        if gamma.red.len() != 256 || gamma.green.len() != 256 || gamma.blue.len() != 256 {
++            return Err("NVIDIA snapshot contains an invalid desktop gamma ramp.".into());
++        }
++    }
++    Ok(())
++}
++
++fn validate_settings(settings: &[NvidiaSetting]) -> Result<(), String> {
+     let mut seen = HashSet::new();
+-    for setting in &payload.settings {
++    for setting in settings {
+         let expected = PORTABLE_SETTINGS
+             .iter()
+             .find(|(id, _)| *id == setting.id)
+@@ -184,10 +266,6 @@ pub fn validate_payload(payload: &NvidiaPayload) -> Result<(), String> {
+             return Err(format!("Duplicate NVIDIA setting id: 0x{:08X}", setting.id));
+         }
+     }
+-    if payload.scaling_supported && !matches!(payload.scaling_value, 0 | 1 | 2 | 3 | 5 | 6 | 7 | 8)
+-    {
+-        return Err("NVIDIA snapshot contains an unknown scaling mode.".into());
+-    }
+     Ok(())
+ }
+ 
+@@ -201,6 +279,11 @@ pub fn apply(_payload: NvidiaPayload) -> NvidiaCommandResponse {
+     NvidiaCommandResponse::unsupported("NVIDIA settings are unsupported on this platform.")
+ }
+ 
++#[cfg(not(target_os = "windows"))]
++pub fn apply_display_controls(_payload: NvidiaPayload) -> NvidiaCommandResponse {
++    NvidiaCommandResponse::unsupported("NVIDIA settings are unsupported on this platform.")
++}
++
+ #[cfg(not(target_os = "windows"))]
+ pub fn diagnostics() -> NvidiaCommandResponse {
+     NvidiaCommandResponse::unsupported("NVIDIA settings are unsupported on this platform.")
+@@ -221,6 +304,10 @@ mod windows {
+         fs,
+         path::{Path, PathBuf},
+     };
++    use windows_sys::Win32::{
++        Graphics::Gdi::{GetDC, ReleaseDC},
++        UI::ColorSystem::{GetDeviceGammaRamp, SetDeviceGammaRamp},
++    };
+ 
+     #[repr(C)]
+     #[derive(Clone, Copy)]
+@@ -231,6 +318,18 @@ mod windows {
+         key: [c_char; 64],
+     }
+ 
++    #[repr(C)]
++    #[derive(Clone, Copy)]
++    struct RawColorControl {
++        supported: u32,
++        color_format: u32,
++        colorimetry: u32,
++        dynamic_range: u32,
++        bpc: u32,
++        selection_policy: u32,
++        desktop_color_depth: u32,
++    }
++
+     #[repr(C)]
+     #[derive(Clone, Copy)]
+     struct RawSnapshot {
+@@ -243,10 +342,13 @@ mod windows {
+         scaling_supported: u32,
+         scaling: u32,
+         setting_count: u32,
++        global_setting_count: u32,
++        output_color: RawColorControl,
+         gpu_name: [c_char; 128],
+         driver_branch: [c_char; 64],
+         profile_name: [c_char; 128],
+         settings: [RawSetting; MAX_SETTINGS],
++        global_settings: [RawSetting; MAX_SETTINGS],
+     }
+ 
+     #[repr(C)]
+@@ -255,6 +357,8 @@ mod windows {
+         settings_applied: u32,
+         settings_skipped: u32,
+         settings_unsupported: u32,
++        global_settings_applied: u32,
++        global_settings_skipped: u32,
+         profile_found: u32,
+         profile_created: u32,
+         scaling_requested: u32,
+@@ -262,6 +366,14 @@ mod windows {
+         scaling_message: [c_char; 256],
+     }
+ 
++    #[repr(C)]
++    #[derive(Clone, Copy)]
++    struct RawDisplayControlsReport {
++        color_requested: u32,
++        color_applied: u32,
++        color_message: [c_char; 256],
++    }
++
+     #[derive(Debug, Clone, Serialize, Deserialize)]
+     #[serde(rename_all = "camelCase")]
+     struct BackupSetting {
+@@ -282,6 +394,12 @@ mod windows {
+         scaling_supported: bool,
+         scaling_value: u32,
+         settings: Vec<BackupSetting>,
++        #[serde(default)]
++        global_settings: Vec<BackupSetting>,
++        #[serde(default)]
++        output_color: Option<NvidiaOutputColor>,
++        #[serde(default)]
++        desktop_gamma_ramp: Option<NvidiaGammaRamp>,
+     }
+ 
+     fn default_backup_executable() -> String {
+@@ -308,6 +426,12 @@ mod windows {
+             error: *mut c_char,
+             error_size: usize,
+         ) -> i32;
++        fn gp_nvapi_apply_display_controls(
++            snapshot: *const RawSnapshot,
++            report: *mut RawDisplayControlsReport,
++            error: *mut c_char,
++            error_size: usize,
++        ) -> i32;
+     }
+ 
+     pub fn capture(request: NvidiaCaptureRequest) -> NvidiaCommandResponse {
+@@ -320,20 +444,37 @@ mod windows {
+             Err((message, raw)) => return unavailable_or_error(message, raw),
+         };
+         let diagnostics = diagnostics_from_raw(&raw);
+-        let settings = present_settings(&raw);
++        let settings = settings_from_raw(&raw.settings, raw.setting_count);
++        let global_settings = settings_from_raw(&raw.global_settings, raw.global_setting_count);
+         let scaling_supported = raw.scaling_supported != 0;
++        let output_color = output_color_from_raw(&raw.output_color);
++        let (desktop_gamma_ramp, gamma_warning) = match capture_gamma_ramp() {
++            Ok(value) => (Some(value), None),
++            Err(message) => (None, Some(message)),
++        };
+         let payload = NvidiaPayload {
+-            schema_version: 1,
++            schema_version: 2,
+             captured_at: Utc::now().to_rfc3339(),
+             profile_executable: target.executable.into(),
+             settings: settings.clone(),
++            global_settings: global_settings.clone(),
+             scaling_mode: scaling_name(raw.scaling).into(),
+             scaling_value: raw.scaling,
+             scaling_supported,
++            output_color: output_color.clone(),
++            desktop_gamma_ramp,
+         };
+-        let has_warning = settings.is_empty() || !scaling_supported;
+-        let mut details = vec![format!("Portable DRS settings read: {}", settings.len())];
+-        if settings.is_empty() {
++        let explicit_settings = settings.iter().filter(|setting| setting.present).count();
++        let explicit_global = global_settings
++            .iter()
++            .filter(|setting| setting.present)
++            .count();
++        let has_warning = !scaling_supported || output_color.is_none() || gamma_warning.is_some();
++        let mut details = vec![
++            format!("Game-specific DRS overrides read: {explicit_settings}"),
++            format!("Global DRS overrides read: {explicit_global}"),
++        ];
++        if explicit_settings == 0 {
+             details.push("The game profile currently has no explicit portable overrides.".into());
+         }
+         if !scaling_supported {
+@@ -344,15 +485,29 @@ mod windows {
+                 scaling_name(raw.scaling)
+             ));
+         }
++        if output_color.is_some() {
++            details.push("Captured NVIDIA output color format, range, and bit depth.".into());
++        } else {
++            details.push("NVIDIA output color — Unsupported for the primary display.".into());
++        }
++        if let Some(message) = gamma_warning {
++            details.push(format!("Desktop color curve — {message}"));
++        } else {
++            details.push("Captured the effective desktop color curve (gamma ramp).".into());
++        }
++        details.push(
++            "NVIDIA does not expose the preview-window selector, Digital Vibrance, Hue, or custom underscan through its public API."
++                .into(),
++        );
+         NvidiaCommandResponse {
+             state: if has_warning { "warning" } else { "success" }.into(),
+             message: format!(
+                 "Captured {} portable NVIDIA settings for {}.",
+-                settings.len(),
++                explicit_settings + explicit_global,
+                 target.friendly_name
+             ),
+             details,
+-            retryable: !scaling_supported,
++            retryable: has_warning,
+             payload: Some(payload),
+             diagnostics: Some(diagnostics),
+             backup_token: None,
+@@ -371,7 +526,17 @@ mod windows {
+             Ok(value) => value,
+             Err((message, raw)) => return unavailable_or_error(message, raw),
+         };
+-        let backup = backup_from_raw(&before, target.executable);
++        let backup_gamma = match capture_gamma_ramp() {
++            Ok(value) => Some(value),
++            Err(message) if payload.desktop_gamma_ramp.is_some() => {
++                return error_response(
++                    format!("Could not back up the current desktop color curve: {message}"),
++                    true,
++                )
++            }
++            Err(_) => None,
++        };
++        let backup = backup_from_raw(&before, target.executable, backup_gamma);
+         let backup_path = match write_backup(&backup) {
+             Ok(value) => value,
+             Err(message) => return error_response(message, true),
+@@ -396,7 +561,7 @@ mod windows {
+         };
+         let scaling_ok = report.scaling_requested == 0 || report.scaling_applied != 0;
+         let state = apply_state(
+-            report.settings_skipped,
++            report.settings_skipped + report.global_settings_skipped,
+             report.settings_unsupported,
+             scaling_ok,
+         );
+@@ -404,6 +569,14 @@ mod windows {
+             format!("DRS settings applied: {}", report.settings_applied),
+             format!("DRS settings skipped: {}", report.settings_skipped),
+             format!("DRS settings unsupported: {}", report.settings_unsupported),
++            format!(
++                "Global DRS settings applied: {}",
++                report.global_settings_applied
++            ),
++            format!(
++                "Global DRS settings skipped: {}",
++                report.global_settings_skipped
++            ),
+             format!("Scaling: {}", char_array(&report.scaling_message)),
+             format!("NVIDIA backup: {}", backup_path.display()),
+         ];
+@@ -437,9 +610,11 @@ mod windows {
+                 cs2_profile_found: report.profile_found != 0,
+                 cs2_profile_created: report.profile_created != 0,
+                 profile_name: Some(target.executable.into()),
+-                settings_read: payload.settings.len(),
+-                settings_applied: report.settings_applied as usize,
+-                settings_skipped: report.settings_skipped as usize,
++                settings_read: payload.settings.len() + payload.global_settings.len(),
++                settings_applied: (report.settings_applied + report.global_settings_applied)
++                    as usize,
++                settings_skipped: (report.settings_skipped + report.global_settings_skipped)
++                    as usize,
+                 settings_unsupported: report.settings_unsupported as usize,
+                 scaling_supported: payload.scaling_supported,
+                 scaling_mode: Some(payload.scaling_mode),
+@@ -449,6 +624,53 @@ mod windows {
+         }
+     }
+ 
++    pub fn apply_display_controls(payload: NvidiaPayload) -> NvidiaCommandResponse {
++        if let Err(message) = validate_payload(&payload) {
++            return error_response(message, false);
++        }
++        let desired = raw_from_payload(&payload, true);
++        let color_report = match apply_display_controls_raw(&desired) {
++            Ok(value) => value,
++            Err(message) => return error_response(message, true),
++        };
++        let color_ok = color_report.color_requested == 0 || color_report.color_applied != 0;
++        let gamma_result = payload
++            .desktop_gamma_ramp
++            .as_ref()
++            .map(apply_and_verify_gamma_ramp);
++        let gamma_ok = match gamma_result.as_ref() {
++            None => true,
++            Some(result) => result.is_ok(),
++        };
++        let mut details = vec![format!(
++            "Output color: {}",
++            char_array(&color_report.color_message)
++        )];
++        match gamma_result {
++            Some(Ok(())) => details.push("Desktop color curve was applied and verified.".into()),
++            Some(Err(message)) => details.push(format!("Desktop color curve: {message}")),
++            None => details.push("No portable desktop color curve was available.".into()),
++        }
++        details.push(
++            "Digital Vibrance, Hue, the preview-window selector, and custom underscan are not exposed by public NVIDIA APIs."
++                .into(),
++        );
++        NvidiaCommandResponse {
++            state: "warning".into(),
++            message: if !color_ok || !gamma_ok {
++                "NVIDIA display controls were applied only partially.".into()
++            } else {
++                "NVIDIA display controls were applied where the driver exposes portable settings."
++                    .into()
++            },
++            details,
++            retryable: !color_ok || !gamma_ok,
++            payload: None,
++            diagnostics: None,
++            backup_token: None,
++        }
++    }
++
+     pub fn diagnostics() -> NvidiaCommandResponse {
+         match capture_raw(false, target_for_game("cs2").expect("known NVIDIA target")) {
+             Ok(raw) => NvidiaCommandResponse {
+@@ -484,8 +706,21 @@ mod windows {
+         match apply_raw(&raw, true, target) {
+             Ok(report) => {
+                 let scaling_ok = report.scaling_requested == 0 || report.scaling_applied != 0;
++                let display_controls = apply_display_controls_raw(&raw);
++                let color_ok = display_controls
++                    .as_ref()
++                    .is_ok_and(|value| value.color_requested == 0 || value.color_applied != 0);
++                let gamma_ok = match backup.desktop_gamma_ramp.as_ref() {
++                    None => true,
++                    Some(gamma) => apply_and_verify_gamma_ramp(gamma).is_ok(),
++                };
+                 NvidiaCommandResponse {
+-                    state: if scaling_ok && report.settings_skipped == 0 {
++                    state: if scaling_ok
++                        && color_ok
++                        && gamma_ok
++                        && report.settings_skipped == 0
++                        && report.global_settings_skipped == 0
++                    {
+                         "success"
+                     } else {
+                         "warning"
+@@ -496,9 +731,18 @@ mod windows {
+                         format!("Backup used: {}", path.display()),
+                         format!("Settings restored/deleted: {}", report.settings_applied),
+                         format!("Settings skipped: {}", report.settings_skipped),
++                        format!(
++                            "Global settings restored: {}",
++                            report.global_settings_applied
++                        ),
+                         format!("Scaling: {}", char_array(&report.scaling_message)),
++                        display_controls
++                            .map(|value| {
++                                format!("Output color: {}", char_array(&value.color_message))
++                            })
++                            .unwrap_or_else(|message| format!("Output color: {message}")),
+                     ],
+-                    retryable: !scaling_ok,
++                    retryable: !scaling_ok || !color_ok || !gamma_ok,
+                     payload: None,
+                     diagnostics: None,
+                     backup_token: None,
+@@ -568,19 +812,112 @@ mod windows {
+         }
+     }
+ 
+-    fn present_settings(raw: &RawSnapshot) -> Vec<NvidiaSetting> {
+-        raw.settings
++    fn apply_display_controls_raw(
++        snapshot: &RawSnapshot,
++    ) -> Result<RawDisplayControlsReport, String> {
++        let mut report: RawDisplayControlsReport = unsafe { std::mem::zeroed() };
++        let mut error = [0 as c_char; 512];
++        let status = unsafe {
++            gp_nvapi_apply_display_controls(snapshot, &mut report, error.as_mut_ptr(), error.len())
++        };
++        if status == 0 {
++            Ok(report)
++        } else {
++            Err(char_array(&error))
++        }
++    }
++
++    fn settings_from_raw(settings: &[RawSetting; MAX_SETTINGS], count: u32) -> Vec<NvidiaSetting> {
++        settings
+             .iter()
+-            .take(raw.setting_count.min(MAX_SETTINGS as u32) as usize)
+-            .filter(|setting| setting.present != 0)
++            .take(count.min(MAX_SETTINGS as u32) as usize)
+             .map(|setting| NvidiaSetting {
+                 id: setting.id,
+                 key: char_array(&setting.key),
+                 value: setting.value,
++                present: setting.present != 0,
+             })
+             .collect()
+     }
+ 
++    fn output_color_from_raw(raw: &RawColorControl) -> Option<NvidiaOutputColor> {
++        (raw.supported != 0).then(|| NvidiaOutputColor {
++            color_format: raw.color_format,
++            colorimetry: raw.colorimetry,
++            dynamic_range: raw.dynamic_range,
++            bits_per_component: raw.bpc,
++            selection_policy: raw.selection_policy,
++            desktop_color_depth: raw.desktop_color_depth,
++        })
++    }
++
++    fn raw_output_color(value: Option<&NvidiaOutputColor>) -> RawColorControl {
++        value.map_or(
++            RawColorControl {
++                supported: 0,
++                color_format: 0,
++                colorimetry: 0,
++                dynamic_range: 0,
++                bpc: 0,
++                selection_policy: 0,
++                desktop_color_depth: 0,
++            },
++            |color| RawColorControl {
++                supported: 1,
++                color_format: color.color_format,
++                colorimetry: color.colorimetry,
++                dynamic_range: color.dynamic_range,
++                bpc: color.bits_per_component,
++                selection_policy: color.selection_policy,
++                desktop_color_depth: color.desktop_color_depth,
++            },
++        )
++    }
++
++    fn capture_gamma_ramp() -> Result<NvidiaGammaRamp, String> {
++        let hdc = unsafe { GetDC(std::ptr::null_mut()) };
++        if hdc.is_null() {
++            return Err("Windows could not open the primary display context.".into());
++        }
++        let mut ramp = [[0_u16; 256]; 3];
++        let ok = unsafe { GetDeviceGammaRamp(hdc, ramp.as_mut_ptr().cast()) } != 0;
++        unsafe { ReleaseDC(std::ptr::null_mut(), hdc) };
++        if !ok {
++            return Err("The current display driver did not expose its gamma ramp.".into());
++        }
++        Ok(NvidiaGammaRamp {
++            red: ramp[0].to_vec(),
++            green: ramp[1].to_vec(),
++            blue: ramp[2].to_vec(),
++        })
++    }
++
++    fn apply_and_verify_gamma_ramp(gamma: &NvidiaGammaRamp) -> Result<(), String> {
++        if gamma.red.len() != 256 || gamma.green.len() != 256 || gamma.blue.len() != 256 {
++            return Err("The saved gamma ramp is corrupted.".into());
++        }
++        let mut ramp = [[0_u16; 256]; 3];
++        ramp[0].copy_from_slice(&gamma.red);
++        ramp[1].copy_from_slice(&gamma.green);
++        ramp[2].copy_from_slice(&gamma.blue);
++        let hdc = unsafe { GetDC(std::ptr::null_mut()) };
++        if hdc.is_null() {
++            return Err("Windows could not open the primary display context.".into());
++        }
++        let applied = unsafe { SetDeviceGammaRamp(hdc, ramp.as_ptr().cast()) } != 0;
++        unsafe { ReleaseDC(std::ptr::null_mut(), hdc) };
++        if !applied {
++            return Err("The display driver rejected the saved gamma ramp.".into());
++        }
++        let verified = capture_gamma_ramp()?;
++        if verified.red == gamma.red && verified.green == gamma.green && verified.blue == gamma.blue
++        {
++            Ok(())
++        } else {
++            Err("Windows accepted the gamma ramp, but verification did not match.".into())
++        }
++    }
++
+     fn diagnostics_from_raw(raw: &RawSnapshot) -> NvidiaDiagnostics {
+         NvidiaDiagnostics {
+             gpu_detected: raw.gpu_found != 0,
+@@ -592,7 +929,14 @@ mod windows {
+             cs2_profile_found: raw.profile_found != 0,
+             cs2_profile_created: raw.profile_created != 0,
+             profile_name: nonempty(char_array(&raw.profile_name)),
+-            settings_read: present_settings(raw).len(),
++            settings_read: settings_from_raw(&raw.settings, raw.setting_count)
++                .into_iter()
++                .chain(settings_from_raw(
++                    &raw.global_settings,
++                    raw.global_setting_count,
++                ))
++                .filter(|setting| setting.present)
++                .count(),
+             settings_applied: 0,
+             settings_skipped: 0,
+             settings_unsupported: 0,
+@@ -604,7 +948,7 @@ mod windows {
+ 
+     fn raw_from_payload(payload: &NvidiaPayload, profile_found: bool) -> RawSnapshot {
+         let mut raw: RawSnapshot = unsafe { std::mem::zeroed() };
+-        raw.schema_version = 1;
++        raw.schema_version = payload.schema_version;
+         raw.profile_found = u32::from(profile_found);
+         raw.scaling_supported = u32::from(payload.scaling_supported);
+         raw.scaling = payload.scaling_value;
+@@ -612,15 +956,27 @@ mod windows {
+         for (index, setting) in payload.settings.iter().enumerate() {
+             raw.settings[index].id = setting.id;
+             raw.settings[index].value = setting.value;
+-            raw.settings[index].present = 1;
++            raw.settings[index].present = u32::from(setting.present);
+             write_char_array(&mut raw.settings[index].key, &setting.key);
+         }
++        raw.global_setting_count = payload.global_settings.len() as u32;
++        for (index, setting) in payload.global_settings.iter().enumerate() {
++            raw.global_settings[index].id = setting.id;
++            raw.global_settings[index].value = setting.value;
++            raw.global_settings[index].present = u32::from(setting.present);
++            write_char_array(&mut raw.global_settings[index].key, &setting.key);
++        }
++        raw.output_color = raw_output_color(payload.output_color.as_ref());
+         raw
+     }
+ 
+-    fn backup_from_raw(raw: &RawSnapshot, executable: &str) -> NvidiaBackup {
++    fn backup_from_raw(
++        raw: &RawSnapshot,
++        executable: &str,
++        desktop_gamma_ramp: Option<NvidiaGammaRamp>,
++    ) -> NvidiaBackup {
+         NvidiaBackup {
+-            schema_version: 1,
++            schema_version: 2,
+             captured_at: Utc::now().to_rfc3339(),
+             profile_executable: executable.into(),
+             profile_found: raw.profile_found != 0,
+@@ -637,12 +993,25 @@ mod windows {
+                     present: setting.present != 0,
+                 })
+                 .collect(),
++            global_settings: raw
++                .global_settings
++                .iter()
++                .take(raw.global_setting_count.min(MAX_SETTINGS as u32) as usize)
++                .map(|setting| BackupSetting {
++                    id: setting.id,
++                    key: char_array(&setting.key),
++                    value: setting.value,
++                    present: setting.present != 0,
++                })
++                .collect(),
++            output_color: output_color_from_raw(&raw.output_color),
++            desktop_gamma_ramp,
+         }
+     }
+ 
+     fn raw_from_backup(backup: &NvidiaBackup) -> RawSnapshot {
+         let mut raw: RawSnapshot = unsafe { std::mem::zeroed() };
+-        raw.schema_version = 1;
++        raw.schema_version = backup.schema_version;
+         raw.profile_found = u32::from(backup.profile_found);
+         raw.scaling_supported = u32::from(backup.scaling_supported);
+         raw.scaling = backup.scaling_value;
+@@ -653,6 +1022,14 @@ mod windows {
+             raw.settings[index].present = u32::from(setting.present);
+             write_char_array(&mut raw.settings[index].key, &setting.key);
+         }
++        raw.global_setting_count = backup.global_settings.len().min(MAX_SETTINGS) as u32;
++        for (index, setting) in backup.global_settings.iter().take(MAX_SETTINGS).enumerate() {
++            raw.global_settings[index].id = setting.id;
++            raw.global_settings[index].value = setting.value;
++            raw.global_settings[index].present = u32::from(setting.present);
++            write_char_array(&mut raw.global_settings[index].key, &setting.key);
++        }
++        raw.output_color = raw_output_color(backup.output_color.as_ref());
+         raw
+     }
+ 
+@@ -732,12 +1109,15 @@ mod windows {
+             .map_err(|error| format!("Could not read NVIDIA backup: {error}"))?;
+         let backup: NvidiaBackup = serde_json::from_slice(&bytes)
+             .map_err(|_| "NVIDIA backup is corrupted.".to_string())?;
+-        if backup.schema_version != 1 || backup.settings.len() > MAX_SETTINGS {
++        if !matches!(backup.schema_version, 1 | 2)
++            || backup.settings.len() > MAX_SETTINGS
++            || backup.global_settings.len() > MAX_SETTINGS
++        {
+             return Err("NVIDIA backup is corrupted or unsupported.".into());
+         }
+         target_for_executable(&backup.profile_executable)
+             .map_err(|_| "NVIDIA backup contains an unknown executable.".to_string())?;
+-        for setting in &backup.settings {
++        for setting in backup.settings.iter().chain(&backup.global_settings) {
+             if !PORTABLE_SETTINGS
+                 .iter()
+                 .any(|(id, key)| *id == setting.id && *key == setting.key)
+@@ -782,7 +1162,7 @@ mod windows {
+ }
+ 
+ #[cfg(target_os = "windows")]
+-pub use windows::{apply, capture, diagnostics, restore};
++pub use windows::{apply, apply_display_controls, capture, diagnostics, restore};
+ 
+ #[cfg(test)]
+ mod tests {
+@@ -790,17 +1170,21 @@ mod tests {
+ 
+     fn payload() -> NvidiaPayload {
+         NvidiaPayload {
+-            schema_version: 1,
++            schema_version: 2,
+             captured_at: "2026-01-01T00:00:00Z".into(),
+             profile_executable: "cs2.exe".into(),
+             settings: vec![NvidiaSetting {
+                 id: 0x1057EB71,
+                 key: "power_management_mode".into(),
+                 value: 1,
++                present: true,
+             }],
++            global_settings: vec![],
+             scaling_mode: "stretched".into(),
+             scaling_value: 2,
+             scaling_supported: true,
++            output_color: None,
++            desktop_gamma_ramp: None,
+         }
+     }
+ 
+@@ -825,6 +1209,42 @@ mod tests {
+         assert!(validate_payload(&value).is_err());
+     }
+ 
++    #[test]
++    fn rejects_invalid_gamma_length_and_output_color() {
++        let mut value = payload();
++        value.desktop_gamma_ramp = Some(NvidiaGammaRamp {
++            red: vec![0; 255],
++            green: vec![0; 256],
++            blue: vec![0; 256],
++        });
++        assert!(validate_payload(&value).is_err());
++
++        let mut value = payload();
++        value.output_color = Some(NvidiaOutputColor {
++            color_format: 99,
++            colorimetry: 0,
++            dynamic_range: 0,
++            bits_per_component: 2,
++            selection_policy: 0,
++            desktop_color_depth: 1,
++        });
++        assert!(validate_payload(&value).is_err());
++    }
++
++    #[test]
++    fn validates_global_and_application_settings_independently() {
++        let mut value = payload();
++        value.global_settings.push(NvidiaSetting {
++            id: 0x00CE2691,
++            key: "texture_filtering_quality".into(),
++            value: 1,
++            present: true,
++        });
++        assert!(validate_payload(&value).is_ok());
++        value.global_settings[0].key = "wrong".into();
++        assert!(validate_payload(&value).is_err());
++    }
++
+     #[test]
+     fn accepts_pubg_executable_but_rejects_arbitrary_executables() {
+         let mut value = payload();
 diff --git a/src-tauri/src/release.rs b/src-tauri/src/release.rs
-index 1f34e65..66606be 100644
+index 1f34e65..a9839d6 100644
 --- a/src-tauri/src/release.rs
 +++ b/src-tauri/src/release.rs
 @@ -401,7 +401,7 @@ pub use windows::{append_log, preflight, save_report};
@@ -1161,12 +2738,12 @@ index 1f34e65..66606be 100644
      #[test]
      fn release_version_comes_from_package() {
 -        assert_eq!(super::APP_VERSION, "0.6.0");
-+        assert_eq!(super::APP_VERSION, "0.6.2");
++        assert_eq!(super::APP_VERSION, "0.6.3");
      }
      #[test]
      fn log_limits_are_bounded() {
 diff --git a/src-tauri/tauri.conf.json b/src-tauri/tauri.conf.json
-index 3d191e8..0576182 100644
+index 3d191e8..717aebb 100644
 --- a/src-tauri/tauri.conf.json
 +++ b/src-tauri/tauri.conf.json
 @@ -1,7 +1,7 @@
@@ -1174,7 +2751,7 @@ index 3d191e8..0576182 100644
    "$schema": "https://schema.tauri.app/config/2",
    "productName": "Game Passport",
 -  "version": "0.6.0",
-+  "version": "0.6.2",
++  "version": "0.6.3",
    "identifier": "app.gamepassport.desktop",
    "build": {
      "beforeDevCommand": "pnpm dev",
@@ -1191,18 +2768,84 @@ index ef10397..cbfbae8 100644
    readonly status = "implemented" as const;
  
    supports(profile: GameProfile) { return profile.game === "cs2"; }
+diff --git a/src/adapters/NvidiaDisplayControlsAdapter.ts b/src/adapters/NvidiaDisplayControlsAdapter.ts
+new file mode 100644
+index 0000000..8565c6b
+--- /dev/null
++++ b/src/adapters/NvidiaDisplayControlsAdapter.ts
+@@ -0,0 +1,44 @@
++import { invoke } from "@tauri-apps/api/core";
++import { getNvidiaPayload, type NvidiaCommandResponse, type NvidiaPayload } from "../domain/nvidia";
++import type { AdapterResult, GameProfile } from "../domain/types";
++import type { SettingsAdapter } from "../ports/SettingsAdapter";
++import { isTauriDesktop } from "../services/platform";
++
++export class NvidiaDisplayControlsAdapter implements SettingsAdapter {
++  readonly id = "nvidia.display-controls";
++  readonly label = "NVIDIA Display Controls";
++  readonly status = "implemented" as const;
++
++  supports(profile: GameProfile) { return profile.game === "cs2" || profile.game === "pubg"; }
++
++  async capture(): Promise<AdapterResult> {
++    return { adapterId: this.id, label: this.label, state: "unsupported", message: "Captured by the NVIDIA adapter." };
++  }
++
++  async apply(profile: GameProfile): Promise<AdapterResult> {
++    if (!isTauriDesktop()) return this.desktopRequired();
++    const payload = getNvidiaPayload(profile.settings);
++    if (!payload) return { adapterId: this.id, label: this.label, state: "warning", message: "This profile has no saved NVIDIA display controls.", retryable: false };
++    try {
++      const response = await invoke<NvidiaCommandResponse>("apply_nvidia_display_controls", { payload: payload as NvidiaPayload });
++      return {
++        adapterId: this.id,
++        label: this.label,
++        state: response.state,
++        message: response.message,
++        details: response.details,
++        retryable: response.retryable
++      };
++    } catch (error) {
++      return { adapterId: this.id, label: this.label, state: "error", message: "NVIDIA display controls could not be applied.", details: [error instanceof Error ? error.message : String(error)], retryable: true };
++    }
++  }
++
++  async restore(): Promise<AdapterResult> {
++    return { adapterId: this.id, label: this.label, state: "unsupported", message: "Restored by the NVIDIA adapter." };
++  }
++
++  private desktopRequired(): AdapterResult {
++    return { adapterId: this.id, label: this.label, state: "unsupported", message: "NVIDIA settings are unsupported on this platform.", retryable: false };
++  }
++}
 diff --git a/src/adapters/registry.ts b/src/adapters/registry.ts
-index 63bbe56..214f920 100644
+index 63bbe56..b69db62 100644
 --- a/src/adapters/registry.ts
 +++ b/src/adapters/registry.ts
-@@ -27,5 +27,7 @@ export const adapterRegistry = [
+@@ -3,6 +3,7 @@ import { Cs2Adapter } from "./Cs2Adapter";
+ import { Cs2PreflightAdapter } from "./Cs2PreflightAdapter";
+ import { DisplayAdapter } from "./DisplayAdapter";
+ import { NvidiaAdapter } from "./NvidiaAdapter";
++import { NvidiaDisplayControlsAdapter } from "./NvidiaDisplayControlsAdapter";
+ import { MouseAdapter } from "./MouseAdapter";
+ import { PubgAdapter } from "./PubgAdapter";
+ import { PubgPreflightAdapter } from "./PubgPreflightAdapter";
+@@ -10,6 +11,7 @@ import { PubgPreflightAdapter } from "./PubgPreflightAdapter";
+ const cs2 = new Cs2Adapter();
+ const display = new DisplayAdapter();
+ const nvidia = new NvidiaAdapter();
++const nvidiaDisplayControls = new NvidiaDisplayControlsAdapter();
+ const preflight = new Cs2PreflightAdapter();
+ const mouse = new MouseAdapter();
+ const pubg = new PubgAdapter();
+@@ -27,5 +29,7 @@ export const adapterRegistry = [
  ];
  
  export const captureAdapterRegistry = [cs2, pubg, display, nvidia, mouse];
 -export const applyAdapterRegistry = [preflight, pubgPreflight, display, nvidia, mouse, cs2, pubg];
 +// NVAPI can reload the display path, so Windows selects and verifies the exact
 +// resolution after NVIDIA scaling has been applied.
-+export const applyAdapterRegistry = [preflight, pubgPreflight, nvidia, display, mouse, cs2, pubg];
++export const applyAdapterRegistry = [preflight, pubgPreflight, nvidia, display, nvidiaDisplayControls, mouse, cs2, pubg];
  export const restoreAdapterRegistry = [preflight, pubgPreflight, cs2, pubg, mouse, nvidia, display];
 diff --git a/src/components/AuthScreen.tsx b/src/components/AuthScreen.tsx
 index fb90ae7..683e30f 100644
@@ -1282,26 +2925,75 @@ index 1155800..5893140 100644
          <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Отмена</button><button className="button primary" disabled={busy || !name.trim()}>{busy ? "Сохраняем…" : profile ? "Сохранить изменения" : "Создать профиль"}</button></div>
        </form>
 diff --git a/src/domain/cs2.ts b/src/domain/cs2.ts
-index 171e206..a099536 100644
+index 171e206..3a7eabb 100644
 --- a/src/domain/cs2.ts
 +++ b/src/domain/cs2.ts
-@@ -15,6 +15,7 @@ export interface Cs2Payload {
+@@ -9,12 +9,14 @@ export interface Cs2ConfigFile {
+ }
+ 
+ export interface Cs2Payload {
+-  schemaVersion: 1;
++  schemaVersion: 1 | 2;
+   capturedAt: string;
+   files: Cs2ConfigFile[];
    totalBytes: number;
    coreFilesFound: string[];
    optionalFilesMissing: string[];
 +  launchOptions?: string;
++  launchOptionsCaptured?: boolean;
  }
  
  export interface Cs2CommandResponse {
+diff --git a/src/domain/nvidia.ts b/src/domain/nvidia.ts
+index 80efb4e..bc91964 100644
+--- a/src/domain/nvidia.ts
++++ b/src/domain/nvidia.ts
+@@ -2,16 +2,35 @@ export interface NvidiaSetting {
+   id: number;
+   key: string;
+   value: number;
++  present?: boolean;
++}
++
++export interface NvidiaOutputColor {
++  colorFormat: number;
++  colorimetry: number;
++  dynamicRange: number;
++  bitsPerComponent: number;
++  selectionPolicy: number;
++  desktopColorDepth: number;
++}
++
++export interface NvidiaGammaRamp {
++  red: number[];
++  green: number[];
++  blue: number[];
+ }
+ 
+ export interface NvidiaPayload {
+-  schemaVersion: 1;
++  schemaVersion: 1 | 2;
+   capturedAt: string;
+   profileExecutable: "cs2.exe" | "TslGame.exe";
+   settings: NvidiaSetting[];
++  globalSettings?: NvidiaSetting[];
+   scalingMode: string;
+   scalingValue: number;
+   scalingSupported: boolean;
++  outputColor?: NvidiaOutputColor;
++  desktopGammaRamp?: NvidiaGammaRamp;
+ }
+ 
+ export interface NvidiaDiagnostics {
 diff --git a/src/domain/release.ts b/src/domain/release.ts
-index f674e99..9586b62 100644
+index f674e99..3dc6475 100644
 --- a/src/domain/release.ts
 +++ b/src/domain/release.ts
 @@ -1,6 +1,6 @@
  import type { AdapterResult, GameId } from "./types";
  
 -export const RELEASE_LABEL = "0.6.0 RC";
-+export const RELEASE_LABEL = "0.6.2 RC";
++export const RELEASE_LABEL = "0.6.3 RC";
  
  export interface ReleasePreflight {
    appVersion: string;
@@ -1427,7 +3119,7 @@ index 6a69868..389fff8 100644
      const onCapture = vi.fn();
      render(<OperationScreen profile={profile} operation="capture" orchestrator={new ProfileOrchestrator([new UnsupportedAdapter("game.cs2", "CS2 Settings", "cs2")])} onCapture={onCapture} onClose={() => undefined} />);
 diff --git a/src/test/ReleaseReadiness.test.ts b/src/test/ReleaseReadiness.test.ts
-index 2b8416d..a7817b1 100644
+index 2b8416d..80f5f0a 100644
 --- a/src/test/ReleaseReadiness.test.ts
 +++ b/src/test/ReleaseReadiness.test.ts
 @@ -8,7 +8,7 @@ import { operationHistory } from "../services/operationHistory";
@@ -1435,7 +3127,35 @@ index 2b8416d..a7817b1 100644
  const cachedProfile: GameProfile = { id: "p1", userId: "u1", name: "Club CS2", game: "cs2", settings: { adapters: {} }, createdAt: "2026-08-11", updatedAt: "2026-08-11" };
  
 -describe("0.6.0 RC release readiness", () => {
-+describe("0.6.2 RC release readiness", () => {
++describe("0.6.3 RC release readiness", () => {
    beforeEach(() => localStorage.clear());
  
    it("uses a previously synchronized profile when Supabase is offline", async () => {
+diff --git a/src/test/SystemAdapters.test.ts b/src/test/SystemAdapters.test.ts
+index 8fc4e4e..7c527b1 100644
+--- a/src/test/SystemAdapters.test.ts
++++ b/src/test/SystemAdapters.test.ts
+@@ -1,7 +1,9 @@
+ import { describe, expect, it } from "vitest";
+ import { DisplayAdapter } from "../adapters/DisplayAdapter";
+ import { NvidiaAdapter } from "../adapters/NvidiaAdapter";
++import { NvidiaDisplayControlsAdapter } from "../adapters/NvidiaDisplayControlsAdapter";
+ import { MouseAdapter } from "../adapters/MouseAdapter";
++import { applyAdapterRegistry } from "../adapters/registry";
+ import type { GameProfile } from "../domain/types";
+ 
+ const profile: GameProfile = { id: "p", userId: "u", name: "CS2", game: "cs2", settings: {}, createdAt: "now", updatedAt: "now" };
+@@ -15,6 +17,13 @@ describe("system adapters outside Windows desktop", () => {
+     expect((await new NvidiaAdapter().capture(profile)).state).toBe("unsupported");
+   });
+ 
++  it("applies NVIDIA display controls only after the exact Windows display mode", async () => {
++    const ids = applyAdapterRegistry.map((adapter) => adapter.id);
++    expect(ids.indexOf("nvidia")).toBeLessThan(ids.indexOf("display"));
++    expect(ids.indexOf("display")).toBeLessThan(ids.indexOf("nvidia.display-controls"));
++    expect((await new NvidiaDisplayControlsAdapter().apply(profile)).state).toBe("unsupported");
++  });
++
+   it("reports physical mouse operations as unsupported outside Tauri desktop", async () => {
+     const result = await new MouseAdapter().apply({ ...profile, settings: { adapters: { mouse: { schemaVersion: 1, capturedAt: "now", dpi: 800, pollingRateHz: 1000 } } } });
+     expect(result.state).toBe("unsupported");
