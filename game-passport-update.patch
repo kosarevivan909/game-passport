@@ -1,22 +1,22 @@
 diff --git a/README.md b/README.md
-index c998d18..a80402d 100644
+index c998d18..5cd851c 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,14 +1,14 @@
 -# Game Passport v0.6.0 RC
-+# Game Passport v0.6.1 RC
++# Game Passport v0.6.2 RC
  
  Windows Release Candidate существующего Game Passport на Tauri 2, React, TypeScript, Rust и Supabase. Реальные адаптеры CS2, PUBG, Display, NVIDIA и Mouse сохранены; Dota 2 убрана из основного пользовательского пути.
  
  ## Как установить в компьютерном клубе
  
 -1. Возьмите файл `Game Passport_0.6.0_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
-+1. Возьмите файл `Game Passport_0.6.1_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
++1. Возьмите файл `Game Passport_0.6.2_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
  2. Запустите EXE обычным пользователем Windows. Постоянные права администратора не нужны.
  3. Выберите язык и завершите установку. Установщик создаёт ярлыки в меню «Пуск» и на рабочем столе; WebView2 включён внутрь инсталлятора и не требует отдельной загрузки.
  4. Запустите Game Passport и войдите в аккаунт Supabase. Пароль Steam приложение не запрашивает.
 -5. Для CS2 войдите в Steam. Закройте CS2/PUBG перед сохранением или применением.
-+5. Для первого определения профиля один раз войдите в Steam. Перед применением CS2-профиля полностью закройте CS2 и Steam через `Steam → Выход`; повторно открывать Steam для проверки не требуется.
++5. Войдите в Steam и полностью закройте CS2. При применении CS2-профиля Game Passport сам корректно закроет Steam, запишет настройки и запустит Steam снова; выходить из аккаунта или повторно вводить пароль не требуется.
  6. Пройдите `Initial setup`, затем `Test Game Passport`. После входа в Steam проверку можно повторить без перезапуска приложения.
  7. В `Diagnostics` нажмите `Save report` и передайте сохранённый JSON при найденной проблеме.
  
@@ -25,7 +25,7 @@ index c998d18..a80402d 100644
  - Initial Setup: версия Windows, сеть, Supabase, Steam и активный Steam-пользователь, CS2, PUBG config, мониторы, NVIDIA и мышь. Предупреждения не блокируют вход в приложение.
  - Test Game Passport: отдельные статусы `PASS / FAIL / WARNING / SKIPPED` для программного Capture/Apply и ручного подтверждения игры, изображения, дисплея, NVIDIA и мыши.
 -- Diagnostics: версия `0.6.0 RC`, build id, реальная доступность облака, права, политика обновления, путь логов, состояние адаптеров и обезличенный отчёт.
-+- Diagnostics: версия `0.6.1 RC`, build id, реальная доступность облака, права, политика обновления, путь логов, состояние адаптеров и обезличенный отчёт.
++- Diagnostics: версия `0.6.2 RC`, build id, реальная доступность облака, права, политика обновления, путь логов, состояние адаптеров и обезличенный отчёт.
  - Production logging: JSONL в `%LOCALAPPDATA%\app.gamepassport.desktop\logs`, ротация 1 MB × 3 файла, без паролей, токенов, cookies и Steam auth.
  - Offline: ранее синхронизированные профили доступны только из локального кэша при ещё действующей локальной сессии. Вход, создание, изменение и удаление профилей офлайн не имитируются.
  - Demo mode всегда помечен как `DEMO MODE`, не запускает адаптеры и не заявляет успешную проверку оборудования.
@@ -35,13 +35,13 @@ index c998d18..a80402d 100644
  ```text
 -Game Passport_0.6.0_x64-setup.exe   (NSIS, основной)
 -Game Passport_0.6.0_x64_en-US.msi   (WiX, дополнительный)
-+Game Passport_0.6.1_x64-setup.exe   (NSIS, основной)
-+Game Passport_0.6.1_x64_en-US.msi   (WiX, дополнительный)
++Game Passport_0.6.2_x64-setup.exe   (NSIS, основной)
++Game Passport_0.6.2_x64_ru-RU.msi   (WiX, дополнительный)
  SHA256SUMS.txt
  ```
  
 diff --git a/docs/CS2_ADAPTER.md b/docs/CS2_ADAPTER.md
-index ce58938..ebe0cbc 100644
+index ce58938..a0f048c 100644
 --- a/docs/CS2_ADAPTER.md
 +++ b/docs/CS2_ADAPTER.md
 @@ -31,12 +31,13 @@ Steam хранит данные игр по схеме `Steam\userdata\<account-
@@ -75,20 +75,21 @@ index ce58938..ebe0cbc 100644
  - операция блокируется, если запущен `cs2.exe`;
 -- требуется запущенный и авторизованный Steam;
 +- для capture достаточно локально известного Steam-пользователя; Steam может быть открыт или закрыт;
-+- для apply CS2 и Steam должны быть полностью закрыты, чтобы клиент и игра не перезаписали параметры запуска или графику;
++- для apply CS2 должна быть закрыта; если Steam запущен, адаптер сначала запоминает активного пользователя, корректно завершает Steam через `steam.exe -shutdown`, применяет и проверяет настройки, затем запускает Steam снова;
  - только относительные пути без `..`, drive prefix и UNC;
  - разрешены только известные core-файлы и `.cfg`;
  - максимум 32 файла, 512 КБ на файл и 2 МБ суммарно;
-@@ -73,6 +76,8 @@ SteamID/AccountID и абсолютные пути не записываются
+@@ -73,6 +76,9 @@ SteamID/AccountID и абсолютные пути не записываются
  - перед заменой создаётся backup в `%LOCALAPPDATA%\Game Passport\Backups\CS2\<timestamp>`;
  - файлы сначала записываются во временные цели; при ошибке выполняется rollback уже заменённых файлов;
  - непосредственно перед commit ещё раз проверяется, что CS2 не запущена.
++- после автоматического закрытия Steam используется уже определённая папка пользователя; повторный вход и чтение пароля не требуются;
 +- после записи каждый CS2-файл и параметры запуска перечитываются; несовпадение возвращает Error;
 +- `cs2_video.txt` применяется как exclusive fullscreen: `setting.fullscreen=1`, `setting.nowindowborder=0`.
  
  ## Намеренно не переносится
  
-@@ -85,7 +90,6 @@ SteamID/AccountID и абсолютные пути не записываются
+@@ -85,7 +91,6 @@ SteamID/AccountID и абсолютные пути не записываются
  
  Также не переносятся:
  
@@ -97,7 +98,7 @@ index ce58938..ebe0cbc 100644
  - workshop content, карты, demos, screenshots;
  - cloud metadata и файлы `*_lastclouded`;
 diff --git a/package.json b/package.json
-index 8d90a32..886a35e 100644
+index 8d90a32..206076f 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,7 +1,7 @@
@@ -105,12 +106,12 @@ index 8d90a32..886a35e 100644
    "name": "game-passport",
    "private": true,
 -  "version": "0.6.0",
-+  "version": "0.6.1",
++  "version": "0.6.2",
    "type": "module",
    "scripts": {
      "dev": "vite",
 diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
-index ee99788..ac18a6e 100644
+index ee99788..835befd 100644
 --- a/src-tauri/Cargo.lock
 +++ b/src-tauri/Cargo.lock
 @@ -911,7 +911,7 @@ dependencies = [
@@ -118,24 +119,24 @@ index ee99788..ac18a6e 100644
  [[package]]
  name = "game-passport"
 -version = "0.6.0"
-+version = "0.6.1"
++version = "0.6.2"
  dependencies = [
   "base64 0.22.1",
   "cc",
 diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
-index 76495e5..b0d416e 100644
+index 76495e5..3f1fedd 100644
 --- a/src-tauri/Cargo.toml
 +++ b/src-tauri/Cargo.toml
 @@ -1,6 +1,6 @@
  [package]
  name = "game-passport"
 -version = "0.6.0"
-+version = "0.6.1"
++version = "0.6.2"
  description = "Portable gaming profiles for Windows PCs"
  authors = ["Game Passport"]
  license = "Proprietary"
 diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
-index ebda9ab..aa982fd 100644
+index ebda9ab..f8f6dfc 100644
 --- a/src-tauri/src/cs2.rs
 +++ b/src-tauri/src/cs2.rs
 @@ -19,6 +19,8 @@ pub struct Cs2Payload {
@@ -147,7 +148,17 @@ index ebda9ab..aa982fd 100644
  }
  
  #[derive(Debug, Serialize)]
-@@ -100,6 +102,8 @@ mod windows {
+@@ -86,6 +88,9 @@ mod windows {
+         io::Write,
+         mem::{size_of, zeroed},
+         path::{Component, Path, PathBuf},
++        process::Command,
++        thread,
++        time::{Duration, Instant},
+     };
+     use windows_sys::Win32::{
+         Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
+@@ -100,6 +105,8 @@ mod windows {
      const MAX_FILE_BYTES: u64 = 512 * 1024;
      const MAX_TOTAL_BYTES: u64 = 2 * 1024 * 1024;
      const MAX_FILES: usize = 32;
@@ -156,15 +167,18 @@ index ebda9ab..aa982fd 100644
      const REQUIRED_CORE: [&str; 2] = [
          "cs2_user_convars_0_slot0.vcfg",
          "cs2_user_keys_0_slot0.vcfg",
-@@ -109,6 +113,7 @@ mod windows {
+@@ -107,8 +114,10 @@ mod windows {
+     const OPTIONAL_CORE: [&str; 2] = ["cs2_machine_convars.vcfg", "cs2_video.txt"];
+ 
      struct SteamContext {
++        steam_root: PathBuf,
          userdata_cfg: PathBuf,
          install_cfg: Option<PathBuf>,
 +        localconfig_vdf: PathBuf,
      }
  
      #[derive(Debug)]
-@@ -165,12 +170,30 @@ mod windows {
+@@ -165,12 +174,30 @@ mod windows {
                  payload: None,
              };
          }
@@ -174,26 +188,26 @@ index ebda9ab..aa982fd 100644
 -            details: vec![],
 -            retryable: false,
 -            payload: None,
-+        if steam_process_running() {
-+            return Cs2CommandResponse {
-+                state: "error".into(),
-+                message: "Полностью закройте Steam перед применением настроек CS2.".into(),
-+                details: vec![
-+                    "Закройте Steam через меню Steam → Выход, затем нажмите «Повторить».".into(),
-+                ],
-+                retryable: true,
-+                payload: None,
-+            };
-+        }
 +        match discover_steam_context(false, false) {
 +            Ok(context) => Cs2CommandResponse {
 +                state: "success".into(),
-+                message: "CS2 и Steam закрыты. Локальный профиль Steam найден.".into(),
-+                details: vec![if context.userdata_cfg.is_dir() {
-+                    "Можно безопасно применить графику, разрешение и параметры запуска.".into()
++                message: if steam_process_running() {
++                    "CS2 закрыта, пользователь Steam найден. Steam будет автоматически перезапущен во время применения настроек.".into()
 +                } else {
-+                    "CS2 ещё не запускалась на этом ПК. Game Passport создаст пользовательскую папку настроек при применении профиля.".into()
-+                }],
++                    "CS2 закрыта. Локальный профиль Steam найден.".into()
++                },
++                details: vec![
++                    if steam_process_running() {
++                        "Не выходите из аккаунта Steam: Game Passport сам корректно закроет клиент, применит настройки и запустит его снова.".into()
++                    } else {
++                        "Steam уже закрыт; настройки можно применить без повторного входа.".into()
++                    },
++                    if context.userdata_cfg.is_dir() {
++                        "Пользовательская папка CS2 найдена.".into()
++                    } else {
++                        "CS2 ещё не запускалась на этом ПК. Game Passport создаст пользовательскую папку настроек при применении профиля.".into()
++                    },
++                ],
 +                retryable: false,
 +                payload: None,
 +            },
@@ -201,7 +215,7 @@ index ebda9ab..aa982fd 100644
          }
      }
  
-@@ -183,7 +206,7 @@ mod windows {
+@@ -183,7 +210,7 @@ mod windows {
  
      fn capture_inner() -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
@@ -210,7 +224,7 @@ index ebda9ab..aa982fd 100644
          let mut files = Vec::new();
          let mut details = Vec::new();
          let mut core_files_found = Vec::new();
-@@ -211,6 +234,8 @@ mod windows {
+@@ -211,6 +238,8 @@ mod windows {
              optional_files_missing.push("autoexec.cfg (CS2 installation not located)".into());
          }
  
@@ -219,7 +233,7 @@ index ebda9ab..aa982fd 100644
          if files.len() > MAX_FILES {
              return Err(UserFacingError::new(
                  "Too many CS2 configuration files were found. Nothing was saved.",
-@@ -247,6 +272,7 @@ mod windows {
+@@ -247,6 +276,7 @@ mod windows {
              total_bytes,
              core_files_found,
              optional_files_missing: optional_files_missing.clone(),
@@ -227,7 +241,7 @@ index ebda9ab..aa982fd 100644
          };
          let retryable = !optional_files_missing.is_empty();
          let mut summary = vec![
-@@ -263,6 +289,13 @@ mod windows {
+@@ -263,6 +293,13 @@ mod windows {
                  "Сохранено дополнительных CFG-файлов: {custom_count}."
              ));
          }
@@ -241,25 +255,73 @@ index ebda9ab..aa982fd 100644
          summary.push("Не сохраняются идентификаторы монитора, видеокарты и аудиоустройства; точная герцовка выбирается заново на целевом ПК.".into());
          summary.append(&mut details);
          details = summary;
-@@ -282,8 +315,9 @@ mod windows {
- 
+@@ -283,7 +320,57 @@ mod windows {
      fn apply_inner(payload: Cs2Payload) -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
-+        ensure_steam_closed()?;
          validate_payload(&payload)?;
 -        let context = discover_steam_context()?;
 +        let context = discover_steam_context(false, false)?;
++        let restart_steam_after_apply = stop_steam_for_apply(&context.steam_root)?;
++        let result = apply_with_closed_steam(payload, &context);
++
++        if !restart_steam_after_apply {
++            return result;
++        }
++
++        match restart_steam(&context.steam_root) {
++            Ok(()) => match result {
++                Ok(mut response) => {
++                    response
++                        .details
++                        .push("Steam автоматически запущен после применения настроек.".into());
++                    Ok(response)
++                }
++                Err(mut error) => {
++                    error
++                        .details
++                        .push("Steam автоматически запущен после неудачного применения.".into());
++                    Err(error)
++                }
++            },
++            Err(restart_error) => match result {
++                Ok(mut response) => {
++                    response.state = "warning".into();
++                    response.details.push(
++                        "Настройки применены, но Steam не удалось запустить автоматически. Откройте Steam обычным способом.".into(),
++                    );
++                    response.details.push(restart_error.message);
++                    response.details.extend(restart_error.details);
++                    Ok(response)
++                }
++                Err(mut error) => {
++                    error.details.push(
++                        "Steam не удалось запустить автоматически после ошибки. Откройте Steam обычным способом.".into(),
++                    );
++                    error.details.push(restart_error.message);
++                    error.details.extend(restart_error.details);
++                    Err(error)
++                }
++            },
++        }
++    }
++
++    fn apply_with_closed_steam(
++        payload: Cs2Payload,
++        context: &SteamContext,
++    ) -> Result<Cs2CommandResponse, UserFacingError> {
++        ensure_game_closed()?;
++        ensure_steam_closed()?;
          let needs_install = payload.files.iter().any(|file| file.scope == "install");
          if needs_install && context.install_cfg.is_none() {
              return Err(UserFacingError::new(
-@@ -292,7 +326,23 @@ mod windows {
+@@ -292,7 +379,23 @@ mod windows {
              ));
          }
  
 -        let decoded = decode_and_resolve(&payload, &context)?;
-+        let mut decoded = decode_and_resolve(&payload, &context)?;
++        let mut decoded = decode_and_resolve(&payload, context)?;
 +        let mut apply_notes = Vec::new();
-+        let launch_options_staged = match prepare_launch_options_update(&payload, &context) {
++        let launch_options_staged = match prepare_launch_options_update(&payload, context) {
 +            Ok(Some(item)) => {
 +                decoded.push(item);
 +                true
@@ -277,7 +339,7 @@ index ebda9ab..aa982fd 100644
          let backup_root = backup_root()?;
          fs::create_dir_all(&backup_root)
              .map_err(|error| io_error("Could not create a CS2 backup folder.", error))?;
-@@ -311,7 +361,7 @@ mod windows {
+@@ -311,7 +414,7 @@ mod windows {
              }
          }
  
@@ -286,7 +348,7 @@ index ebda9ab..aa982fd 100644
              cleanup_staged(&staged);
              return Err(error);
          }
-@@ -384,11 +434,19 @@ mod windows {
+@@ -384,11 +487,19 @@ mod windows {
              format!("Локальная резервная копия: {}", backup_root.display()),
              format!("Записано и проверено файлов: {}.", committed.len()),
          ];
@@ -307,17 +369,65 @@ index ebda9ab..aa982fd 100644
              message: format!("Настройки CS2 применены и проверены: {} файлов. Запустите CS2 и проверьте итоговые значения в игре.", committed.len()),
              details,
              retryable: false,
-@@ -398,7 +456,8 @@ mod windows {
+@@ -398,7 +509,56 @@ mod windows {
  
      fn restore_inner() -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
 -        let context = discover_steam_context()?;
-+        ensure_steam_closed()?;
 +        let context = discover_steam_context(false, false)?;
++        let restart_steam_after_restore = stop_steam_for_apply(&context.steam_root)?;
++        let result = restore_with_closed_steam(&context);
++
++        if !restart_steam_after_restore {
++            return result;
++        }
++
++        match restart_steam(&context.steam_root) {
++            Ok(()) => match result {
++                Ok(mut response) => {
++                    response
++                        .details
++                        .push("Steam автоматически запущен после восстановления.".into());
++                    Ok(response)
++                }
++                Err(mut error) => {
++                    error
++                        .details
++                        .push("Steam автоматически запущен после ошибки восстановления.".into());
++                    Err(error)
++                }
++            },
++            Err(restart_error) => match result {
++                Ok(mut response) => {
++                    response.state = "warning".into();
++                    response.details.push(
++                        "Настройки восстановлены, но Steam не удалось запустить автоматически. Откройте Steam обычным способом.".into(),
++                    );
++                    response.details.push(restart_error.message);
++                    response.details.extend(restart_error.details);
++                    Ok(response)
++                }
++                Err(mut error) => {
++                    error.details.push(
++                        "Steam не удалось запустить автоматически после ошибки. Откройте Steam обычным способом.".into(),
++                    );
++                    error.details.push(restart_error.message);
++                    error.details.extend(restart_error.details);
++                    Err(error)
++                }
++            },
++        }
++    }
++
++    fn restore_with_closed_steam(
++        context: &SteamContext,
++    ) -> Result<Cs2CommandResponse, UserFacingError> {
++        ensure_game_closed()?;
++        ensure_steam_closed()?;
          let backups = cs2_backup_directory()?;
          let mut candidates = fs::read_dir(&backups)
              .map_err(|_| UserFacingError::new("No Game Passport CS2 backup was found.", false))?
-@@ -412,7 +471,7 @@ mod windows {
+@@ -412,7 +572,7 @@ mod windows {
              .ok_or_else(|| UserFacingError::new("No Game Passport CS2 backup was found.", false))?;
          let mut restored = 0usize;
          let mut details = vec![format!("Backup used: {}", backup.display())];
@@ -326,7 +436,7 @@ index ebda9ab..aa982fd 100644
              let source_root = backup.join(scope);
              if !source_root.is_dir() {
                  continue;
-@@ -426,6 +485,9 @@ mod windows {
+@@ -426,6 +586,9 @@ mod windows {
                          continue;
                      }
                  },
@@ -336,7 +446,7 @@ index ebda9ab..aa982fd 100644
                  _ => unreachable!(),
              };
              let mut queue = VecDeque::from([source_root.clone()]);
-@@ -578,6 +640,11 @@ mod windows {
+@@ -578,6 +741,11 @@ mod windows {
                      false,
                  ));
              }
@@ -348,7 +458,7 @@ index ebda9ab..aa982fd 100644
              result.push(DecodedFile {
                  scope: file.scope.clone(),
                  relative_path: file.relative_path.clone(),
-@@ -622,8 +689,11 @@ mod windows {
+@@ -622,8 +790,11 @@ mod windows {
          Ok(())
      }
  
@@ -362,7 +472,7 @@ index ebda9ab..aa982fd 100644
              return Err(UserFacingError::new(
                  "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2.",
                  true,
-@@ -631,25 +701,34 @@ mod windows {
+@@ -631,25 +802,35 @@ mod windows {
          }
          let steam_root = find_steam_root()
              .ok_or_else(|| UserFacingError::new("Steam installation could not be found.", true))?;
@@ -398,25 +508,83 @@ index ebda9ab..aa982fd 100644
 +            .join("config")
 +            .join("localconfig.vdf");
          Ok(SteamContext {
++            steam_root,
              userdata_cfg,
              install_cfg,
 +            localconfig_vdf,
          })
      }
  
-@@ -664,6 +743,21 @@ mod windows {
+@@ -664,6 +845,78 @@ mod windows {
          }
      }
  
 +    fn ensure_steam_closed() -> Result<(), UserFacingError> {
 +        if steam_process_running() {
 +            Err(UserFacingError::new(
-+                "Полностью закройте Steam перед применением параметров запуска и графики CS2, затем нажмите «Повторить».",
++                "Steam не успел полностью закрыться. Подождите несколько секунд и повторите применение.",
 +                true,
 +            ))
 +        } else {
 +            Ok(())
 +        }
++    }
++
++    fn stop_steam_for_apply(steam_root: &Path) -> Result<bool, UserFacingError> {
++        if !steam_process_running() {
++            return Ok(false);
++        }
++
++        let steam_exe = steam_root.join("steam.exe");
++        if !steam_exe.is_file() {
++            return Err(UserFacingError::new(
++                "Game Passport нашёл запущенный Steam, но не смог найти steam.exe для безопасного перезапуска.",
++                true,
++            ));
++        }
++
++        Command::new(&steam_exe)
++            .arg("-shutdown")
++            .spawn()
++            .map_err(|error| {
++                io_error(
++                    "Не удалось попросить Steam корректно завершить работу.",
++                    error,
++                )
++                .detail("Закройте Steam обычным способом и повторите применение.")
++            })?;
++
++        let deadline = Instant::now() + Duration::from_secs(30);
++        while steam_process_running() {
++            if Instant::now() >= deadline {
++                return Err(
++                    UserFacingError::new("Steam не завершил работу за 30 секунд.", true)
++                        .detail("Закройте открытые окна Steam или загрузки и нажмите «Повторить»."),
++                );
++            }
++            thread::sleep(Duration::from_millis(250));
++        }
++        Ok(true)
++    }
++
++    fn restart_steam(steam_root: &Path) -> Result<(), UserFacingError> {
++        let steam_exe = steam_root.join("steam.exe");
++        Command::new(&steam_exe).spawn().map_err(|error| {
++            io_error("Не удалось автоматически запустить Steam.", error)
++                .detail(format!("Steam: {}", steam_exe.display()))
++        })?;
++
++        let deadline = Instant::now() + Duration::from_secs(10);
++        while !is_process_running("steam.exe") {
++            if Instant::now() >= deadline {
++                return Err(UserFacingError::new(
++                    "Steam был запущен, но его процесс не появился за 10 секунд.",
++                    true,
++                ));
++            }
++            thread::sleep(Duration::from_millis(250));
++        }
++        Ok(())
 +    }
 +
 +    fn steam_process_running() -> bool {
@@ -426,7 +594,7 @@ index ebda9ab..aa982fd 100644
      fn find_steam_root() -> Option<PathBuf> {
          let hkcu = RegKey::predef(HKEY_CURRENT_USER);
          if let Ok(key) = hkcu.open_subkey("Software\\Valve\\Steam") {
-@@ -693,6 +787,26 @@ mod windows {
+@@ -693,6 +946,26 @@ mod windows {
              .or_else(|| steam.get_value("ActiveUser").ok())
      }
  
@@ -453,7 +621,7 @@ index ebda9ab..aa982fd 100644
      fn find_install_cfg(steam_root: &Path) -> Option<PathBuf> {
          let mut libraries = vec![steam_root.to_path_buf()];
          let library_file = steam_root.join("steamapps").join("libraryfolders.vdf");
-@@ -761,6 +875,274 @@ mod windows {
+@@ -761,6 +1034,274 @@ mod windows {
          result
      }
  
@@ -728,7 +896,7 @@ index ebda9ab..aa982fd 100644
      fn capture_userdata_cfg_files(
          root: &Path,
          files: &mut Vec<Cs2ConfigFile>,
-@@ -951,6 +1333,88 @@ mod windows {
+@@ -951,6 +1492,88 @@ mod windows {
          Ok((output.into_bytes(), removed))
      }
  
@@ -817,7 +985,7 @@ index ebda9ab..aa982fd 100644
      fn sensitive_line(line: &str) -> bool {
          let value = line.trim().to_ascii_lowercase();
          [
-@@ -1032,6 +1496,7 @@ mod windows {
+@@ -1032,6 +1655,7 @@ mod windows {
          let allowed = match scope {
              "userdata" => core || (cfg && relative.components().count() == 1),
              "install" => cfg,
@@ -825,7 +993,7 @@ index ebda9ab..aa982fd 100644
              _ => false,
          };
          if allowed {
-@@ -1146,6 +1611,83 @@ mod windows {
+@@ -1146,6 +1770,83 @@ mod windows {
              assert_eq!(removed, 1);
              assert!(String::from_utf8(video).unwrap().contains("defaultres"));
          }
@@ -909,7 +1077,7 @@ index ebda9ab..aa982fd 100644
      }
  }
  
-@@ -1182,6 +1724,7 @@ mod tests {
+@@ -1182,6 +1883,7 @@ mod tests {
              total_bytes: 0,
              core_files_found: vec![],
              optional_files_missing: vec![],
@@ -985,7 +1153,7 @@ index 4a96bfe..63c4280 100644
                      ],
                      retryable: result == "restart_required",
 diff --git a/src-tauri/src/release.rs b/src-tauri/src/release.rs
-index 1f34e65..d67315a 100644
+index 1f34e65..66606be 100644
 --- a/src-tauri/src/release.rs
 +++ b/src-tauri/src/release.rs
 @@ -401,7 +401,7 @@ pub use windows::{append_log, preflight, save_report};
@@ -993,12 +1161,12 @@ index 1f34e65..d67315a 100644
      #[test]
      fn release_version_comes_from_package() {
 -        assert_eq!(super::APP_VERSION, "0.6.0");
-+        assert_eq!(super::APP_VERSION, "0.6.1");
++        assert_eq!(super::APP_VERSION, "0.6.2");
      }
      #[test]
      fn log_limits_are_bounded() {
 diff --git a/src-tauri/tauri.conf.json b/src-tauri/tauri.conf.json
-index 3d191e8..231f856 100644
+index 3d191e8..0576182 100644
 --- a/src-tauri/tauri.conf.json
 +++ b/src-tauri/tauri.conf.json
 @@ -1,7 +1,7 @@
@@ -1006,10 +1174,23 @@ index 3d191e8..231f856 100644
    "$schema": "https://schema.tauri.app/config/2",
    "productName": "Game Passport",
 -  "version": "0.6.0",
-+  "version": "0.6.1",
++  "version": "0.6.2",
    "identifier": "app.gamepassport.desktop",
    "build": {
      "beforeDevCommand": "pnpm dev",
+diff --git a/src/adapters/Cs2PreflightAdapter.ts b/src/adapters/Cs2PreflightAdapter.ts
+index ef10397..cbfbae8 100644
+--- a/src/adapters/Cs2PreflightAdapter.ts
++++ b/src/adapters/Cs2PreflightAdapter.ts
+@@ -6,7 +6,7 @@ import { isTauriDesktop } from "../services/platform";
+ 
+ export class Cs2PreflightAdapter implements SettingsAdapter {
+   readonly id = "preflight.cs2";
+-  readonly label = "CS2 closed";
++  readonly label = "CS2 и Steam";
+   readonly status = "implemented" as const;
+ 
+   supports(profile: GameProfile) { return profile.game === "cs2"; }
 diff --git a/src/adapters/registry.ts b/src/adapters/registry.ts
 index 63bbe56..214f920 100644
 --- a/src/adapters/registry.ts
@@ -1067,7 +1248,7 @@ index fb90ae7..683e30f 100644
          </button>
        </div>
 diff --git a/src/components/OperationScreen.tsx b/src/components/OperationScreen.tsx
-index 1c235e6..3fe7c1a 100644
+index 1c235e6..fa64b07 100644
 --- a/src/components/OperationScreen.tsx
 +++ b/src/components/OperationScreen.tsx
 @@ -71,13 +71,14 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
@@ -1083,12 +1264,12 @@ index 1c235e6..3fe7c1a 100644
        <p className="eyebrow">ПРОФИЛЬ: {profile.name.toUpperCase()}</p>
        <h1>{title}</h1>
        <p className="process-lead">{lead}</p>
-+      {!done && <p className="input-lock-note">Не закрывайте Game Passport и не запускайте Steam или игру до завершения операции.</p>}
++      {!done && <p className="input-lock-note">Не закрывайте Game Passport и не запускайте игру до завершения операции. При применении CS2 Steam может автоматически закрыться и запуститься снова.</p>}
        <div className="process-list">{rows.map((row) => {
          const result = results.find((item) => item.adapterId === row.id);
          return <div className={`process-row ${result?.state ?? "pending"}`} key={row.id}>
 diff --git a/src/components/ProfileModal.tsx b/src/components/ProfileModal.tsx
-index 1155800..16be0c6 100644
+index 1155800..5893140 100644
 --- a/src/components/ProfileModal.tsx
 +++ b/src/components/ProfileModal.tsx
 @@ -41,7 +41,7 @@ export function ProfileModal({ profile, onClose, onSave }: Props) {
@@ -1096,7 +1277,7 @@ index 1155800..16be0c6 100644
          </div></fieldset>
          <fieldset className="mouse-fallback"><legend>Мышь · необязательно</legend><p className="muted">Если Logitech не считывается автоматически, впишите значения из G HUB. Они сохранятся в профиле; на другом ПК приложение применит их автоматически либо покажет точную ручную инструкцию.</p><div className="mouse-fields"><label>DPI<input inputMode="numeric" min={50} max={100000} type="number" value={dpi} onChange={(event) => setDpi(event.target.value)} placeholder="например, 800" /></label><label>Частота опроса<select value={polling} onChange={(event) => setPolling(event.target.value)}><option value="">Не указана</option>{[125, 250, 500, 1000, 2000, 4000, 8000].map((rate) => <option key={rate} value={rate}>{rate} Гц</option>)}</select></label></div></fieldset>
 -        <div className="info-box">{game === "cs2" ? "Сохранение считывает реальные настройки CS2, экрана, NVIDIA и мыши. Сначала закройте CS2 и войдите в Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
-+        <div className="info-box">{game === "cs2" ? "Сохранение считывает настройки CS2, параметры запуска Steam, экран, NVIDIA и мышь. Закройте CS2 и войдите в Steam. При применении параметров запуска приложение попросит полностью закрыть Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
++        <div className="info-box">{game === "cs2" ? "Сохранение считывает настройки CS2, параметры запуска Steam, экран, NVIDIA и мышь. Закройте CS2 и войдите в Steam. При применении Game Passport сам безопасно перезапустит Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
          {error && <div className="form-error" role="alert">{error}</div>}
          <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Отмена</button><button className="button primary" disabled={busy || !name.trim()}>{busy ? "Сохраняем…" : profile ? "Сохранить изменения" : "Создать профиль"}</button></div>
        </form>
@@ -1113,19 +1294,19 @@ index 171e206..a099536 100644
  
  export interface Cs2CommandResponse {
 diff --git a/src/domain/release.ts b/src/domain/release.ts
-index f674e99..2216f1e 100644
+index f674e99..9586b62 100644
 --- a/src/domain/release.ts
 +++ b/src/domain/release.ts
 @@ -1,6 +1,6 @@
  import type { AdapterResult, GameId } from "./types";
  
 -export const RELEASE_LABEL = "0.6.0 RC";
-+export const RELEASE_LABEL = "0.6.1 RC";
++export const RELEASE_LABEL = "0.6.2 RC";
  
  export interface ReleasePreflight {
    appVersion: string;
 diff --git a/src/services/platform.ts b/src/services/platform.ts
-index 487cc6a..179e86a 100644
+index 487cc6a..fd33f3c 100644
 --- a/src/services/platform.ts
 +++ b/src/services/platform.ts
 @@ -40,7 +40,7 @@ export async function getPubgDiagnostics(): Promise<PubgCommandResponse> {
@@ -1133,7 +1314,7 @@ index 487cc6a..179e86a 100644
  export async function getReleasePreflight(): Promise<ReleasePreflight> {
    if (!isTauriDesktop()) return {
 -    appVersion: "0.6.0", build: "browser-preview", windowsVersion: navigator.platform || "Browser",
-+    appVersion: "0.6.1", build: "browser-preview", windowsVersion: navigator.platform || "Browser",
++    appVersion: "0.6.2", build: "browser-preview", windowsVersion: navigator.platform || "Browser",
      windowsSupported: false, steamInstalled: false, steamUserAvailable: false, steamPath: null, cs2Installed: false,
      pubgConfigAvailable: false, logDirectory: null, administratorRequired: false,
      updateChannel: "Manual signed releases (updater not activated)"
@@ -1246,7 +1427,7 @@ index 6a69868..389fff8 100644
      const onCapture = vi.fn();
      render(<OperationScreen profile={profile} operation="capture" orchestrator={new ProfileOrchestrator([new UnsupportedAdapter("game.cs2", "CS2 Settings", "cs2")])} onCapture={onCapture} onClose={() => undefined} />);
 diff --git a/src/test/ReleaseReadiness.test.ts b/src/test/ReleaseReadiness.test.ts
-index 2b8416d..7c42866 100644
+index 2b8416d..a7817b1 100644
 --- a/src/test/ReleaseReadiness.test.ts
 +++ b/src/test/ReleaseReadiness.test.ts
 @@ -8,7 +8,7 @@ import { operationHistory } from "../services/operationHistory";
@@ -1254,7 +1435,7 @@ index 2b8416d..7c42866 100644
  const cachedProfile: GameProfile = { id: "p1", userId: "u1", name: "Club CS2", game: "cs2", settings: { adapters: {} }, createdAt: "2026-08-11", updatedAt: "2026-08-11" };
  
 -describe("0.6.0 RC release readiness", () => {
-+describe("0.6.1 RC release readiness", () => {
++describe("0.6.2 RC release readiness", () => {
    beforeEach(() => localStorage.clear());
  
    it("uses a previously synchronized profile when Supabase is offline", async () => {
