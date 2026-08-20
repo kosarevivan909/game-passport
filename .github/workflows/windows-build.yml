@@ -96,7 +96,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "field-test-${{ github.run_number }}" "windows-artifacts/*" `
-            --title "Game Passport v0.6.1 RC — Русская сборка #${{ github.run_number }}" `
+            --title "Game Passport v0.6.2 RC — Русская сборка #${{ github.run_number }}" `
             --notes "Русская тестовая сборка для проверки в компьютерном клубе. Профили хранятся локально на этом ПК; реальные игровые и аппаратные Windows-адаптеры включены. Для обычной установки скачайте файл setup.exe. Контрольные суммы SHA-256 приложены." `
             --prerelease
       - name: Publish cloud-test installers as a private prerelease
@@ -106,6 +106,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "cloud-test-${{ github.run_number }}" "windows-artifacts/*" `
-            --title "Game Passport v0.6.1 RC — Облачная сборка #${{ github.run_number }}" `
-            --notes "Облачная тестовая сборка для компьютерного клуба. Исправлены exclusive fullscreen, перенос графики и параметров запуска CS2, проверка фактического разрешения после NVIDIA и работа при закрытом Steam. Для установки скачайте setup.exe. Контрольные суммы SHA-256 приложены." `
+            --title "Game Passport v0.6.2 RC — Облачная сборка #${{ github.run_number }}" `
+            --notes "Облачная тестовая сборка для компьютерного клуба. Game Passport определяет текущего пользователя Steam, автоматически закрывает Steam только на время безопасного применения настроек CS2 и запускает его снова. Сохранены исправления exclusive fullscreen, графики, параметров запуска и фактического разрешения после NVIDIA. Для установки скачайте setup.exe. Контрольные суммы SHA-256 приложены." `
             --prerelease
