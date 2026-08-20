@@ -135,7 +135,7 @@ index 76495e5..b0d416e 100644
  authors = ["Game Passport"]
  license = "Proprietary"
 diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
-index ebda9ab..c09e67f 100644
+index ebda9ab..aa982fd 100644
 --- a/src-tauri/src/cs2.rs
 +++ b/src-tauri/src/cs2.rs
 @@ -19,6 +19,8 @@ pub struct Cs2Payload {
@@ -164,7 +164,7 @@ index ebda9ab..c09e67f 100644
      }
  
      #[derive(Debug)]
-@@ -165,12 +170,28 @@ mod windows {
+@@ -165,12 +170,30 @@ mod windows {
                  payload: None,
              };
          }
@@ -185,13 +185,15 @@ index ebda9ab..c09e67f 100644
 +                payload: None,
 +            };
 +        }
-+        match discover_steam_context(false) {
-+            Ok(_) => Cs2CommandResponse {
++        match discover_steam_context(false, false) {
++            Ok(context) => Cs2CommandResponse {
 +                state: "success".into(),
 +                message: "CS2 и Steam закрыты. Локальный профиль Steam найден.".into(),
-+                details: vec![
-+                    "Можно безопасно применить графику, разрешение и параметры запуска.".into(),
-+                ],
++                details: vec![if context.userdata_cfg.is_dir() {
++                    "Можно безопасно применить графику, разрешение и параметры запуска.".into()
++                } else {
++                    "CS2 ещё не запускалась на этом ПК. Game Passport создаст пользовательскую папку настроек при применении профиля.".into()
++                }],
 +                retryable: false,
 +                payload: None,
 +            },
@@ -199,16 +201,16 @@ index ebda9ab..c09e67f 100644
          }
      }
  
-@@ -183,7 +204,7 @@ mod windows {
+@@ -183,7 +206,7 @@ mod windows {
  
      fn capture_inner() -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
 -        let context = discover_steam_context()?;
-+        let context = discover_steam_context(false)?;
++        let context = discover_steam_context(false, true)?;
          let mut files = Vec::new();
          let mut details = Vec::new();
          let mut core_files_found = Vec::new();
-@@ -211,6 +232,8 @@ mod windows {
+@@ -211,6 +234,8 @@ mod windows {
              optional_files_missing.push("autoexec.cfg (CS2 installation not located)".into());
          }
  
@@ -217,7 +219,7 @@ index ebda9ab..c09e67f 100644
          if files.len() > MAX_FILES {
              return Err(UserFacingError::new(
                  "Too many CS2 configuration files were found. Nothing was saved.",
-@@ -247,6 +270,7 @@ mod windows {
+@@ -247,6 +272,7 @@ mod windows {
              total_bytes,
              core_files_found,
              optional_files_missing: optional_files_missing.clone(),
@@ -225,7 +227,7 @@ index ebda9ab..c09e67f 100644
          };
          let retryable = !optional_files_missing.is_empty();
          let mut summary = vec![
-@@ -263,6 +287,13 @@ mod windows {
+@@ -263,6 +289,13 @@ mod windows {
                  "Сохранено дополнительных CFG-файлов: {custom_count}."
              ));
          }
@@ -239,30 +241,43 @@ index ebda9ab..c09e67f 100644
          summary.push("Не сохраняются идентификаторы монитора, видеокарты и аудиоустройства; точная герцовка выбирается заново на целевом ПК.".into());
          summary.append(&mut details);
          details = summary;
-@@ -282,8 +313,9 @@ mod windows {
+@@ -282,8 +315,9 @@ mod windows {
  
      fn apply_inner(payload: Cs2Payload) -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
 +        ensure_steam_closed()?;
          validate_payload(&payload)?;
 -        let context = discover_steam_context()?;
-+        let context = discover_steam_context(false)?;
++        let context = discover_steam_context(false, false)?;
          let needs_install = payload.files.iter().any(|file| file.scope == "install");
          if needs_install && context.install_cfg.is_none() {
              return Err(UserFacingError::new(
-@@ -292,7 +324,10 @@ mod windows {
+@@ -292,7 +326,23 @@ mod windows {
              ));
          }
  
 -        let decoded = decode_and_resolve(&payload, &context)?;
 +        let mut decoded = decode_and_resolve(&payload, &context)?;
-+        if let Some(item) = prepare_launch_options_update(&payload, &context)? {
-+            decoded.push(item);
-+        }
++        let mut apply_notes = Vec::new();
++        let launch_options_staged = match prepare_launch_options_update(&payload, &context) {
++            Ok(Some(item)) => {
++                decoded.push(item);
++                true
++            }
++            Ok(None) => false,
++            Err(error) => {
++                apply_notes.push(format!(
++                    "Параметры запуска Steam не применены: {}",
++                    error.message
++                ));
++                apply_notes.extend(error.details);
++                false
++            }
++        };
          let backup_root = backup_root()?;
          fs::create_dir_all(&backup_root)
              .map_err(|error| io_error("Could not create a CS2 backup folder.", error))?;
-@@ -311,7 +346,7 @@ mod windows {
+@@ -311,7 +361,7 @@ mod windows {
              }
          }
  
@@ -271,27 +286,38 @@ index ebda9ab..c09e67f 100644
              cleanup_staged(&staged);
              return Err(error);
          }
-@@ -384,6 +419,9 @@ mod windows {
+@@ -384,11 +434,19 @@ mod windows {
              format!("Локальная резервная копия: {}", backup_root.display()),
              format!("Записано и проверено файлов: {}.", committed.len()),
          ];
-+        if payload.launch_options.is_some() {
++        if launch_options_staged {
 +            details.push("Параметры запуска CS2 записаны в Steam и проверены.".into());
 +        }
++        details.append(&mut apply_notes);
          if hardware_specific {
              details.push("Разрешение и переносимые параметры видео записаны. После запуска CS2 может заменить значения, которые не поддерживаются этим компьютером.".into());
          }
-@@ -398,7 +436,8 @@ mod windows {
+         Ok(Cs2CommandResponse {
+-            state: if hardware_specific { "warning".into() } else { "success".into() },
++            state: if hardware_specific || (payload.launch_options.is_some() && !launch_options_staged) {
++                "warning".into()
++            } else {
++                "success".into()
++            },
+             message: format!("Настройки CS2 применены и проверены: {} файлов. Запустите CS2 и проверьте итоговые значения в игре.", committed.len()),
+             details,
+             retryable: false,
+@@ -398,7 +456,8 @@ mod windows {
  
      fn restore_inner() -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
 -        let context = discover_steam_context()?;
 +        ensure_steam_closed()?;
-+        let context = discover_steam_context(false)?;
++        let context = discover_steam_context(false, false)?;
          let backups = cs2_backup_directory()?;
          let mut candidates = fs::read_dir(&backups)
              .map_err(|_| UserFacingError::new("No Game Passport CS2 backup was found.", false))?
-@@ -412,7 +451,7 @@ mod windows {
+@@ -412,7 +471,7 @@ mod windows {
              .ok_or_else(|| UserFacingError::new("No Game Passport CS2 backup was found.", false))?;
          let mut restored = 0usize;
          let mut details = vec![format!("Backup used: {}", backup.display())];
@@ -300,7 +326,7 @@ index ebda9ab..c09e67f 100644
              let source_root = backup.join(scope);
              if !source_root.is_dir() {
                  continue;
-@@ -426,6 +465,9 @@ mod windows {
+@@ -426,6 +485,9 @@ mod windows {
                          continue;
                      }
                  },
@@ -310,7 +336,7 @@ index ebda9ab..c09e67f 100644
                  _ => unreachable!(),
              };
              let mut queue = VecDeque::from([source_root.clone()]);
-@@ -578,6 +620,11 @@ mod windows {
+@@ -578,6 +640,11 @@ mod windows {
                      false,
                  ));
              }
@@ -322,7 +348,7 @@ index ebda9ab..c09e67f 100644
              result.push(DecodedFile {
                  scope: file.scope.clone(),
                  relative_path: file.relative_path.clone(),
-@@ -622,8 +669,10 @@ mod windows {
+@@ -622,8 +689,11 @@ mod windows {
          Ok(())
      }
  
@@ -330,12 +356,13 @@ index ebda9ab..c09e67f 100644
 -        if !is_process_running("steam.exe") {
 +    fn discover_steam_context(
 +        require_steam_running: bool,
++        require_existing_cs2_settings: bool,
 +    ) -> Result<SteamContext, UserFacingError> {
 +        if require_steam_running && !steam_process_running() {
              return Err(UserFacingError::new(
                  "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2.",
                  true,
-@@ -631,12 +680,15 @@ mod windows {
+@@ -631,25 +701,34 @@ mod windows {
          }
          let steam_root = find_steam_root()
              .ok_or_else(|| UserFacingError::new("Steam installation could not be found.", true))?;
@@ -357,7 +384,11 @@ index ebda9ab..c09e67f 100644
          let userdata_cfg = steam_root
              .join("userdata")
              .join(account_id.to_string())
-@@ -647,9 +699,15 @@ mod windows {
+             .join(APP_ID)
+             .join("local")
+             .join("cfg");
+-        if !userdata_cfg.is_dir() {
++        if require_existing_cs2_settings && !userdata_cfg.is_dir() {
              return Err(UserFacingError::new("CS2 settings were not found for the active Steam user. Launch CS2 once, close it, and retry.", true));
          }
          let install_cfg = find_install_cfg(&steam_root);
@@ -373,7 +404,7 @@ index ebda9ab..c09e67f 100644
          })
      }
  
-@@ -664,6 +722,21 @@ mod windows {
+@@ -664,6 +743,21 @@ mod windows {
          }
      }
  
@@ -395,7 +426,7 @@ index ebda9ab..c09e67f 100644
      fn find_steam_root() -> Option<PathBuf> {
          let hkcu = RegKey::predef(HKEY_CURRENT_USER);
          if let Ok(key) = hkcu.open_subkey("Software\\Valve\\Steam") {
-@@ -693,6 +766,26 @@ mod windows {
+@@ -693,6 +787,26 @@ mod windows {
              .or_else(|| steam.get_value("ActiveUser").ok())
      }
  
@@ -422,7 +453,7 @@ index ebda9ab..c09e67f 100644
      fn find_install_cfg(steam_root: &Path) -> Option<PathBuf> {
          let mut libraries = vec![steam_root.to_path_buf()];
          let library_file = steam_root.join("steamapps").join("libraryfolders.vdf");
-@@ -761,6 +854,219 @@ mod windows {
+@@ -761,6 +875,274 @@ mod windows {
          result
      }
  
@@ -551,9 +582,36 @@ index ebda9ab..c09e67f 100644
 +                index,
 +                format!("{block_indent}\t\"LaunchOptions\"\t\t\"{escaped}\""),
 +            );
++        } else if let Some((index, indent)) =
++            locate_vdf_block_close(text, &["Software", "Valve", "Steam", "apps"])
++        {
++            lines.splice(
++                index..index,
++                [
++                    format!("{indent}\t\"730\""),
++                    format!("{indent}\t{{"),
++                    format!("{indent}\t\t\"LaunchOptions\"\t\t\"{escaped}\""),
++                    format!("{indent}\t}}"),
++                ],
++            );
++        } else if let Some((index, indent)) =
++            locate_vdf_block_close(text, &["Software", "Valve", "Steam"])
++        {
++            lines.splice(
++                index..index,
++                [
++                    format!("{indent}\t\"apps\""),
++                    format!("{indent}\t{{"),
++                    format!("{indent}\t\t\"730\""),
++                    format!("{indent}\t\t{{"),
++                    format!("{indent}\t\t\t\"LaunchOptions\"\t\t\"{escaped}\""),
++                    format!("{indent}\t\t}}"),
++                    format!("{indent}\t}}"),
++                ],
++            );
 +        } else {
 +            return Err(UserFacingError::new(
-+                "В локальных настройках Steam не найден раздел CS2. Запустите CS2 один раз и повторите.",
++                "В локальных настройках Steam не найден базовый раздел Steam; игровые файлы применены без параметров запуска.",
 +                true,
 +            ));
 +        }
@@ -608,6 +666,34 @@ index ebda9ab..c09e67f 100644
 +        (launch_line, block_close, block_indent)
 +    }
 +
++    fn locate_vdf_block_close(text: &str, expected: &[&str]) -> Option<(usize, String)> {
++        let mut stack = Vec::<String>::new();
++        let mut pending = None::<String>;
++        for (index, line) in text.lines().enumerate() {
++            let tokens = quoted_tokens(line);
++            if tokens.len() == 1 {
++                pending = Some(tokens[0].clone());
++            }
++            let (opens, closes) = unquoted_braces(line);
++            for _ in 0..opens {
++                if let Some(key) = pending.take() {
++                    stack.push(key);
++                }
++            }
++            for _ in 0..closes {
++                if path_ends_with(&stack, expected) {
++                    let indent = line
++                        .chars()
++                        .take_while(|character| character.is_whitespace())
++                        .collect();
++                    return Some((index, indent));
++                }
++                stack.pop();
++            }
++        }
++        None
++    }
++
 +    fn path_ends_with(stack: &[String], expected: &[&str]) -> bool {
 +        stack.len() >= expected.len()
 +            && stack[stack.len() - expected.len()..]
@@ -642,7 +728,7 @@ index ebda9ab..c09e67f 100644
      fn capture_userdata_cfg_files(
          root: &Path,
          files: &mut Vec<Cs2ConfigFile>,
-@@ -951,6 +1257,88 @@ mod windows {
+@@ -951,6 +1333,88 @@ mod windows {
          Ok((output.into_bytes(), removed))
      }
  
@@ -731,7 +817,7 @@ index ebda9ab..c09e67f 100644
      fn sensitive_line(line: &str) -> bool {
          let value = line.trim().to_ascii_lowercase();
          [
-@@ -1032,6 +1420,7 @@ mod windows {
+@@ -1032,6 +1496,7 @@ mod windows {
          let allowed = match scope {
              "userdata" => core || (cfg && relative.components().count() == 1),
              "install" => cfg,
@@ -739,7 +825,7 @@ index ebda9ab..c09e67f 100644
              _ => false,
          };
          if allowed {
-@@ -1146,6 +1535,63 @@ mod windows {
+@@ -1146,6 +1611,83 @@ mod windows {
              assert_eq!(removed, 1);
              assert!(String::from_utf8(video).unwrap().contains("defaultres"));
          }
@@ -786,6 +872,26 @@ index ebda9ab..c09e67f 100644
 +        }
 +
 +        #[test]
++        fn creates_cs2_launch_options_block_before_first_game_launch() {
++            let input = "\"Software\"\n{\n\t\"Valve\"\n\t{\n\t\t\"Steam\"\n\t\t{\n\t\t\t\"apps\"\n\t\t\t{\n\t\t\t}\n\t\t}\n\t}\n}\n";
++            let updated = set_launch_options(input, "-novid -console").unwrap();
++            assert_eq!(
++                find_launch_options(&updated).as_deref(),
++                Some("-novid -console")
++            );
++            assert!(updated.contains("\"730\""));
++        }
++
++        #[test]
++        fn creates_apps_and_cs2_blocks_for_a_fresh_steam_profile() {
++            let input = "\"Software\"\n{\n\t\"Valve\"\n\t{\n\t\t\"Steam\"\n\t\t{\n\t\t}\n\t}\n}\n";
++            let updated = set_launch_options(input, "-console").unwrap();
++            assert_eq!(find_launch_options(&updated).as_deref(), Some("-console"));
++            assert!(updated.contains("\"apps\""));
++            assert!(updated.contains("\"730\""));
++        }
++
++        #[test]
 +        fn blocks_sensitive_launch_options() {
 +            assert!(validate_launch_options("-novid -console").is_ok());
 +            assert!(validate_launch_options("+connect 10.0.0.1 +password secret").is_err());
@@ -803,7 +909,7 @@ index ebda9ab..c09e67f 100644
      }
  }
  
-@@ -1182,6 +1628,7 @@ mod tests {
+@@ -1182,6 +1724,7 @@ mod tests {
              total_bytes: 0,
              core_files_found: vec![],
              optional_files_missing: vec![],
