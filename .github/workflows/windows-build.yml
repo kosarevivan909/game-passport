@@ -6,10 +6,10 @@ on:
       release_type:
         description: Build type
         required: true
-        default: field-test
+        default: release-candidate
         type: choice
         options:
-          - field-test
+          - release-candidate
           - production
   push:
     tags: ["v*"]
@@ -22,6 +22,8 @@ jobs:
       contents: write
     env:
       GAME_PASSPORT_BUILD: ${{ github.sha }}
+      GAME_PASSPORT_LICENSE_PUBLIC_KEY_SPKI_B64: ${{ secrets.GAME_PASSPORT_LICENSE_PUBLIC_KEY_SPKI_B64 }}
+      GAME_PASSPORT_LICENSE_SIGNING_KEY_ID: ${{ secrets.GAME_PASSPORT_LICENSE_SIGNING_KEY_ID }}
     steps:
       - uses: actions/checkout@v4
       - name: Apply staged Game Passport update
@@ -39,12 +41,13 @@ jobs:
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
       - run: pnpm install --frozen-lockfile
-      - name: Validate production cloud configuration
-        if: github.event_name != 'workflow_dispatch' || inputs.release_type == 'production'
+      - name: Validate production cloud, licensing and code-signing configuration
         shell: pwsh
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_URL) -or
               [string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_ANON_KEY) -or
@@ -52,9 +55,22 @@ jobs:
               $env:VITE_SUPABASE_ANON_KEY.Contains("YOUR_PUBLIC_ANON_KEY")) {
             throw "Production build stopped: add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as GitHub Actions repository secrets."
           }
+          if ([string]::IsNullOrWhiteSpace($env:GAME_PASSPORT_LICENSE_PUBLIC_KEY_SPKI_B64) -or
+              [string]::IsNullOrWhiteSpace($env:GAME_PASSPORT_LICENSE_SIGNING_KEY_ID)) {
+            throw "Production build stopped: add the pinned license public key and signing key id."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_BASE64) -or
+              [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+            throw "Production build stopped: add the Windows Authenticode PFX and password."
+          }
       - name: Frontend adapter and Supabase payload tests
         run: pnpm test
       - name: TypeScript and production frontend build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DEMO_MODE: "false"
+          VITE_FIELD_TEST_MODE: "false"
         run: pnpm build
       - name: Rust formatting
         shell: pwsh
@@ -63,15 +79,43 @@ jobs:
           cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
       - name: Windows Rust, NVAPI bridge and adapter tests (CS2, Display, NVIDIA, Mouse, PUBG)
         run: cargo test --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib
+      - name: Import Authenticode certificate and configure Tauri signing
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP "game-passport-signing.pfx"
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          if (-not $certificate) { throw "Could not import the Authenticode certificate." }
+          $config = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
+          $config.bundle.windows | Add-Member -NotePropertyName certificateThumbprint -NotePropertyValue $certificate.Thumbprint -Force
+          $config.bundle.windows | Add-Member -NotePropertyName digestAlgorithm -NotePropertyValue "sha256" -Force
+          $config.bundle.windows | Add-Member -NotePropertyName timestampUrl -NotePropertyValue "http://timestamp.digicert.com" -Force
+          $config | ConvertTo-Json -Depth 20 | Set-Content "src-tauri/tauri.conf.json" -Encoding utf8
+          "GAME_PASSPORT_CERTIFICATE_PATH=$certificatePath" | Out-File -FilePath $env:GITHUB_ENV -Append
       - name: Build real MSI and NSIS installers
         uses: tauri-apps/tauri-action@v0
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_DEMO_MODE: "false"
-          VITE_FIELD_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type == 'field-test' }}
+          VITE_FIELD_TEST_MODE: "false"
         with:
           args: --target x86_64-pc-windows-msvc
+      - name: Verify Authenticode signatures
+        shell: pwsh
+        run: |
+          $signTool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
+          if (-not $signTool) { throw "signtool.exe was not found." }
+          $signedFiles = @(Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/game-passport.exe") + @(Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe") + @(Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi")
+          foreach ($signedFile in $signedFiles) {
+            & $signTool.FullName verify /pa /all $signedFile.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Authenticode verification failed for $($signedFile.Name)." }
+          }
+          Remove-Item $env:GAME_PASSPORT_CERTIFICATE_PATH -Force
       - name: Verify and stage Windows installers
         shell: pwsh
         run: |
@@ -89,23 +133,24 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           path: windows-artifacts/*
-      - name: Publish field-test installers as a private prerelease
-        if: github.event_name == 'workflow_dispatch' && inputs.release_type == 'field-test'
+      - name: Publish licensed release-candidate installers
+        if: github.event_name == 'workflow_dispatch' && inputs.release_type == 'release-candidate'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "field-test-${{ github.run_number }}" "windows-artifacts/*" `
-            --title "Game Passport v0.6.3 RC — Русская сборка #${{ github.run_number }}" `
-            --notes "Русская тестовая сборка для проверки в компьютерном клубе. Профили хранятся локально на этом ПК; реальные игровые и аппаратные Windows-адаптеры включены. Для обычной установки скачайте файл setup.exe. Контрольные суммы SHA-256 приложены." `
+          gh release create "licensed-rc-${{ github.run_number }}" "windows-artifacts/*" `
+            --title "Game Passport v0.8.0 RC — Защищённый Apply #${{ github.run_number }}" `
+            --notes "Облачная Windows-сборка с Apply Lock Mode, аварийным rollback/recovery, понятным подтверждением email, восстановлением пароля и onboarding. Установщики подписаны Authenticode; SHA-256 приложены." `
             --prerelease
-      - name: Publish cloud-test installers as a private prerelease
-        if: github.event_name == 'workflow_dispatch' && inputs.release_type == 'production'
+      - name: Publish production installers
+        if: (github.event_name == 'workflow_dispatch' && inputs.release_type == 'production') || startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "cloud-test-${{ github.run_number }}" "windows-artifacts/*" `
-            --title "Game Passport v0.6.3 RC — Облачная сборка #${{ github.run_number }}" `
-            --notes "Облачная тестовая сборка для компьютерного клуба. Добавлен перенос публично доступных глобальных и игровых 3D-параметров NVIDIA, output color, scaling и фактической desktop gamma curve. Исправлены exclusive fullscreen, сохранение всей графики CS2, параметры запуска и повторная проверка после запуска Steam. Для установки скачайте setup.exe. Контрольные суммы SHA-256 приложены." `
-            --prerelease
+          $releaseTag = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF_NAME } else { "v0.8.0" }
+          gh release create $releaseTag "windows-artifacts/*" `
+            --title "Game Passport v0.8.0 — Production #${{ github.run_number }}" `
+            --notes "Production Windows-сборка с Apply Lock Mode, crash recovery, email confirmation, password recovery и onboarding. Установщики подписаны Authenticode; SHA-256 приложены." `
+            --latest
