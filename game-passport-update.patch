@@ -1,5 +1,5 @@
 diff --git a/.env.example b/.env.example
-index f9293d7d047422a60ab2bdabbd9273e7c0ddee31..38424f938f922ebdda2d3aa1e0657db5a76d859e 100644
+index f9293d7..38424f9 100644
 --- a/.env.example
 +++ b/.env.example
 @@ -2,5 +2,5 @@ VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
@@ -10,7 +10,7 @@ index f9293d7d047422a60ab2bdabbd9273e7c0ddee31..38424f938f922ebdda2d3aa1e0657db5
 +# Legacy switch. Real Windows adapters are intentionally blocked in this mode.
  VITE_FIELD_TEST_MODE=false
 diff --git a/README.md b/README.md
-index c998d188f6bd07ad5e4a13c1cf21f3fac83355b0..e2756644340d5ac3fb591bbb236da2f39c04dee5 100644
+index c998d18..e275664 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,14 +1,14 @@
@@ -80,7 +80,7 @@ index c998d188f6bd07ad5e4a13c1cf21f3fac83355b0..e2756644340d5ac3fb591bbb236da2f3
 +Технические детали: [Security & Licensing](docs/SECURITY_AND_LICENSING_RU.md), [Windows RC](docs/WINDOWS_RC.md), [CS2](docs/CS2_ADAPTER.md), [PUBG](docs/PUBG_ADAPTER.md), [Display/NVIDIA](docs/DISPLAY_NVIDIA_ADAPTERS.md), [Mouse](docs/MOUSE_PASSPORT.md).
 diff --git a/docs/APPLY_LOCK_RU.md b/docs/APPLY_LOCK_RU.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..64859c5f915a22c9c063a64a8bbdb046d200b0f6
+index 0000000..64859c5
 --- /dev/null
 +++ b/docs/APPLY_LOCK_RU.md
 @@ -0,0 +1,13 @@
@@ -99,13 +99,13 @@ index 0000000000000000000000000000000000000000..64859c5f915a22c9c063a64a8bbdb046
 +Фактическую невозможность взаимодействия с другими окнами, работу emergency combo и поведение при kill процесса обязательно проверять на Windows-ПК: macOS-сборка может проверить код и Windows target compilation, но не выполнить Windows hooks.
 diff --git a/docs/AUTH_FLOWS_RU.md b/docs/AUTH_FLOWS_RU.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..8fc95d3bf6b862440531713324928b2fc2848b92
+index 0000000..b84b1bf
 --- /dev/null
 +++ b/docs/AUTH_FLOWS_RU.md
-@@ -0,0 +1,31 @@
+@@ -0,0 +1,35 @@
 +# Email confirmation и password recovery
 +
-+Game Passport v0.8.0 использует публичную Supabase Edge Function `auth-callback` как понятную страницу результата. Deep link в Windows намеренно не используется: подтверждение и смена пароля работают в обычном браузере и не зависят от регистрации URL-протокола.
++Game Passport v0.8.0 использует публичную Supabase Edge Function `auth-callback` и статическую страницу `docs/auth-callback.html` в GitHub Pages. Deep link в Windows намеренно не используется: подтверждение и смена пароля работают в обычном браузере и не зависят от регистрации URL-протокола. Edge Function выполняет безопасный redirect и серверную смену пароля, а HTML отдаёт GitHub Pages, потому что hosted Supabase без custom domain принудительно заменяет `text/html` на `text/plain` для GET-запросов.
 +
 +## Одноразовая настройка Supabase
 +
@@ -113,13 +113,17 @@ index 0000000000000000000000000000000000000000..8fc95d3bf6b862440531713324928b2f
 +
 +   `supabase functions deploy auth-callback --no-verify-jwt`
 +
-+2. В Supabase Dashboard открыть `Authentication → URL Configuration → Redirect URLs`.
-+3. Добавить точный адрес проекта:
++2. В GitHub включить Pages для ветки релиза и каталога `/docs`. Проверить адрес:
++
++   `https://kosarevivan909.github.io/game-passport/auth-callback.html?flow=signup`
++
++3. В Supabase Dashboard открыть `Authentication → URL Configuration → Redirect URLs`.
++4. Добавить точный адрес проекта:
 +
 +   `https://<PROJECT_REF>.supabase.co/functions/v1/auth-callback*`
 +
-+4. В `Authentication → Email Templates` сохранить стандартные шаблоны Supabase так, чтобы ссылка использовала `{{ .ConfirmationURL }}`. И signup, и recovery передают callback через `redirect_to` автоматически.
-+5. Убедиться, что `SUPABASE_URL` и `SUPABASE_ANON_KEY` доступны Edge Functions. Это стандартные системные переменные Supabase; service-role key функции не нужен.
++5. В `Authentication → Email Templates` сохранить стандартные шаблоны Supabase так, чтобы ссылка использовала `{{ .ConfirmationURL }}`. И signup, и recovery передают callback через `redirect_to` автоматически.
++6. Убедиться, что `SUPABASE_URL` и `SUPABASE_ANON_KEY` доступны Edge Functions. Это стандартные системные переменные Supabase; service-role key функции не нужен и в GitHub Pages не публикуется.
 +
 +## Поведение
 +
@@ -135,7 +139,7 @@ index 0000000000000000000000000000000000000000..8fc95d3bf6b862440531713324928b2f
 +
 +Используйте отдельный тестовый email и проверьте реальную доставку: signup → письмо → confirmation → вход; resend; forgot password → письмо → новый пароль → вход. Эти сценарии зависят от настроек SMTP, redirect allowlist и опубликованной Edge Function, поэтому локальные unit-тесты не подтверждают доставку писем.
 diff --git a/docs/CLUB_QUICK_START_RU.md b/docs/CLUB_QUICK_START_RU.md
-index a83a4a4e3d5bad4e420e0ac63223a0bd72c42b43..c41595a524eabe7a2be7f2e762451711b1096909 100644
+index a83a4a4..c41595a 100644
 --- a/docs/CLUB_QUICK_START_RU.md
 +++ b/docs/CLUB_QUICK_START_RU.md
 @@ -2,7 +2,7 @@
@@ -156,7 +160,7 @@ index a83a4a4e3d5bad4e420e0ac63223a0bd72c42b43..c41595a524eabe7a2be7f2e762451711
 +- Цветовые настройки в меню самого монитора не переносятся. Game Passport переносит публично доступные NVIDIA output color и фактическую desktop gamma curve, но отдельные ползунки Digital Vibrance/Hue и пользовательский underscan публичным NVAPI не предоставлены и показываются как Warning.
 +- Публикуемая сборка всегда использует Supabase и лицензию устройства. Нелицензированный локальный field-test режим отключён.
 diff --git a/docs/CS2_ADAPTER.md b/docs/CS2_ADAPTER.md
-index ce58938cdd30be5a282a7b986006608b79d06b70..d9baf41d922c8faf0e138a704571630e4be6fb78 100644
+index ce58938..d9baf41 100644
 --- a/docs/CS2_ADAPTER.md
 +++ b/docs/CS2_ADAPTER.md
 @@ -1,6 +1,6 @@
@@ -240,7 +244,7 @@ index ce58938cdd30be5a282a7b986006608b79d06b70..d9baf41d922c8faf0e138a704571630e
  - workshop content, карты, demos, screenshots;
  - cloud metadata и файлы `*_lastclouded`;
 diff --git a/docs/DISPLAY_NVIDIA_ADAPTERS.md b/docs/DISPLAY_NVIDIA_ADAPTERS.md
-index aa24ae3177da9374466b37f4fb793a3c9c27ada2..0e7a449aff6bc3a535a9ef8b5efe47d723cd5987 100644
+index aa24ae3..0e7a449 100644
 --- a/docs/DISPLAY_NVIDIA_ADAPTERS.md
 +++ b/docs/DISPLAY_NVIDIA_ADAPTERS.md
 @@ -1,6 +1,6 @@
@@ -313,7 +317,7 @@ index aa24ae3177da9374466b37f4fb793a3c9c27ada2..0e7a449aff6bc3a535a9ef8b5efe47d7
  - создание NSIS/MSI и runtime loading `nvapi64.dll` на целевой машине.
 diff --git a/docs/SECURITY_AND_LICENSING_RU.md b/docs/SECURITY_AND_LICENSING_RU.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..e3836e21a9fe5823151e60a04bcff7637eb883b2
+index 0000000..e3836e2
 --- /dev/null
 +++ b/docs/SECURITY_AND_LICENSING_RU.md
 @@ -0,0 +1,120 @@
@@ -438,7 +442,7 @@ index 0000000000000000000000000000000000000000..e3836e21a9fe5823151e60a04bcff763
 +- Автообновление пока отключено. Устанавливайте только Authenticode-подписанные релизы с совпадающим SHA-256; включать Tauri Updater без подписанного manifest и отдельного update key запрещено.
 +- Закрытый ключ ES256 нужно резервировать офлайн. При ротации сначала выпустите приложение с новым публичным key id, затем переключайте Edge signing secret.
 diff --git a/docs/WINDOWS_BUILD_HANDOFF_RU.md b/docs/WINDOWS_BUILD_HANDOFF_RU.md
-index f1930777fdd631d51779e4c0c508b160c2fca5f4..0c3a1ea4cfadcd4a941386e1b885cf7169b9dde0 100644
+index f193077..0c3a1ea 100644
 --- a/docs/WINDOWS_BUILD_HANDOFF_RU.md
 +++ b/docs/WINDOWS_BUILD_HANDOFF_RU.md
 @@ -1,6 +1,6 @@
@@ -473,7 +477,7 @@ index f1930777fdd631d51779e4c0c508b160c2fca5f4..0c3a1ea4cfadcd4a941386e1b885cf71
 +
 +Полная Tauri-сборка, Authenticode-проверка и создание NSIS/MSI выполняются Windows workflow. Окончательно на чистом Windows-ПК остаётся проверить установку, ярлыки, запуск, активацию, адаптеры с реальным оборудованием, обновление поверх старой версии и удаление приложения.
 diff --git a/docs/WINDOWS_RC.md b/docs/WINDOWS_RC.md
-index be93067f84d075a448ebd4e87e5288605646ac61..efaf022e77f04dc35634071a229a08f5c03ca248 100644
+index be93067..efaf022 100644
 --- a/docs/WINDOWS_RC.md
 +++ b/docs/WINDOWS_RC.md
 @@ -22,7 +22,7 @@ Software Capture/Apply results and user confirmation are intentionally separate.
@@ -491,8 +495,86 @@ index be93067f84d075a448ebd4e87e5288605646ac61..efaf022e77f04dc35634071a229a08f5
  
 -CI must pass 31 frontend tests and 43 Rust tests or their later supersets, production frontend build, Rust formatting, Windows MSVC compilation including `native/nvapi_bridge.cpp`, and generation of both NSIS EXE and WiX MSI. The staged artifact includes `SHA256SUMS.txt`. Final installer PASS requires a clean-PC install, launch, shortcut, Initial Setup, field workflow and uninstall smoke test on Windows.
 +CI must pass all frontend and Rust tests, production frontend build, Rust formatting, Windows MSVC compilation including `native/nvapi_bridge.cpp`, Authenticode verification, and generation of both NSIS EXE and WiX MSI. The staged artifact includes `SHA256SUMS.txt`. Final installer PASS requires a clean-PC install, activation, launch, shortcut, Initial Setup, field workflow and uninstall smoke test on Windows.
+diff --git a/docs/auth-callback.html b/docs/auth-callback.html
+new file mode 100644
+index 0000000..9364e9b
+--- /dev/null
++++ b/docs/auth-callback.html
+@@ -0,0 +1,72 @@
++<!doctype html>
++<html lang="ru">
++<head>
++  <meta charset="utf-8">
++  <meta name="viewport" content="width=device-width,initial-scale=1">
++  <meta name="referrer" content="no-referrer">
++  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src https://pdzhrlwbkkcimyvfuwgk.supabase.co; form-action 'none'; base-uri 'none'">
++  <title>Game Passport</title>
++  <style>
++    :root{color-scheme:dark;font-family:Inter,Segoe UI,sans-serif;background:#0a0d12;color:#f5f7fa}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top,#182238,#0a0d12 55%)}main{width:min(520px,100%);background:#111722;border:1px solid #283247;border-radius:22px;padding:36px;box-shadow:0 24px 70px #0008}b{display:block;color:#65e0a3;letter-spacing:.12em;font-size:12px;margin-bottom:12px}h1{font-size:29px;margin:0 0 12px}p{color:#aeb8ca;line-height:1.55}form{display:grid;gap:14px;margin-top:24px}label{display:grid;gap:8px;color:#dbe2ed;font-weight:600}input{font:inherit;padding:13px;border-radius:10px;border:1px solid #34415a;background:#0c111a;color:white}button{font:inherit;font-weight:700;padding:13px 16px;border:0;border-radius:10px;background:#ff9b45;color:#17100a;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.error{color:#ff9b9b}.ok{color:#65e0a3}
++  </style>
++</head>
++<body>
++  <main id="app" aria-live="polite"><b>GAME PASSPORT</b><h1>Проверяем ссылку…</h1><p>Подождите несколько секунд.</p></main>
++  <script>
++    (() => {
++      const endpoint = "https://pdzhrlwbkkcimyvfuwgk.supabase.co/functions/v1/auth-callback";
++      const app = document.getElementById("app");
++      const flow = new URLSearchParams(location.search).get("flow") === "recovery" ? "recovery" : "signup";
++      const fragment = new URLSearchParams(location.hash.slice(1));
++      const error = fragment.get("error_description") || fragment.get("error");
++      const accessToken = fragment.get("access_token") || "";
++      const tokenType = fragment.get("type") || "";
++      const typeValid = flow === "signup" ? tokenType === "signup" || tokenType === "email" : tokenType === "recovery";
++      history.replaceState(null, "", `${location.pathname}?flow=${flow}`);
++
++      const fail = (title, text) => {
++        app.innerHTML = `<b>GAME PASSPORT</b><h1>${title}</h1><p class="error">${text}</p><p>Вернитесь в Game Passport и запросите новое письмо.</p>`;
++      };
++
++      if (error || !accessToken || !typeValid) {
++        fail(flow === "recovery" ? "Ссылка восстановления недействительна" : "Не удалось подтвердить email", "Ссылка истекла, уже использована, повреждена или относится к другому действию.");
++        return;
++      }
++
++      if (flow === "signup") {
++        app.innerHTML = '<b>GAME PASSPORT</b><h1>Email подтверждён</h1><p class="ok">Можно вернуться в Game Passport и войти в аккаунт.</p>';
++        return;
++      }
++
++      app.innerHTML = '<b>GAME PASSPORT</b><h1>Новый пароль</h1><p>Введите новый пароль для Game Passport.</p><form id="reset"><label>Новый пароль<input id="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><label>Повторите пароль<input id="repeat" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><button>Изменить пароль</button></form><p id="message"></p>';
++      document.getElementById("reset").addEventListener("submit", async (event) => {
++        event.preventDefault();
++        const password = document.getElementById("password").value;
++        const repeat = document.getElementById("repeat").value;
++        const message = document.getElementById("message");
++        const button = event.currentTarget.querySelector("button");
++        if (password !== repeat) {
++          message.className = "error";
++          message.textContent = "Пароли не совпадают.";
++          return;
++        }
++        button.disabled = true;
++        message.textContent = "";
++        try {
++          const response = await fetch(endpoint, {
++            method: "POST",
++            headers: { "content-type": "application/json" },
++            body: JSON.stringify({ accessToken, password }),
++          });
++          if (!response.ok) throw new Error();
++          app.innerHTML = '<b>GAME PASSPORT</b><h1>Пароль изменён</h1><p class="ok">Теперь вы можете вернуться в Game Passport и войти с новым паролем.</p>';
++        } catch {
++          message.className = "error";
++          message.textContent = "Не удалось изменить пароль. Ссылка могла истечь или уже быть использована.";
++          button.disabled = false;
++        }
++      });
++    })();
++  </script>
++</body>
++</html>
 diff --git a/package.json b/package.json
-index 8d90a323ca9a5fe2c3e2d5bbcf8454bb3deaf143..2f20f2cba08edb27810ea112e69d7e38064e972c 100644
+index 8d90a32..2f20f2c 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,7 +1,7 @@
@@ -505,7 +587,7 @@ index 8d90a323ca9a5fe2c3e2d5bbcf8454bb3deaf143..2f20f2cba08edb27810ea112e69d7e38
    "scripts": {
      "dev": "vite",
 diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
-index ee99788ab81969ab0aa14b7a381c0e9e7ed8d87e..c6a584f3a6bad6d937fc911aca42c862793c5545 100644
+index ee99788..c6a584f 100644
 --- a/src-tauri/Cargo.lock
 +++ b/src-tauri/Cargo.lock
 @@ -82,6 +82,12 @@ version = "1.5.1"
@@ -892,7 +974,7 @@ index ee99788ab81969ab0aa14b7a381c0e9e7ed8d87e..c6a584f3a6bad6d937fc911aca42c862
  name = "zerotrie"
  version = "0.2.4"
 diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
-index 76495e5ca68f26b9718cb2d1bb3d1c35feae0121..fa741ff7cb1eef69fdfed059d8f43ebc32f28a00 100644
+index 76495e5..fa741ff 100644
 --- a/src-tauri/Cargo.toml
 +++ b/src-tauri/Cargo.toml
 @@ -1,6 +1,6 @@
@@ -921,7 +1003,7 @@ index 76495e5ca68f26b9718cb2d1bb3d1c35feae0121..fa741ff7cb1eef69fdfed059d8f43ebc
  
  [dev-dependencies]
 diff --git a/src-tauri/native/nvapi_bridge.cpp b/src-tauri/native/nvapi_bridge.cpp
-index bf36aa0861dcae7c2153012605ee1c306ae699e2..5a83a9a30353572429ab27654744a4cd9b8a47ca 100644
+index bf36aa0..5a83a9a 100644
 --- a/src-tauri/native/nvapi_bridge.cpp
 +++ b/src-tauri/native/nvapi_bridge.cpp
 @@ -17,8 +17,20 @@ struct PortableSetting {
@@ -1278,7 +1360,7 @@ index bf36aa0861dcae7c2153012605ee1c306ae699e2..5a83a9a30353572429ab27654744a4cd
 +    return NVAPI_OK;
 +}
 diff --git a/src-tauri/native/nvapi_bridge.h b/src-tauri/native/nvapi_bridge.h
-index 9474e692a9e3f0436838ff153d7a8b806b2b452b..d10b72ee61a84425e2c8ba4b6e0f24561f1064b0 100644
+index 9474e69..d10b72e 100644
 --- a/src-tauri/native/nvapi_bridge.h
 +++ b/src-tauri/native/nvapi_bridge.h
 @@ -3,7 +3,7 @@
@@ -1354,7 +1436,7 @@ index 9474e692a9e3f0436838ff153d7a8b806b2b452b..d10b72ee61a84425e2c8ba4b6e0f2456
  }
 diff --git a/src-tauri/src/apply_lock.rs b/src-tauri/src/apply_lock.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..00e237e45077a731a8561bf2716bdcc1c2603c27
+index 0000000..00e237e
 --- /dev/null
 +++ b/src-tauri/src/apply_lock.rs
 @@ -0,0 +1,438 @@
@@ -1797,7 +1879,7 @@ index 0000000000000000000000000000000000000000..00e237e45077a731a8561bf2716bdcc1
 +    }
 +}
 diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
-index ebda9ab446bd5f6066446fac8659e609a4a19d9a..569f7d3a603563370f26353321567ff6de6d102d 100644
+index ebda9ab..569f7d3 100644
 --- a/src-tauri/src/cs2.rs
 +++ b/src-tauri/src/cs2.rs
 @@ -19,6 +19,10 @@ pub struct Cs2Payload {
@@ -3279,7 +3361,7 @@ index ebda9ab446bd5f6066446fac8659e609a4a19d9a..569f7d3a603563370f26353321567ff6
      }
  }
 diff --git a/src-tauri/src/display.rs b/src-tauri/src/display.rs
-index 4a96bfe5c7e91102f9be66abef7c1ada8047ddf3..70768faacb97f679ef15a6e3909df09737376fa1 100644
+index 4a96bfe..70768fa 100644
 --- a/src-tauri/src/display.rs
 +++ b/src-tauri/src/display.rs
 @@ -74,6 +74,18 @@ impl DisplayCommandResponse {
@@ -3365,7 +3447,7 @@ index 4a96bfe5c7e91102f9be66abef7c1ada8047ddf3..70768faacb97f679ef15a6e3909df097
                      ],
                      retryable: result == "restart_required",
 diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
-index 664e070893ba1f222e38fd22e1a2ee008792f4d0..5ee1f19e01641d47bb2d059aec4c14dfd1bae8bc 100644
+index 664e070..5ee1f19 100644
 --- a/src-tauri/src/lib.rs
 +++ b/src-tauri/src/lib.rs
 @@ -1,11 +1,14 @@
@@ -3685,7 +3767,7 @@ index 664e070893ba1f222e38fd22e1a2ee008792f4d0..5ee1f19e01641d47bb2d059aec4c14df
              save_diagnostic_report
 diff --git a/src-tauri/src/license.rs b/src-tauri/src/license.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..65bb27bcae1ebfcb3fd8bd41fe8a09e3400d95b9
+index 0000000..65bb27b
 --- /dev/null
 +++ b/src-tauri/src/license.rs
 @@ -0,0 +1,812 @@
@@ -4502,7 +4584,7 @@ index 0000000000000000000000000000000000000000..65bb27bcae1ebfcb3fd8bd41fe8a09e3
 +    }
 +}
 diff --git a/src-tauri/src/mouse.rs b/src-tauri/src/mouse.rs
-index 0814d214115b03863ae1d8258df82d5a7b6fd51e..8cec794bb2b5155b24e4d1fe2c133c6843366559 100644
+index 0814d21..8cec794 100644
 --- a/src-tauri/src/mouse.rs
 +++ b/src-tauri/src/mouse.rs
 @@ -159,6 +159,18 @@ impl MouseCommandResponse {
@@ -4525,7 +4607,7 @@ index 0814d214115b03863ae1d8258df82d5a7b6fd51e..8cec794bb2b5155b24e4d1fe2c133c68
      if payload.schema_version != 1 {
          return Err("Unsupported or corrupted Mouse snapshot.".into());
 diff --git a/src-tauri/src/nvidia.rs b/src-tauri/src/nvidia.rs
-index 5e0a924cdc9ba0cbee38d1f008a95da3b2086a5d..6139a1101c332bdc3f6b957cc16404cb9f1d9d6e 100644
+index 5e0a924..6139a11 100644
 --- a/src-tauri/src/nvidia.rs
 +++ b/src-tauri/src/nvidia.rs
 @@ -1,11 +1,23 @@
@@ -5342,7 +5424,7 @@ index 5e0a924cdc9ba0cbee38d1f008a95da3b2086a5d..6139a1101c332bdc3f6b957cc16404cb
      fn accepts_pubg_executable_but_rejects_arbitrary_executables() {
          let mut value = payload();
 diff --git a/src-tauri/src/pubg.rs b/src-tauri/src/pubg.rs
-index 7bc402728e0105989d6fe13d7ed42ef65896f9d8..55ed18383eeebda64feb0d5fb74d5d9280e7b61b 100644
+index 7bc4027..55ed183 100644
 --- a/src-tauri/src/pubg.rs
 +++ b/src-tauri/src/pubg.rs
 @@ -121,6 +121,18 @@ impl PubgCommandResponse {
@@ -5419,7 +5501,7 @@ index 7bc402728e0105989d6fe13d7ed42ef65896f9d8..55ed18383eeebda64feb0d5fb74d5d92
      fn entries_multiset_contains(actual: &[PubgIniEntry], expected: &[PubgIniEntry]) -> bool {
          let count = |items: &[PubgIniEntry]| {
 diff --git a/src-tauri/src/release.rs b/src-tauri/src/release.rs
-index 1f34e65258bd1323ccebd2bd7e066cbe23d95063..2689df9ec046b59f78d0c4f320dd4cdb40f708bc 100644
+index 1f34e65..2689df9 100644
 --- a/src-tauri/src/release.rs
 +++ b/src-tauri/src/release.rs
 @@ -331,12 +331,20 @@ mod windows {
@@ -5454,7 +5536,7 @@ index 1f34e65258bd1323ccebd2bd7e066cbe23d95063..2689df9ec046b59f78d0c4f320dd4cdb
      fn log_limits_are_bounded() {
 diff --git a/src-tauri/src/secure_storage.rs b/src-tauri/src/secure_storage.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..e9bdcd33111ee42b9bd3f62df2809f542950af4f
+index 0000000..e9bdcd3
 --- /dev/null
 +++ b/src-tauri/src/secure_storage.rs
 @@ -0,0 +1,255 @@
@@ -5714,7 +5796,7 @@ index 0000000000000000000000000000000000000000..e9bdcd33111ee42b9bd3f62df2809f54
 +#[cfg(target_os = "windows")]
 +pub use windows::{get, remove, set};
 diff --git a/src-tauri/tauri.conf.json b/src-tauri/tauri.conf.json
-index 3d191e8e5d57b3861f23ed0aaa87551dc2459970..3ad74f45502d7448ccda905a6e94ea40ea791329 100644
+index 3d191e8..3ad74f4 100644
 --- a/src-tauri/tauri.conf.json
 +++ b/src-tauri/tauri.conf.json
 @@ -1,7 +1,7 @@
@@ -5727,7 +5809,7 @@ index 3d191e8e5d57b3861f23ed0aaa87551dc2459970..3ad74f45502d7448ccda905a6e94ea40
    "build": {
      "beforeDevCommand": "pnpm dev",
 diff --git a/src/App.tsx b/src/App.tsx
-index 1080cbb96c7049f31d3c8b35712fec1907812ae3..64d7e2d18d06cee07996b352e794ed28172c157b 100644
+index 1080cbb..64d7e2d 100644
 --- a/src/App.tsx
 +++ b/src/App.tsx
 @@ -4,13 +4,54 @@ import { createServices } from "./infrastructure/createServices";
@@ -5790,7 +5872,7 @@ index 1080cbb96c7049f31d3c8b35712fec1907812ae3..64d7e2d18d06cee07996b352e794ed28
 +  return <Dashboard user={user} services={services} license={license} onSignOut={() => void signOut()} />;
  }
 diff --git a/src/adapters/Cs2Adapter.ts b/src/adapters/Cs2Adapter.ts
-index 668ecabfdfe6f080162d6fbb85253008e0bdbe4d..3cbd4ce3880f562c6e085278b18cc2638ec8eea6 100644
+index 668ecab..3cbd4ce 100644
 --- a/src/adapters/Cs2Adapter.ts
 +++ b/src/adapters/Cs2Adapter.ts
 @@ -51,6 +51,11 @@ export class Cs2Adapter implements SettingsAdapter {
@@ -5806,7 +5888,7 @@ index 668ecabfdfe6f080162d6fbb85253008e0bdbe4d..3cbd4ce3880f562c6e085278b18cc263
      return { adapterId: this.id, label: this.label, state: "unsupported", message: "CS2 settings require the Windows desktop application.", retryable: false };
    }
 diff --git a/src/adapters/Cs2PreflightAdapter.ts b/src/adapters/Cs2PreflightAdapter.ts
-index ef103971b92f632f409a0ad92acf9e2b74a1da73..cbfbae892764c4ebf83957cf1ad6a3b546b50e6d 100644
+index ef10397..cbfbae8 100644
 --- a/src/adapters/Cs2PreflightAdapter.ts
 +++ b/src/adapters/Cs2PreflightAdapter.ts
 @@ -6,7 +6,7 @@ import { isTauriDesktop } from "../services/platform";
@@ -5820,7 +5902,7 @@ index ef103971b92f632f409a0ad92acf9e2b74a1da73..cbfbae892764c4ebf83957cf1ad6a3b5
    supports(profile: GameProfile) { return profile.game === "cs2"; }
 diff --git a/src/adapters/NvidiaDisplayControlsAdapter.ts b/src/adapters/NvidiaDisplayControlsAdapter.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..8565c6b05b04bf4b7cd2daaf76a0fe442b368f69
+index 0000000..8565c6b
 --- /dev/null
 +++ b/src/adapters/NvidiaDisplayControlsAdapter.ts
 @@ -0,0 +1,44 @@
@@ -5869,7 +5951,7 @@ index 0000000000000000000000000000000000000000..8565c6b05b04bf4b7cd2daaf76a0fe44
 +  }
 +}
 diff --git a/src/adapters/registry.ts b/src/adapters/registry.ts
-index 63bbe562b0a8d3dcfd9f0a9ea0312b76c9fc5854..b69db620b3144fd79107d2f936fcf59f5d83d1f8 100644
+index 63bbe56..b69db62 100644
 --- a/src/adapters/registry.ts
 +++ b/src/adapters/registry.ts
 @@ -3,6 +3,7 @@ import { Cs2Adapter } from "./Cs2Adapter";
@@ -5898,7 +5980,7 @@ index 63bbe562b0a8d3dcfd9f0a9ea0312b76c9fc5854..b69db620b3144fd79107d2f936fcf59f
 +export const applyAdapterRegistry = [preflight, pubgPreflight, nvidia, display, nvidiaDisplayControls, mouse, cs2, pubg];
  export const restoreAdapterRegistry = [preflight, pubgPreflight, cs2, pubg, mouse, nvidia, display];
 diff --git a/src/components/AuthScreen.tsx b/src/components/AuthScreen.tsx
-index fb90ae732193a48b8edb240fdd8688f10dc853ac..e2c799678c935b4ef9e0b34aecc68c17be14032c 100644
+index fb90ae7..e2c7996 100644
 --- a/src/components/AuthScreen.tsx
 +++ b/src/components/AuthScreen.tsx
 @@ -1,64 +1,95 @@
@@ -6035,7 +6117,7 @@ index fb90ae732193a48b8edb240fdd8688f10dc853ac..e2c799678c935b4ef9e0b34aecc68c17
 +  return variant === "recovery" ? "Не удалось отправить письмо. Повторите попытку позже." : "Не удалось выполнить вход. Повторите попытку.";
  }
 diff --git a/src/components/Dashboard.tsx b/src/components/Dashboard.tsx
-index 06038120f876edac2b43728a7a453a3a4901118b..fd363a1ddef5da7673c8fb6d2fb48462f2a62cc9 100644
+index 0603812..fd363a1 100644
 --- a/src/components/Dashboard.tsx
 +++ b/src/components/Dashboard.tsx
 @@ -1,5 +1,5 @@
@@ -6132,7 +6214,7 @@ index 06038120f876edac2b43728a7a453a3a4901118b..fd363a1ddef5da7673c8fb6d2fb48462
  
 diff --git a/src/components/DeviceActivationScreen.tsx b/src/components/DeviceActivationScreen.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..d83d2ef44cdcadd9ddd7b371bdd0af8c4a8ac25d
+index 0000000..d83d2ef
 --- /dev/null
 +++ b/src/components/DeviceActivationScreen.tsx
 @@ -0,0 +1,47 @@
@@ -6184,7 +6266,7 @@ index 0000000000000000000000000000000000000000..d83d2ef44cdcadd9ddd7b371bdd0af8c
 +  </main>;
 +}
 diff --git a/src/components/Diagnostics.tsx b/src/components/Diagnostics.tsx
-index 2f03fe62764b646a070bc6691fbefd23695eea86..da64e2de33afc38190e995ec7ce5a4b14c5ed789 100644
+index 2f03fe6..da64e2d 100644
 --- a/src/components/Diagnostics.tsx
 +++ b/src/components/Diagnostics.tsx
 @@ -12,10 +12,11 @@ import { RELEASE_LABEL, type CloudState, type FileCommandResponse, type ReleaseP
@@ -6221,7 +6303,7 @@ index 2f03fe62764b646a070bc6691fbefd23695eea86..da64e2de33afc38190e995ec7ce5a4b1
          {display?.diagnostics ? <><div className="metric-grid"><Metric label="Монитор" value={display.diagnostics.primaryMonitor ?? "Неизвестно"} /><Metric label="Экранов" value={String(display.diagnostics.monitorCount)} /><Metric label="Текущий режим" value={formatMode(display.diagnostics.currentMode)} /><Metric label="Режимов" value={String(display.diagnostics.supportedModes.length)} /></div><div className="mode-list">{groupModes(display.diagnostics.supportedModes).map((entry) => <div key={entry.resolution}><strong>{entry.resolution}</strong><span>{entry.rates.join(" · ")} Гц</span></div>)}</div></> : <p className="validation-message">{display?.message ?? "Считываем настройки экрана Windows…"}</p>}
 diff --git a/src/components/Onboarding.tsx b/src/components/Onboarding.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..2b7172db8a5c55f746db65a0c376891f223cdef7
+index 0000000..2b7172d
 --- /dev/null
 +++ b/src/components/Onboarding.tsx
 @@ -0,0 +1,21 @@
@@ -6247,7 +6329,7 @@ index 0000000000000000000000000000000000000000..2b7172db8a5c55f746db65a0c376891f
 +  return <div className="onboarding-backdrop"><section className="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><div className="onboarding-progress">{steps.map((_, index) => <i className={index <= step ? "active" : ""} key={index} />)}</div><div className="onboarding-icon"><Icon size={34} /></div><p className="eyebrow">ШАГ {step + 1} ИЗ {steps.length}</p><h2 id="onboarding-title">{current.title}</h2><p>{current.text}</p><button className="button primary wide" onClick={() => step < steps.length - 1 ? setStep(step + 1) : onComplete(false)}>{step < steps.length - 1 ? <>Далее <ChevronRight size={18} /></> : <><Check size={18} /> Начать</>}</button></section></div>;
 +}
 diff --git a/src/components/OperationScreen.tsx b/src/components/OperationScreen.tsx
-index 1c235e6154968de5f432115d5913ba0aa4c6f9ea..2da831a64b473e89c9748cfeb47b62e0f6b57393 100644
+index 1c235e6..2da831a 100644
 --- a/src/components/OperationScreen.tsx
 +++ b/src/components/OperationScreen.tsx
 @@ -1,7 +1,9 @@
@@ -6411,7 +6493,7 @@ index 1c235e6154968de5f432115d5913ba0aa4c6f9ea..2da831a64b473e89c9748cfeb47b62e0
        })}</div>
        {done && hasWarning && <div className="unsupported-summary"><ShieldAlert size={19} /><span><strong>Нужна проверка</strong>Некоторые настройки не удалось считать или полностью проверить.</span></div>}
 diff --git a/src/components/ProfileCard.tsx b/src/components/ProfileCard.tsx
-index cfb39ea02ddbb3a9a780ad3ebaef4ccd88dd1d09..52c14e8da2e774541c4d2d711be5b0644e5e3311 100644
+index cfb39ea..52c14e8 100644
 --- a/src/components/ProfileCard.tsx
 +++ b/src/components/ProfileCard.tsx
 @@ -1,17 +1,21 @@
@@ -6438,7 +6520,7 @@ index cfb39ea02ddbb3a9a780ad3ebaef4ccd88dd1d09..52c14e8da2e774541c4d2d711be5b064
    </article>;
  }
 diff --git a/src/components/ProfileModal.tsx b/src/components/ProfileModal.tsx
-index 1155800c2cc5f585f210046bddd253866fd9df6c..0a8b9686e61242d1d769bb0329713cc4ba846656 100644
+index 1155800..0a8b968 100644
 --- a/src/components/ProfileModal.tsx
 +++ b/src/components/ProfileModal.tsx
 @@ -15,7 +15,7 @@ export function ProfileModal({ profile, onClose, onSave }: Props) {
@@ -6476,7 +6558,7 @@ index 1155800c2cc5f585f210046bddd253866fd9df6c..0a8b9686e61242d1d769bb0329713cc4
    </div>;
 diff --git a/src/domain/applyLock.ts b/src/domain/applyLock.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..8d8992827463b5e16de923bdf99f05df4da1db2b
+index 0000000..8d89928
 --- /dev/null
 +++ b/src/domain/applyLock.ts
 @@ -0,0 +1,21 @@
@@ -6503,7 +6585,7 @@ index 0000000000000000000000000000000000000000..8d8992827463b5e16de923bdf99f05df
 +}
 diff --git a/src/domain/auth.ts b/src/domain/auth.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..6df711b6ac8e467598aa6b14ae756737a247d4ee
+index 0000000..6df711b
 --- /dev/null
 +++ b/src/domain/auth.ts
 @@ -0,0 +1,7 @@
@@ -6515,7 +6597,7 @@ index 0000000000000000000000000000000000000000..6df711b6ac8e467598aa6b14ae756737
 +  confirmationRequired: boolean;
 +}
 diff --git a/src/domain/cs2.ts b/src/domain/cs2.ts
-index 171e206617d11553ee5cfa906f673572d5517498..3a7eabb847e2139b6c31c2c0eaeb6477e5476f50 100644
+index 171e206..3a7eabb 100644
 --- a/src/domain/cs2.ts
 +++ b/src/domain/cs2.ts
 @@ -9,12 +9,14 @@ export interface Cs2ConfigFile {
@@ -6536,7 +6618,7 @@ index 171e206617d11553ee5cfa906f673572d5517498..3a7eabb847e2139b6c31c2c0eaeb6477
  export interface Cs2CommandResponse {
 diff --git a/src/domain/license.ts b/src/domain/license.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..813f9853d06c2c92f4a5391e562356a373a64155
+index 0000000..813f985
 --- /dev/null
 +++ b/src/domain/license.ts
 @@ -0,0 +1,39 @@
@@ -6580,7 +6662,7 @@ index 0000000000000000000000000000000000000000..813f9853d06c2c92f4a5391e562356a3
 +  clear(): Promise<void>;
 +}
 diff --git a/src/domain/nvidia.ts b/src/domain/nvidia.ts
-index 80efb4e1d2850378490f4018c7a8183dcdf639d3..bc91964b3cb05966c4af5e856db80a0c22efbc0a 100644
+index 80efb4e..bc91964 100644
 --- a/src/domain/nvidia.ts
 +++ b/src/domain/nvidia.ts
 @@ -2,16 +2,35 @@ export interface NvidiaSetting {
@@ -6621,7 +6703,7 @@ index 80efb4e1d2850378490f4018c7a8183dcdf639d3..bc91964b3cb05966c4af5e856db80a0c
  
  export interface NvidiaDiagnostics {
 diff --git a/src/domain/release.ts b/src/domain/release.ts
-index f674e998c8091f2750866d8a8d3841aeddb86608..429ae94c745d073e1e8ff4a44a8298d0632628d8 100644
+index f674e99..429ae94 100644
 --- a/src/domain/release.ts
 +++ b/src/domain/release.ts
 @@ -1,6 +1,6 @@
@@ -6633,7 +6715,7 @@ index f674e998c8091f2750866d8a8d3841aeddb86608..429ae94c745d073e1e8ff4a44a8298d0
  export interface ReleasePreflight {
    appVersion: string;
 diff --git a/src/infrastructure/createServices.ts b/src/infrastructure/createServices.ts
-index 4938090679d700f47714516cd46445e8eaa9ef02..74ea38fb5f94259043737003f7e203de406ebadd 100644
+index 4938090..74ea38f 100644
 --- a/src/infrastructure/createServices.ts
 +++ b/src/infrastructure/createServices.ts
 @@ -6,19 +6,24 @@ import { createSupabaseClient } from "./supabase/client";
@@ -6667,7 +6749,7 @@ index 4938090679d700f47714516cd46445e8eaa9ef02..74ea38fb5f94259043737003f7e203de
        if (!navigator.onLine) return "offline";
        try {
 diff --git a/src/infrastructure/local/LocalAuthProvider.ts b/src/infrastructure/local/LocalAuthProvider.ts
-index bc73fd94c1570dd0a2134c8aa5d22610c8ff157d..723f68dee48aa987538c381da56e36b4251946a8 100644
+index bc73fd9..723f68d 100644
 --- a/src/infrastructure/local/LocalAuthProvider.ts
 +++ b/src/infrastructure/local/LocalAuthProvider.ts
 @@ -10,7 +10,9 @@ export class LocalAuthProvider implements AuthProvider {
@@ -6683,7 +6765,7 @@ index bc73fd94c1570dd0a2134c8aa5d22610c8ff157d..723f68dee48aa987538c381da56e36b4
    private read(): SessionUser | null { try { return JSON.parse(localStorage.getItem(SESSION_KEY) ?? "null"); } catch { return null; } }
 diff --git a/src/infrastructure/local/LocalDeviceLicenseProvider.ts b/src/infrastructure/local/LocalDeviceLicenseProvider.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e96c3dfe24aa0e874896f23b6ce4331453983b36
+index 0000000..e96c3df
 --- /dev/null
 +++ b/src/infrastructure/local/LocalDeviceLicenseProvider.ts
 @@ -0,0 +1,9 @@
@@ -6697,7 +6779,7 @@ index 0000000000000000000000000000000000000000..e96c3dfe24aa0e874896f23b6ce43314
 +  async clear(): Promise<void> {}
 +}
 diff --git a/src/infrastructure/supabase/SupabaseAuthProvider.ts b/src/infrastructure/supabase/SupabaseAuthProvider.ts
-index 8d185f2c7da312552e37dd1de479d8ec3340a9c8..fdb95f2c0ba1e9d76bef4a1028aad3d327c4bf45 100644
+index 8d185f2..fdb95f2 100644
 --- a/src/infrastructure/supabase/SupabaseAuthProvider.ts
 +++ b/src/infrastructure/supabase/SupabaseAuthProvider.ts
 @@ -5,7 +5,10 @@ import type { SessionUser } from "../../domain/types";
@@ -6737,7 +6819,7 @@ index 8d185f2c7da312552e37dd1de479d8ec3340a9c8..fdb95f2c0ba1e9d76bef4a1028aad3d3
  }
 diff --git a/src/infrastructure/supabase/SupabaseDeviceLicenseProvider.ts b/src/infrastructure/supabase/SupabaseDeviceLicenseProvider.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..3bef9f09aca6a286469a0cab6c79513e47995ab2
+index 0000000..3bef9f0
 --- /dev/null
 +++ b/src/infrastructure/supabase/SupabaseDeviceLicenseProvider.ts
 @@ -0,0 +1,143 @@
@@ -6885,7 +6967,7 @@ index 0000000000000000000000000000000000000000..3bef9f09aca6a286469a0cab6c79513e
 +  }
 +}
 diff --git a/src/infrastructure/supabase/SupabaseProfileRepository.ts b/src/infrastructure/supabase/SupabaseProfileRepository.ts
-index c0d52d269d639a9d8fcd7184c7fa98dc84c5a7e6..8ad85dc444b4d2cf1261bfa7f430d4afa9e3fa25 100644
+index c0d52d2..8ad85dc 100644
 --- a/src/infrastructure/supabase/SupabaseProfileRepository.ts
 +++ b/src/infrastructure/supabase/SupabaseProfileRepository.ts
 @@ -1,18 +1,30 @@
@@ -6965,7 +7047,7 @@ index c0d52d269d639a9d8fcd7184c7fa98dc84c5a7e6..8ad85dc444b4d2cf1261bfa7f430d4af
    }
  }
 diff --git a/src/infrastructure/supabase/client.ts b/src/infrastructure/supabase/client.ts
-index 01a1cf86efd5aa6a6cd3cefd941f83239876b22f..1f52761f4b7b4ae18395d83805c4a09a167d3612 100644
+index 01a1cf8..1f52761 100644
 --- a/src/infrastructure/supabase/client.ts
 +++ b/src/infrastructure/supabase/client.ts
 @@ -1,9 +1,18 @@
@@ -6990,7 +7072,7 @@ index 01a1cf86efd5aa6a6cd3cefd941f83239876b22f..1f52761f4b7b4ae18395d83805c4a09a
 +  });
  }
 diff --git a/src/ports/AuthProvider.ts b/src/ports/AuthProvider.ts
-index bf192f7e4d204e3a53b2e47a02e3c2f5eac2f098..83e9f7a591aa4a1cf1a56e9120fe3822386f1ea6 100644
+index bf192f7..83e9f7a 100644
 --- a/src/ports/AuthProvider.ts
 +++ b/src/ports/AuthProvider.ts
 @@ -1,9 +1,12 @@
@@ -7009,7 +7091,7 @@ index bf192f7e4d204e3a53b2e47a02e3c2f5eac2f098..83e9f7a591aa4a1cf1a56e9120fe3822
  }
 diff --git a/src/services/applyLock.ts b/src/services/applyLock.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..2589c40bf5b2422fd2628f1b0bc8adc7602734b8
+index 0000000..2589c40
 --- /dev/null
 +++ b/src/services/applyLock.ts
 @@ -0,0 +1,33 @@
@@ -7047,7 +7129,7 @@ index 0000000000000000000000000000000000000000..2589c40bf5b2422fd2628f1b0bc8adc7
 +  },
 +};
 diff --git a/src/services/logger.ts b/src/services/logger.ts
-index 89618c687491c1005193b54ce25dfec865fcec07..7b7e2e0990deb5f26c1e290ee94678b4058f67df 100644
+index 89618c6..7b7e2e0 100644
 --- a/src/services/logger.ts
 +++ b/src/services/logger.ts
 @@ -17,8 +17,11 @@ function write(entries: DiagnosticEntry[]) {
@@ -7065,7 +7147,7 @@ index 89618c687491c1005193b54ce25dfec865fcec07..7b7e2e0990deb5f26c1e290ee94678b4
  
  function classify(scope: string) {
 diff --git a/src/services/platform.ts b/src/services/platform.ts
-index 487cc6a05bcca99837133b6f25dabb09e6176b71..0f41bff3d7e099253e206e30bf46b01e6d7dc539 100644
+index 487cc6a..0f41bff 100644
 --- a/src/services/platform.ts
 +++ b/src/services/platform.ts
 @@ -40,7 +40,7 @@ export async function getPubgDiagnostics(): Promise<PubgCommandResponse> {
@@ -7078,7 +7160,7 @@ index 487cc6a05bcca99837133b6f25dabb09e6176b71..0f41bff3d7e099253e206e30bf46b01e
      pubgConfigAvailable: false, logDirectory: null, administratorRequired: false,
      updateChannel: "Manual signed releases (updater not activated)"
 diff --git a/src/services/profileOrchestrator.ts b/src/services/profileOrchestrator.ts
-index b47157e899c6eeae303e634de94a8eb014b58e1f..4ea846a944fb4a09f08091f129f818a17df6873b 100644
+index b47157e..4ea846a 100644
 --- a/src/services/profileOrchestrator.ts
 +++ b/src/services/profileOrchestrator.ts
 @@ -10,8 +10,14 @@ export class ProfileOrchestrator {
@@ -7174,7 +7256,7 @@ index b47157e899c6eeae303e634de94a8eb014b58e1f..4ea846a944fb4a09f08091f129f818a1
 +const isPreflight = (adapter: SettingsAdapter) => adapter.id.includes("preflight");
 diff --git a/src/services/secureStorage.ts b/src/services/secureStorage.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e7e7fe450381f0bde13c7fb0c16d1211f7cedab2
+index 0000000..e7e7fe4
 --- /dev/null
 +++ b/src/services/secureStorage.ts
 @@ -0,0 +1,33 @@
@@ -7212,7 +7294,7 @@ index 0000000000000000000000000000000000000000..e7e7fe450381f0bde13c7fb0c16d1211
 +  },
 +};
 diff --git a/src/styles.css b/src/styles.css
-index 19fcc398a1c074495ef0ee08a44476581a876b46..c10d15924a86e4f85c5383a17bae8c2fcfe6fc74 100644
+index 19fcc39..c10d159 100644
 --- a/src/styles.css
 +++ b/src/styles.css
 @@ -45,6 +45,9 @@ h1, h2, h3, .brand { font-family: "Segoe UI Variable Display", "Segoe UI", sans-
@@ -7329,7 +7411,7 @@ index 19fcc398a1c074495ef0ee08a44476581a876b46..c10d15924a86e4f85c5383a17bae8c2f
    .diagnostic-grid { grid-template-columns: 1fr; }
 diff --git a/src/test/AuthProvider.test.ts b/src/test/AuthProvider.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..be23f6347998dc73e245a2dc12d6332f022b0cd4
+index 0000000..be23f63
 --- /dev/null
 +++ b/src/test/AuthProvider.test.ts
 @@ -0,0 +1,26 @@
@@ -7360,7 +7442,7 @@ index 0000000000000000000000000000000000000000..be23f6347998dc73e245a2dc12d6332f
 +  });
 +});
 diff --git a/src/test/AuthScreen.test.tsx b/src/test/AuthScreen.test.tsx
-index 2004b56febb74ab11ba2358c694477f3db00449a..33e30e43d7f3c559173f5299d1c224c6ec3063ab 100644
+index 2004b56..33e30e4 100644
 --- a/src/test/AuthScreen.test.tsx
 +++ b/src/test/AuthScreen.test.tsx
 @@ -1,6 +1,7 @@
@@ -7439,7 +7521,7 @@ index 2004b56febb74ab11ba2358c694477f3db00449a..33e30e43d7f3c559173f5299d1c224c6
 +  });
  });
 diff --git a/src/test/Cs2Payload.test.ts b/src/test/Cs2Payload.test.ts
-index 76502d1da9bd8480e2fbd6cc767afa7d477ccbe1..f47aacbc83e6be3bc985e5faa83263640e6f9c9c 100644
+index 76502d1..f47aacb 100644
 --- a/src/test/Cs2Payload.test.ts
 +++ b/src/test/Cs2Payload.test.ts
 @@ -3,7 +3,7 @@ import { getCs2Payload, mergeSettingsPatch } from "../domain/cs2";
@@ -7461,7 +7543,7 @@ index 76502d1da9bd8480e2fbd6cc767afa7d477ccbe1..f47aacbc83e6be3bc985e5faa8326364
    it("merges normalized adapter fields without replacing its snapshot", () => {
 diff --git a/src/test/DeviceLicenseProvider.test.ts b/src/test/DeviceLicenseProvider.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e66f842627ef3542a3f08be5a52e6c53c42729dc
+index 0000000..e66f842
 --- /dev/null
 +++ b/src/test/DeviceLicenseProvider.test.ts
 @@ -0,0 +1,139 @@
@@ -7606,7 +7688,7 @@ index 0000000000000000000000000000000000000000..e66f842627ef3542a3f08be5a52e6c53
 +});
 diff --git a/src/test/Onboarding.test.tsx b/src/test/Onboarding.test.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..62fffcd7b32549063fc023b8f86e9b15e09365a9
+index 0000000..62fffcd
 --- /dev/null
 +++ b/src/test/Onboarding.test.tsx
 @@ -0,0 +1,26 @@
@@ -7637,7 +7719,7 @@ index 0000000000000000000000000000000000000000..62fffcd7b32549063fc023b8f86e9b15
 +  });
 +});
 diff --git a/src/test/OperationScreen.test.tsx b/src/test/OperationScreen.test.tsx
-index 6a69868de3b4aa704b5c6c4499d39c7d424925e7..9a56aaf6da91b8074bae6366f18a8721da21cd44 100644
+index 6a69868..9a56aaf 100644
 --- a/src/test/OperationScreen.test.tsx
 +++ b/src/test/OperationScreen.test.tsx
 @@ -1,13 +1,29 @@
@@ -7707,7 +7789,7 @@ index 6a69868de3b4aa704b5c6c4499d39c7d424925e7..9a56aaf6da91b8074bae6366f18a8721
 +  });
  });
 diff --git a/src/test/ProfileOrchestrator.test.ts b/src/test/ProfileOrchestrator.test.ts
-index 6ce41bf7d0c9afa208f3bba4a7b6d260dfb1c02c..de36d5e42b8051890a01123c28396eec75c9e13e 100644
+index 6ce41bf..de36d5e 100644
 --- a/src/test/ProfileOrchestrator.test.ts
 +++ b/src/test/ProfileOrchestrator.test.ts
 @@ -62,4 +62,41 @@ describe("ProfileOrchestrator", () => {
@@ -7753,7 +7835,7 @@ index 6ce41bf7d0c9afa208f3bba4a7b6d260dfb1c02c..de36d5e42b8051890a01123c28396eec
 +  });
  });
 diff --git a/src/test/ReleaseReadiness.test.ts b/src/test/ReleaseReadiness.test.ts
-index 2b8416daeabf20ef66d652fcb0887568d62dc620..d77eb979233cacf6960d6c0c794199ba99e4199b 100644
+index 2b8416d..d77eb97 100644
 --- a/src/test/ReleaseReadiness.test.ts
 +++ b/src/test/ReleaseReadiness.test.ts
 @@ -8,7 +8,7 @@ import { operationHistory } from "../services/operationHistory";
@@ -7774,7 +7856,7 @@ index 2b8416daeabf20ef66d652fcb0887568d62dc620..d77eb979233cacf6960d6c0c794199ba
    });
  });
 diff --git a/src/test/SystemAdapters.test.ts b/src/test/SystemAdapters.test.ts
-index 8fc4e4ea66b140001638e2819c17459a58b37176..7c527b191638480f1117a57655981af98fd00f21 100644
+index 8fc4e4e..7c527b1 100644
 --- a/src/test/SystemAdapters.test.ts
 +++ b/src/test/SystemAdapters.test.ts
 @@ -1,7 +1,9 @@
@@ -7803,7 +7885,7 @@ index 8fc4e4ea66b140001638e2819c17459a58b37176..7c527b191638480f1117a57655981af9
      expect(result.state).toBe("unsupported");
 diff --git a/supabase/config.toml b/supabase/config.toml
 new file mode 100644
-index 0000000000000000000000000000000000000000..cede9d532e13eac737eb340a8340f434a1161607
+index 0000000..cede9d5
 --- /dev/null
 +++ b/supabase/config.toml
 @@ -0,0 +1,2 @@
@@ -7811,7 +7893,7 @@ index 0000000000000000000000000000000000000000..cede9d532e13eac737eb340a8340f434
 +verify_jwt = false
 diff --git a/supabase/functions/auth-callback/deno.json b/supabase/functions/auth-callback/deno.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..f4f7be10d9aadbbd13ab9ca67cffdb8740a398a9
+index 0000000..f4f7be1
 --- /dev/null
 +++ b/supabase/functions/auth-callback/deno.json
 @@ -0,0 +1,4 @@
@@ -7821,42 +7903,89 @@ index 0000000000000000000000000000000000000000..f4f7be10d9aadbbd13ab9ca67cffdb87
 +}
 diff --git a/supabase/functions/auth-callback/index.ts b/supabase/functions/auth-callback/index.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..f02c7614a344b2f7faad09ed4dbf4262a220d723
+index 0000000..cdd403f
 --- /dev/null
 +++ b/supabase/functions/auth-callback/index.ts
-@@ -0,0 +1,29 @@
-+const escapeJson = (value: string) => JSON.stringify(value).replaceAll("<", "\\u003c");
+@@ -0,0 +1,76 @@
++const callbackPage = "https://kosarevivan909.github.io/game-passport/auth-callback.html";
++const callbackOrigin = "https://kosarevivan909.github.io";
 +
-+Deno.serve((request) => {
++const json = (body: unknown, status = 200) =>
++  new Response(JSON.stringify(body), {
++    status,
++    headers: {
++      "content-type": "application/json; charset=utf-8",
++      "cache-control": "no-store, max-age=0",
++      "access-control-allow-origin": callbackOrigin,
++      "access-control-allow-methods": "POST, OPTIONS",
++      "access-control-allow-headers": "content-type",
++      "vary": "origin",
++      "x-content-type-options": "nosniff",
++      "referrer-policy": "no-referrer",
++    },
++  });
++
++Deno.serve(async (request) => {
 +  const requestUrl = new URL(request.url);
-+  const flow = requestUrl.searchParams.get("flow") === "recovery" ? "recovery" : "signup";
-+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? requestUrl.origin;
++
++  if (request.method === "GET") {
++    const flow = requestUrl.searchParams.get("flow") === "recovery" ? "recovery" : "signup";
++    const destination = new URL(callbackPage);
++    destination.searchParams.set("flow", flow);
++    return new Response(null, {
++      status: 302,
++      headers: {
++        location: destination.toString(),
++        "cache-control": "no-store, max-age=0",
++        "referrer-policy": "no-referrer",
++        "x-content-type-options": "nosniff",
++      },
++    });
++  }
++
++  if (request.method === "OPTIONS") {
++    const origin = request.headers.get("origin");
++    if (origin !== callbackOrigin) return json({ error: "origin_not_allowed" }, 403);
++    return json({ ok: true });
++  }
++
++  if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
++  if (request.headers.get("origin") !== callbackOrigin) return json({ error: "origin_not_allowed" }, 403);
++
++  let payload: { accessToken?: unknown; password?: unknown };
++  try {
++    if (Number(request.headers.get("content-length") ?? 0) > 12_000) return json({ error: "payload_too_large" }, 413);
++    payload = await request.json();
++  } catch {
++    return json({ error: "invalid_request" }, 400);
++  }
++
++  const accessToken = typeof payload.accessToken === "string" ? payload.accessToken : "";
++  const password = typeof payload.password === "string" ? payload.password : "";
++  if (accessToken.length < 32 || accessToken.length > 8192 || password.length < 8 || password.length > 128) {
++    return json({ error: "invalid_request" }, 400);
++  }
++
++  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 +  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-+  const nonce = crypto.randomUUID().replaceAll("-", "");
-+  const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Game Passport</title><style nonce="${nonce}">
-+  :root{color-scheme:dark;font-family:Inter,Segoe UI,sans-serif;background:#0a0d12;color:#f5f7fa}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top,#182238,#0a0d12 55%)}main{width:min(520px,100%);background:#111722;border:1px solid #283247;border-radius:22px;padding:36px;box-shadow:0 24px 70px #0008}b{display:block;color:#65e0a3;letter-spacing:.12em;font-size:12px;margin-bottom:12px}h1{font-size:29px;margin:0 0 12px}p{color:#aeb8ca;line-height:1.55}form{display:grid;gap:14px;margin-top:24px}label{display:grid;gap:8px;color:#dbe2ed;font-weight:600}input{font:inherit;padding:13px;border-radius:10px;border:1px solid #34415a;background:#0c111a;color:white}button{font:inherit;font-weight:700;padding:13px 16px;border:0;border-radius:10px;background:#ff9b45;color:#17100a;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.error{color:#ff9b9b}.ok{color:#65e0a3}</style></head><body><main id="app" aria-live="polite"><b>GAME PASSPORT</b><h1>Проверяем ссылку…</h1><p>Подождите несколько секунд.</p></main><script nonce="${nonce}">
-+  const flow=${escapeJson(flow)},base=${escapeJson(supabaseUrl)},key=${escapeJson(anonKey)},app=document.getElementById('app');
-+  const params=new URLSearchParams(location.hash.slice(1)),query=new URLSearchParams(location.search);
-+  const error=params.get('error_description')||params.get('error')||query.get('error_description')||query.get('error');
-+  const token=params.get('access_token'),tokenType=params.get('type');
-+  const typeValid=flow==='signup'?(tokenType==='signup'||tokenType==='email'):tokenType==='recovery';
-+  const fail=(title,text)=>{app.innerHTML='<b>GAME PASSPORT</b><h1>'+title+'</h1><p class="error">'+text+'</p><p>Вернитесь в Game Passport и запросите новое письмо.</p>'};
-+  if(error||!token||!typeValid){fail(flow==='recovery'?'Ссылка восстановления недействительна':'Не удалось подтвердить email','Ссылка истекла, уже использована, повреждена или относится к другому действию.');}
-+  else if(flow==='signup'){app.innerHTML='<b>GAME PASSPORT</b><h1>Email подтверждён</h1><p class="ok">Можно вернуться в Game Passport и войти в аккаунт.</p>';history.replaceState(null,'',location.pathname+'?flow=signup');}
-+  else{app.innerHTML='<b>GAME PASSPORT</b><h1>Новый пароль</h1><p>Введите новый пароль для Game Passport.</p><form id="reset"><label>Новый пароль<input id="password" type="password" minlength="8" autocomplete="new-password" required></label><label>Повторите пароль<input id="repeat" type="password" minlength="8" autocomplete="new-password" required></label><button>Изменить пароль</button></form><p id="message"></p>';document.getElementById('reset').addEventListener('submit',async(e)=>{e.preventDefault();const p=document.getElementById('password').value,r=document.getElementById('repeat').value,m=document.getElementById('message'),button=e.currentTarget.querySelector('button');if(p!==r){m.className='error';m.textContent='Пароли не совпадают.';return}button.disabled=true;m.textContent='';try{const response=await fetch(base+'/auth/v1/user',{method:'PUT',headers:{'apikey':key,'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({password:p})});if(!response.ok)throw new Error();app.innerHTML='<b>GAME PASSPORT</b><h1>Пароль изменён</h1><p class="ok">Теперь вы можете вернуться в Game Passport и войти с новым паролем.</p>';history.replaceState(null,'',location.pathname+'?flow=recovery');}catch(_){m.className='error';m.textContent='Не удалось изменить пароль. Ссылка могла истечь или уже быть использована.';button.disabled=false}})}
-+  </script></body></html>`;
-+  return new Response(html, { headers: {
-+    "content-type": "text/html; charset=utf-8",
-+    "cache-control": "no-store, max-age=0",
-+    "content-security-policy": `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}'; connect-src ${supabaseUrl}; img-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`,
-+    "x-content-type-options": "nosniff",
-+    "x-frame-options": "DENY",
-+    "referrer-policy": "no-referrer",
-+  } });
++  if (!supabaseUrl || !anonKey) return json({ error: "service_unavailable" }, 503);
++
++  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
++    method: "PUT",
++    headers: {
++      apikey: anonKey,
++      authorization: `Bearer ${accessToken}`,
++      "content-type": "application/json",
++    },
++    body: JSON.stringify({ password }),
++  });
++
++  if (!response.ok) return json({ error: "recovery_link_invalid" }, response.status === 429 ? 429 : 400);
++  return json({ ok: true });
 +});
 diff --git a/supabase/functions/device-license/deno.json b/supabase/functions/device-license/deno.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..aee0ec940fcdeddd5fb9aaa0fc8664b07fde5691
+index 0000000..aee0ec9
 --- /dev/null
 +++ b/supabase/functions/device-license/deno.json
 @@ -0,0 +1,5 @@
@@ -7867,7 +7996,7 @@ index 0000000000000000000000000000000000000000..aee0ec940fcdeddd5fb9aaa0fc8664b0
 +}
 diff --git a/supabase/functions/device-license/index.ts b/supabase/functions/device-license/index.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..707934ed42e4dcffecd243f1866fba9dec677ccf
+index 0000000..707934e
 --- /dev/null
 +++ b/supabase/functions/device-license/index.ts
 @@ -0,0 +1,334 @@
@@ -8207,7 +8336,7 @@ index 0000000000000000000000000000000000000000..707934ed42e4dcffecd243f1866fba9d
 +});
 diff --git a/supabase/migrations/202608210001_device_licensing.sql b/supabase/migrations/202608210001_device_licensing.sql
 new file mode 100644
-index 0000000000000000000000000000000000000000..078ea9af9200c890a1cd2c0a029b049f19176e5e
+index 0000000..078ea9a
 --- /dev/null
 +++ b/supabase/migrations/202608210001_device_licensing.sql
 @@ -0,0 +1,434 @@
@@ -8646,7 +8775,7 @@ index 0000000000000000000000000000000000000000..078ea9af9200c890a1cd2c0a029b049f
 +-- service role only on the server; its key must never be included in the app.
 +revoke all on public.device_activation_codes, public.device_challenges from authenticated;
 diff --git a/vite.config.ts b/vite.config.ts
-index 76b5e585b90ce1af2b2251bfbe689bd08d801160..6b3426f358222257e88a7ec73cd34e22c862b85f 100644
+index 76b5e58..6b3426f 100644
 --- a/vite.config.ts
 +++ b/vite.config.ts
 @@ -6,5 +6,5 @@ export default defineConfig({
