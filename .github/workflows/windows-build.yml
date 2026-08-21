@@ -6,9 +6,10 @@ on:
       release_type:
         description: Build type
         required: true
-        default: release-candidate
+        default: club-test
         type: choice
         options:
+          - club-test
           - release-candidate
           - production
   push:
@@ -22,6 +23,7 @@ jobs:
       contents: write
     env:
       GAME_PASSPORT_BUILD: ${{ github.sha }}
+      GAME_PASSPORT_CLUB_TEST_BUILD: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type == 'club-test' }}
       GAME_PASSPORT_LICENSE_PUBLIC_KEY_SPKI_B64: ${{ secrets.GAME_PASSPORT_LICENSE_PUBLIC_KEY_SPKI_B64 }}
       GAME_PASSPORT_LICENSE_SIGNING_KEY_ID: ${{ secrets.GAME_PASSPORT_LICENSE_SIGNING_KEY_ID }}
     steps:
@@ -55,13 +57,15 @@ jobs:
               $env:VITE_SUPABASE_ANON_KEY.Contains("YOUR_PUBLIC_ANON_KEY")) {
             throw "Production build stopped: add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as GitHub Actions repository secrets."
           }
-          if ([string]::IsNullOrWhiteSpace($env:GAME_PASSPORT_LICENSE_PUBLIC_KEY_SPKI_B64) -or
-              [string]::IsNullOrWhiteSpace($env:GAME_PASSPORT_LICENSE_SIGNING_KEY_ID)) {
-            throw "Production build stopped: add the pinned license public key and signing key id."
-          }
-          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_BASE64) -or
-              [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
-            throw "Production build stopped: add the Windows Authenticode PFX and password."
+          if ($env:GAME_PASSPORT_CLUB_TEST_BUILD -ne "true") {
+            if ([string]::IsNullOrWhiteSpace($env:GAME_PASSPORT_LICENSE_PUBLIC_KEY_SPKI_B64) -or
+                [string]::IsNullOrWhiteSpace($env:GAME_PASSPORT_LICENSE_SIGNING_KEY_ID)) {
+              throw "Production build stopped: add the pinned license public key and signing key id."
+            }
+            if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_BASE64) -or
+                [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+              throw "Production build stopped: add the Windows Authenticode PFX and password."
+            }
           }
       - name: Frontend adapter and Supabase payload tests
         run: pnpm test
@@ -71,6 +75,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_DEMO_MODE: "false"
           VITE_FIELD_TEST_MODE: "false"
+          VITE_CLUB_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type == 'club-test' }}
         run: pnpm build
       - name: Rust formatting
         shell: pwsh
@@ -80,6 +85,7 @@ jobs:
       - name: Windows Rust, NVAPI bridge and adapter tests (CS2, Display, NVIDIA, Mouse, PUBG)
         run: cargo test --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib
       - name: Import Authenticode certificate and configure Tauri signing
+        if: env.GAME_PASSPORT_CLUB_TEST_BUILD != 'true'
         shell: pwsh
         env:
           WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
@@ -103,9 +109,11 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_DEMO_MODE: "false"
           VITE_FIELD_TEST_MODE: "false"
+          VITE_CLUB_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type == 'club-test' }}
         with:
           args: --target x86_64-pc-windows-msvc
       - name: Verify Authenticode signatures
+        if: env.GAME_PASSPORT_CLUB_TEST_BUILD != 'true'
         shell: pwsh
         run: |
           $signTool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
@@ -142,6 +150,16 @@ jobs:
           gh release create "licensed-rc-${{ github.run_number }}" "windows-artifacts/*" `
             --title "Game Passport v0.8.0 RC — Защищённый Apply #${{ github.run_number }}" `
             --notes "Облачная Windows-сборка с Apply Lock Mode, аварийным rollback/recovery, понятным подтверждением email, восстановлением пароля и onboarding. Установщики подписаны Authenticode; SHA-256 приложены." `
+            --prerelease
+      - name: Publish unsigned club-test installer
+        if: github.event_name == 'workflow_dispatch' && inputs.release_type == 'club-test'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "club-test-${{ github.run_number }}" "windows-artifacts/*" `
+            --title "Game Passport v0.8.0 — Club Test #${{ github.run_number }}" `
+            --notes "Тестовая Windows-сборка для проверки в компьютерном клубе. Облачные профили и реальные адаптеры CS2, Steam, NVIDIA, дисплея, мыши и PUBG включены. Коммерческая активация компьютеров временно отключена только в этой сборке. Установщик не подписан платным Authenticode-сертификатом, поэтому Windows покажет предупреждение «Неизвестный издатель». SHA-256 приложены." `
             --prerelease
       - name: Publish production installers
         if: (github.event_name == 'workflow_dispatch' && inputs.release_type == 'production') || startsWith(github.ref, 'refs/tags/v')
