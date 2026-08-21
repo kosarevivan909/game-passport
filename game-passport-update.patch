@@ -1,14 +1,17 @@
 diff --git a/.env.example b/.env.example
-index f9293d7..38424f9 100644
+index f9293d7..91723db 100644
 --- a/.env.example
 +++ b/.env.example
-@@ -2,5 +2,5 @@ VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+@@ -2,5 +2,8 @@ VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
  VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
  # Set to false after Supabase is configured. Demo mode never sends data to the cloud.
  VITE_DEMO_MODE=true
 -# Set to true for a local-profile Windows field-test build with real adapters.
 +# Legacy switch. Real Windows adapters are intentionally blocked in this mode.
  VITE_FIELD_TEST_MODE=false
++# Temporary unsigned club-test builds keep Supabase profiles and real adapters,
++# but do not require per-PC commercial activation. Never enable for production.
++VITE_CLUB_TEST_MODE=false
 diff --git a/README.md b/README.md
 index c998d18..e275664 100644
 --- a/README.md
@@ -495,84 +498,6 @@ index be93067..efaf022 100644
  
 -CI must pass 31 frontend tests and 43 Rust tests or their later supersets, production frontend build, Rust formatting, Windows MSVC compilation including `native/nvapi_bridge.cpp`, and generation of both NSIS EXE and WiX MSI. The staged artifact includes `SHA256SUMS.txt`. Final installer PASS requires a clean-PC install, launch, shortcut, Initial Setup, field workflow and uninstall smoke test on Windows.
 +CI must pass all frontend and Rust tests, production frontend build, Rust formatting, Windows MSVC compilation including `native/nvapi_bridge.cpp`, Authenticode verification, and generation of both NSIS EXE and WiX MSI. The staged artifact includes `SHA256SUMS.txt`. Final installer PASS requires a clean-PC install, activation, launch, shortcut, Initial Setup, field workflow and uninstall smoke test on Windows.
-diff --git a/docs/auth-callback.html b/docs/auth-callback.html
-new file mode 100644
-index 0000000..9364e9b
---- /dev/null
-+++ b/docs/auth-callback.html
-@@ -0,0 +1,72 @@
-+<!doctype html>
-+<html lang="ru">
-+<head>
-+  <meta charset="utf-8">
-+  <meta name="viewport" content="width=device-width,initial-scale=1">
-+  <meta name="referrer" content="no-referrer">
-+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src https://pdzhrlwbkkcimyvfuwgk.supabase.co; form-action 'none'; base-uri 'none'">
-+  <title>Game Passport</title>
-+  <style>
-+    :root{color-scheme:dark;font-family:Inter,Segoe UI,sans-serif;background:#0a0d12;color:#f5f7fa}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top,#182238,#0a0d12 55%)}main{width:min(520px,100%);background:#111722;border:1px solid #283247;border-radius:22px;padding:36px;box-shadow:0 24px 70px #0008}b{display:block;color:#65e0a3;letter-spacing:.12em;font-size:12px;margin-bottom:12px}h1{font-size:29px;margin:0 0 12px}p{color:#aeb8ca;line-height:1.55}form{display:grid;gap:14px;margin-top:24px}label{display:grid;gap:8px;color:#dbe2ed;font-weight:600}input{font:inherit;padding:13px;border-radius:10px;border:1px solid #34415a;background:#0c111a;color:white}button{font:inherit;font-weight:700;padding:13px 16px;border:0;border-radius:10px;background:#ff9b45;color:#17100a;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.error{color:#ff9b9b}.ok{color:#65e0a3}
-+  </style>
-+</head>
-+<body>
-+  <main id="app" aria-live="polite"><b>GAME PASSPORT</b><h1>Проверяем ссылку…</h1><p>Подождите несколько секунд.</p></main>
-+  <script>
-+    (() => {
-+      const endpoint = "https://pdzhrlwbkkcimyvfuwgk.supabase.co/functions/v1/auth-callback";
-+      const app = document.getElementById("app");
-+      const flow = new URLSearchParams(location.search).get("flow") === "recovery" ? "recovery" : "signup";
-+      const fragment = new URLSearchParams(location.hash.slice(1));
-+      const error = fragment.get("error_description") || fragment.get("error");
-+      const accessToken = fragment.get("access_token") || "";
-+      const tokenType = fragment.get("type") || "";
-+      const typeValid = flow === "signup" ? tokenType === "signup" || tokenType === "email" : tokenType === "recovery";
-+      history.replaceState(null, "", `${location.pathname}?flow=${flow}`);
-+
-+      const fail = (title, text) => {
-+        app.innerHTML = `<b>GAME PASSPORT</b><h1>${title}</h1><p class="error">${text}</p><p>Вернитесь в Game Passport и запросите новое письмо.</p>`;
-+      };
-+
-+      if (error || !accessToken || !typeValid) {
-+        fail(flow === "recovery" ? "Ссылка восстановления недействительна" : "Не удалось подтвердить email", "Ссылка истекла, уже использована, повреждена или относится к другому действию.");
-+        return;
-+      }
-+
-+      if (flow === "signup") {
-+        app.innerHTML = '<b>GAME PASSPORT</b><h1>Email подтверждён</h1><p class="ok">Можно вернуться в Game Passport и войти в аккаунт.</p>';
-+        return;
-+      }
-+
-+      app.innerHTML = '<b>GAME PASSPORT</b><h1>Новый пароль</h1><p>Введите новый пароль для Game Passport.</p><form id="reset"><label>Новый пароль<input id="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><label>Повторите пароль<input id="repeat" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><button>Изменить пароль</button></form><p id="message"></p>';
-+      document.getElementById("reset").addEventListener("submit", async (event) => {
-+        event.preventDefault();
-+        const password = document.getElementById("password").value;
-+        const repeat = document.getElementById("repeat").value;
-+        const message = document.getElementById("message");
-+        const button = event.currentTarget.querySelector("button");
-+        if (password !== repeat) {
-+          message.className = "error";
-+          message.textContent = "Пароли не совпадают.";
-+          return;
-+        }
-+        button.disabled = true;
-+        message.textContent = "";
-+        try {
-+          const response = await fetch(endpoint, {
-+            method: "POST",
-+            headers: { "content-type": "application/json" },
-+            body: JSON.stringify({ accessToken, password }),
-+          });
-+          if (!response.ok) throw new Error();
-+          app.innerHTML = '<b>GAME PASSPORT</b><h1>Пароль изменён</h1><p class="ok">Теперь вы можете вернуться в Game Passport и войти с новым паролем.</p>';
-+        } catch {
-+          message.className = "error";
-+          message.textContent = "Не удалось изменить пароль. Ссылка могла истечь или уже быть использована.";
-+          button.disabled = false;
-+        }
-+      });
-+    })();
-+  </script>
-+</body>
-+</html>
 diff --git a/package.json b/package.json
 index 8d90a32..2f20f2c 100644
 --- a/package.json
@@ -3767,10 +3692,10 @@ index 664e070..5ee1f19 100644
              save_diagnostic_report
 diff --git a/src-tauri/src/license.rs b/src-tauri/src/license.rs
 new file mode 100644
-index 0000000..65bb27b
+index 0000000..d66f647
 --- /dev/null
 +++ b/src-tauri/src/license.rs
-@@ -0,0 +1,812 @@
+@@ -0,0 +1,815 @@
 +use base64::{engine::general_purpose, Engine as _};
 +use chrono::Utc;
 +use p256::{
@@ -4009,6 +3934,9 @@ index 0000000..65bb27b
 +
 +#[cfg(not(test))]
 +pub fn require_active() -> Result<(), String> {
++    if option_env!("GAME_PASSPORT_CLUB_TEST_BUILD") == Some("true") {
++        return Ok(());
++    }
 +    let current = cached_status();
 +    if matches!(current.state.as_str(), "active" | "offline_grace") {
 +        Ok(())
@@ -6715,16 +6643,17 @@ index f674e99..429ae94 100644
  export interface ReleasePreflight {
    appVersion: string;
 diff --git a/src/infrastructure/createServices.ts b/src/infrastructure/createServices.ts
-index 4938090..74ea38f 100644
+index 4938090..bc7e542 100644
 --- a/src/infrastructure/createServices.ts
 +++ b/src/infrastructure/createServices.ts
-@@ -6,19 +6,24 @@ import { createSupabaseClient } from "./supabase/client";
+@@ -6,19 +6,26 @@ import { createSupabaseClient } from "./supabase/client";
  import { SupabaseAuthProvider } from "./supabase/SupabaseAuthProvider";
  import { SupabaseProfileRepository } from "./supabase/SupabaseProfileRepository";
  import type { CloudState } from "../domain/release";
 +import type { DeviceLicenseProvider } from "../domain/license";
 +import { SupabaseDeviceLicenseProvider } from "./supabase/SupabaseDeviceLicenseProvider";
 +import { LocalDeviceLicenseProvider } from "./local/LocalDeviceLicenseProvider";
++import { ClubTestDeviceLicenseProvider } from "./local/ClubTestDeviceLicenseProvider";
  
  export type AppMode = "demo" | "field-test" | "cloud";
  
@@ -6732,6 +6661,7 @@ index 4938090..74ea38f 100644
 +export interface Services { auth: AuthProvider; profiles: ProfileRepository; license: DeviceLicenseProvider; mode: AppMode; checkCloud: () => Promise<CloudState> }
  
  export function createServices(): Services {
++  const useClubTest = import.meta.env.VITE_CLUB_TEST_MODE === "true";
    const useFieldTest = import.meta.env.VITE_FIELD_TEST_MODE === "true";
 -  const useDemo = import.meta.env.VITE_DEMO_MODE === "true" || !import.meta.env.VITE_SUPABASE_URL;
 -  if (useFieldTest) return { auth: new LocalAuthProvider(), profiles: new LocalProfileRepository(), mode: "field-test", checkCloud: async () => "field-test" };
@@ -6744,10 +6674,29 @@ index 4938090..74ea38f 100644
 +  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
    return {
 -    auth: new SupabaseAuthProvider(client), profiles: new SupabaseProfileRepository(client), mode: "cloud",
-+    auth: new SupabaseAuthProvider(client, supabaseUrl!), profiles: new SupabaseProfileRepository(client), license: new SupabaseDeviceLicenseProvider(client, supabaseUrl!, anonKey!), mode: "cloud",
++    auth: new SupabaseAuthProvider(client, supabaseUrl!), profiles: new SupabaseProfileRepository(client), license: useClubTest ? new ClubTestDeviceLicenseProvider() : new SupabaseDeviceLicenseProvider(client, supabaseUrl!, anonKey!), mode: "cloud",
      checkCloud: async () => {
        if (!navigator.onLine) return "offline";
        try {
+diff --git a/src/infrastructure/local/ClubTestDeviceLicenseProvider.ts b/src/infrastructure/local/ClubTestDeviceLicenseProvider.ts
+new file mode 100644
+index 0000000..fe2657c
+--- /dev/null
++++ b/src/infrastructure/local/ClubTestDeviceLicenseProvider.ts
+@@ -0,0 +1,13 @@
++import type { DeviceLicenseProvider, DeviceLicenseStatus } from "../../domain/license";
++
++const clubTestStatus: DeviceLicenseStatus = {
++  state: "active",
++  message: "Клубная тестовая сборка: реальные Windows-адаптеры включены без активации устройства.",
++  offlineGrace: false,
++};
++
++export class ClubTestDeviceLicenseProvider implements DeviceLicenseProvider {
++  async check(): Promise<DeviceLicenseStatus> { return clubTestStatus; }
++  async activate(): Promise<DeviceLicenseStatus> { return clubTestStatus; }
++  async clear(): Promise<void> {}
++}
 diff --git a/src/infrastructure/local/LocalAuthProvider.ts b/src/infrastructure/local/LocalAuthProvider.ts
 index bc73fd9..723f68d 100644
 --- a/src/infrastructure/local/LocalAuthProvider.ts
