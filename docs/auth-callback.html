@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src https://pdzhrlwbkkcimyvfuwgk.supabase.co; form-action 'none'; base-uri 'none'">
+  <title>Game Passport</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,Segoe UI,sans-serif;background:#0a0d12;color:#f5f7fa}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top,#182238,#0a0d12 55%)}main{width:min(520px,100%);background:#111722;border:1px solid #283247;border-radius:22px;padding:36px;box-shadow:0 24px 70px #0008}b{display:block;color:#65e0a3;letter-spacing:.12em;font-size:12px;margin-bottom:12px}h1{font-size:29px;margin:0 0 12px}p{color:#aeb8ca;line-height:1.55}form{display:grid;gap:14px;margin-top:24px}label{display:grid;gap:8px;color:#dbe2ed;font-weight:600}input{font:inherit;padding:13px;border-radius:10px;border:1px solid #34415a;background:#0c111a;color:white}button{font:inherit;font-weight:700;padding:13px 16px;border:0;border-radius:10px;background:#ff9b45;color:#17100a;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.error{color:#ff9b9b}.ok{color:#65e0a3}
+  </style>
+</head>
+<body>
+  <main id="app" aria-live="polite"><b>GAME PASSPORT</b><h1>Проверяем ссылку…</h1><p>Подождите несколько секунд.</p></main>
+  <script>
+    (() => {
+      const endpoint = "https://pdzhrlwbkkcimyvfuwgk.supabase.co/functions/v1/auth-callback";
+      const app = document.getElementById("app");
+      const flow = new URLSearchParams(location.search).get("flow") === "recovery" ? "recovery" : "signup";
+      const fragment = new URLSearchParams(location.hash.slice(1));
+      const error = fragment.get("error_description") || fragment.get("error");
+      const accessToken = fragment.get("access_token") || "";
+      const tokenType = fragment.get("type") || "";
+      const typeValid = flow === "signup" ? tokenType === "signup" || tokenType === "email" : tokenType === "recovery";
+      history.replaceState(null, "", `${location.pathname}?flow=${flow}`);
+
+      const fail = (title, text) => {
+        app.innerHTML = `<b>GAME PASSPORT</b><h1>${title}</h1><p class="error">${text}</p><p>Вернитесь в Game Passport и запросите новое письмо.</p>`;
+      };
+
+      if (error || !accessToken || !typeValid) {
+        fail(flow === "recovery" ? "Ссылка восстановления недействительна" : "Не удалось подтвердить email", "Ссылка истекла, уже использована, повреждена или относится к другому действию.");
+        return;
+      }
+
+      if (flow === "signup") {
+        app.innerHTML = '<b>GAME PASSPORT</b><h1>Email подтверждён</h1><p class="ok">Можно вернуться в Game Passport и войти в аккаунт.</p>';
+        return;
+      }
+
+      app.innerHTML = '<b>GAME PASSPORT</b><h1>Новый пароль</h1><p>Введите новый пароль для Game Passport.</p><form id="reset"><label>Новый пароль<input id="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><label>Повторите пароль<input id="repeat" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><button>Изменить пароль</button></form><p id="message"></p>';
+      document.getElementById("reset").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const password = document.getElementById("password").value;
+        const repeat = document.getElementById("repeat").value;
+        const message = document.getElementById("message");
+        const button = event.currentTarget.querySelector("button");
+        if (password !== repeat) {
+          message.className = "error";
+          message.textContent = "Пароли не совпадают.";
+          return;
+        }
+        button.disabled = true;
+        message.textContent = "";
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ accessToken, password }),
+          });
+          if (!response.ok) throw new Error();
+          app.innerHTML = '<b>GAME PASSPORT</b><h1>Пароль изменён</h1><p class="ok">Теперь вы можете вернуться в Game Passport и войти с новым паролем.</p>';
+        } catch {
+          message.className = "error";
+          message.textContent = "Не удалось изменить пароль. Ссылка могла истечь или уже быть использована.";
+          button.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
