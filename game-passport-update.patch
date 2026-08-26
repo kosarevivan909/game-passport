@@ -5676,7 +5676,7 @@ index 7bc4027..55ed183 100644
      fn entries_multiset_contains(actual: &[PubgIniEntry], expected: &[PubgIniEntry]) -> bool {
          let count = |items: &[PubgIniEntry]| {
 diff --git a/src-tauri/src/release.rs b/src-tauri/src/release.rs
-index 1f34e65..2689df9 100644
+index 1f34e65..4207cdb 100644
 --- a/src-tauri/src/release.rs
 +++ b/src-tauri/src/release.rs
 @@ -331,12 +331,20 @@ mod windows {
@@ -5705,7 +5705,7 @@ index 1f34e65..2689df9 100644
      #[test]
      fn release_version_comes_from_package() {
 -        assert_eq!(super::APP_VERSION, "0.6.0");
-+        assert_eq!(super::APP_VERSION, "0.8.0");
++        assert_eq!(super::APP_VERSION, "0.9.0");
      }
      #[test]
      fn log_limits_are_bounded() {
