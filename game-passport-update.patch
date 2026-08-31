@@ -334,6 +334,80 @@ index aa24ae3..0e7a449 100644
 +- визуальное сравнение Digital Vibrance/Hue, поскольку публичного read/write API для этих ползунков нет;
  - поведение multi-GPU, Optimus/MUX, clone/spanning и remote desktop topology;
  - создание NSIS/MSI и runtime loading `nvapi64.dll` на целевой машине.
+diff --git a/docs/INDEPENDENT_SETTINGS_0_9_2_RU.md b/docs/INDEPENDENT_SETTINGS_0_9_2_RU.md
+new file mode 100644
+index 0000000..99480df
+--- /dev/null
++++ b/docs/INDEPENDENT_SETTINGS_0_9_2_RU.md
+@@ -0,0 +1,68 @@
++# Game Passport 0.9.2 — независимые настройки и одноразовая справка
++
++## Что изменено
++
++- Общая инструкция открывается автоматически только при первом показе для этого
++  аккаунта на этой установке. Затем доступна кнопка «Как пользоваться». Закрытие
++  приложения посреди инструкции не вызывает повторного автоматического показа.
++  Старые отметки о просмотре/скрытии учитываются. При недоступном localStorage
++  приложение продолжает работать, отметка сохраняется только на время сессии.
++- Инструкция для параметров запуска Steam также разворачивается автоматически
++  один раз, далее — по кнопке. Предупреждение о неподтверждённом применении не скрывается.
++- Display Adapter больше не получает разрешение из CS2/PUBG. Он считывает текущий
++  режим основного рабочего стола через Windows и сохраняет снимок с
++  `schemaVersion: 2`, `captureSource: "windows_desktop"`. При невозможности прочитать
++  рабочий стол возвращается ошибка без подстановки разрешения игры.
++- CS2 сохраняет собственное разрешение, fullscreen и графику в своём игровом
++  снимке. Например, CS2 1280×960 и рабочий стол 1920×1080 остаются разными значениями.
++  Карточка подписывает их отдельно: «CS2» и «Экран».
++- NVIDIA сохраняет свой scaling и остальные поддерживаемые параметры в своём
++  снимке. Убрана даже вспомогательная запись scaling в Display snapshot.
++  Порядок применения NVIDIA → Windows Display → NVIDIA Display Controls сохранён.
++- Громкость, музыка, голос и остальные переносимые настройки звука CS2 по-прежнему
++  сохраняются в игровых convars и безопасных CFG. Это не функция переноса общего
++  микшера Windows. Идентификаторы устройств из machine/video config исключаются,
++  поскольку устройство на другом ПК может быть другим.
++
++## Старые профили
++
++Display schema 1 могла содержать разрешение игры вместо рабочего стола. Нельзя
++достоверно восстановить независимое разрешение, которого не было в снимке.
++И интерфейсный адаптер, и нативная команда пропускают такую смену разрешения с
++Warning без записи и без резервной копии. Остальные адаптеры могут продолжать
++применение. Чтобы включить перенос рабочего стола, нужно один раз сохранить профиль
++заново на исходном настроенном ПК. Автоматической миграции с выдуманными значениями нет.
++Резервные копии для отката уже содержали фактический Windows mode и не меняют формат.
++
++Точная сохранённая герцовка не переносится: существующая политика MAX_AVAILABLE
++сохранена. При отсутствии нужного разрешения на целевом мониторе возвращается
++Warning без молчаливого выбора другого разрешения. Перенос раскладки всех мониторов
++не добавлялся: Display Adapter работает с основным дисплеем.
++
++## Проверки
++
++- 81 frontend/contract тест проходит, TypeScript и Vite production build проходят.
++- Windows Rust-код вместе с тестами проходит cross-target cargo check.
++- Добавлены тесты одноразового показа, ручного открытия, старых отметок,
++  недоступного хранилища, независимых аккаунтов и сохранения видимого Warning.
++- Проверяется JSON round-trip формы облачного профиля с CS2 1280×960, desktop
++  1920×1080, собственным NVIDIA scaling и аудио convars; каждый адаптер получает
++  только свой снимок. Это тест сериализации, не запрос к настоящему Supabase.
++- Добавлены нативные тесты получения desktop snapshot, отказа от старых/неизвестных
++  снимков и некорректных размеров. Windows-тест аудио использует настоящие функции
++  чтения/санитизации/сериализации/записи в изолированных временных папках.
++- Нативные тесты скомпилированы, но ещё не выполнялись на Windows для этого выпуска.
++  Реальная проверка звука, Steam, CS2 и NVIDIA на Windows-ПК остаётся обязательной.
++
++## Проверка на одном ПК перед массовой установкой
++
++1. В Windows/NVIDIA выставить 1920×1080 и выбранный режим масштабирования.
++2. В CS2 выбрать 1280×960, fullscreen, заметно отличающиеся громкость/музыку/голос.
++   Закрыть игру, убедиться, что рабочий стол снова 1920×1080, и сохранить профиль.
++3. Проверить отдельные подписи разрешения в карточке; перезапустить Game Passport:
++   инструкция сама не появляется, кнопка открывает её.
++4. Изменить настройки или взять второй ПК. При закрытой CS2 применить профиль.
++   Steam не должен закрываться. Проверить параметры запуска в Steam отдельно.
++5. Проверить рабочий стол/NVIDIA, затем открыть CS2 и проверить её разрешение,
++   графику и звук. После выхода снова проверить рабочий стол. Неподдерживаемые
++   монитором/драйвером значения и перезапись Steam Cloud не считать Success.
 diff --git a/docs/PUBLIC_RELEASE_0_9_1_RU.md b/docs/PUBLIC_RELEASE_0_9_1_RU.md
 new file mode 100644
 index 0000000..d272fb7
@@ -508,6 +582,80 @@ index 0000000..e3836e2
 +- Для клонированных образов выполняйте sysprep и активируйте каждый конечный ПК отдельно.
 +- Автообновление пока отключено. Устанавливайте только Authenticode-подписанные релизы с совпадающим SHA-256; включать Tauri Updater без подписанного manifest и отдельного update key запрещено.
 +- Закрытый ключ ES256 нужно резервировать офлайн. При ротации сначала выпустите приложение с новым публичным key id, затем переключайте Edge signing secret.
+diff --git a/docs/STEAM_SESSION_0_9_2_RU.md b/docs/STEAM_SESSION_0_9_2_RU.md
+new file mode 100644
+index 0000000..de55f8f
+--- /dev/null
++++ b/docs/STEAM_SESSION_0_9_2_RU.md
+@@ -0,0 +1,68 @@
++# Game Passport 0.9.2 — применение без закрытия Steam
++
++## Причина
++
++В 0.9.1 CS2 Adapter сам запускал `steam.exe -shutdown` перед применением,
++чтобы менять `userdata/<account>/config/localconfig.vdf` при закрытом клиенте.
++После записи Steam запускался заново. Это было намеренным перезапуском,
++а не требованием авторизации Supabase. Для пользователя это выглядело как
++выход из Steam и могло приводить к повторному входу в клиент.
++
++## Изменение
++
++- Удалены команды закрытия и запуска Steam из применения и восстановления.
++- Закрытой должна быть CS2, не Steam. Предварительная проверка это объясняет.
++- Игровые файлы, включая графику, fullscreen, binds и autoexec, записываются
++  атомарно с резервной копией при работающем Steam. Проверяются все записанные
++  файлы сразу и повторно дважды, а не только видео.
++- Если Steam работает, его `localconfig.vdf` при применении не читается и не
++  заменяется. Сохранённые параметры запуска выдаются отдельной видимой подсказкой
++  с копированием; пустая строка означает явную инструкцию очистить поле.
++- При уже закрытом Steam параметры запуска по-прежнему могут записываться
++  автоматически. Если клиент запускается во время операции, запись пропускается
++  при обнаружении процесса, а результат требует ручной проверки. Отсутствие или
++  недоступность localconfig не блокирует перенос игровых файлов.
++- Полная старая копия localconfig больше не восстанавливается: она может содержать
++  посторонние настройки и состояние Steam. Восстанавливаются только игровые файлы,
++  а параметры запуска предлагается проверить отдельно.
++- Копирование строки не помечает параметры как применённые. Неподтверждённые
++  параметры и несовпадение файлов дают Warning, а не Success.
++- Старая база, вход Supabase, отсутствие активации ПК и дизайн Obsidian сохранены.
++
++## Ограничения
++
++Game Passport не управляет внутренним состоянием запущенного Steam и не использует
++инъекции, приватные Steam API или принудительное завершение процессов.
++Постоянные параметры запуска в работающем Steam нужно проверить/вставить в
++Steam → Библиотека → CS2 → Свойства → Общие → Параметры запуска.
++Если строка там уже совпадает, менять её не нужно.
++
++Проверка локальных файлов после записи не гарантирует, что Steam Cloud или сама
++CS2 не изменят их при будущем запуске. Game Passport не отключает Steam Cloud
++самостоятельно. Этот выпуск не заявляет проверку результата внутри запущенной игры.
++
++Официальные источники: [Steam Cloud](https://partner.steamgames.com/doc/features/cloud?l=english)
++описывает синхронизацию до/после игровой сессии; [инструкция Valve по параметрам
++запуска CS2](https://help.steampowered.com/en/faqs/view/0653-C465-7FC1-44C1)
++подтверждает настройку через свойства игры. Публичный
++[ISteamApps](https://partner.steamgames.com/doc/api/ISteamApps)
++не описывает setter для постоянных пользовательских LaunchOptions другой игры;
++неподтверждённые внутренние API в этом выпуске не используются.
++
++## Проверки перед публикацией
++
++- 81 frontend/contract тест прошёл; TypeScript и Vite production build прошли.
++- Windows Rust-код вместе с тестами успешно прошёл cross-target cargo check.
++- Добавлены 9 Windows-тестов настоящего файлового пути apply/restore в изолированных
++  временных папках: открытый клиент, уже закрытый клиент, запуск во время применения,
++  отсутствующий localconfig, пустые/несохранённые параметры запуска, блокировка
++  чувствительных параметров, запущенная CS2, внешняя перезапись binds и legacy restore.
++- Дополнительно исправлены одноразовая справка и независимые разрешения CS2/desktop;
++  сохранность звука покрыта тестами. Подробности: [независимые настройки](INDEPENDENT_SETTINGS_0_9_2_RU.md).
++- Выполнение native-тестов и сборка нового EXE/MSI ещё должны пройти в Windows CI.
++- Проверка живой Steam-сессии и запуска CS2 на физическом Windows-ПК ещё не выполнена.
++
++Перед массовой установкой проверить на одном ПК: войти в Steam и Game Passport,
++применить профиль при закрытой CS2; убедиться, что Steam не закрывается. При наличии
++подсказки проверить строку параметров запуска. Затем запустить CS2 и проверить видео,
++разрешение, fullscreen и binds. Повторить на другом аккаунте/ПК и проверить откат.
 diff --git a/docs/WINDOWS_BUILD_HANDOFF_RU.md b/docs/WINDOWS_BUILD_HANDOFF_RU.md
 index f193077..7384d6d 100644
 --- a/docs/WINDOWS_BUILD_HANDOFF_RU.md
@@ -641,7 +789,7 @@ index 0000000..9364e9b
 +</body>
 +</html>
 diff --git a/package.json b/package.json
-index 8d90a32..ed7ecb3 100644
+index 8d90a32..17dbb29 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,7 +1,7 @@
@@ -649,12 +797,12 @@ index 8d90a32..ed7ecb3 100644
    "name": "game-passport",
    "private": true,
 -  "version": "0.6.0",
-+  "version": "0.9.1",
++  "version": "0.9.2",
    "type": "module",
    "scripts": {
      "dev": "vite",
 diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
-index ee99788..936828a 100644
+index ee99788..9a2b8f1 100644
 --- a/src-tauri/Cargo.lock
 +++ b/src-tauri/Cargo.lock
 @@ -82,6 +82,12 @@ version = "1.5.1"
@@ -806,7 +954,7 @@ index ee99788..936828a 100644
  [[package]]
  name = "game-passport"
 -version = "0.6.0"
-+version = "0.9.1"
++version = "0.9.2"
  dependencies = [
   "base64 0.22.1",
   "cc",
@@ -1041,14 +1189,14 @@ index ee99788..936828a 100644
  name = "zerotrie"
  version = "0.2.4"
 diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
-index 76495e5..13271f4 100644
+index 76495e5..051f774 100644
 --- a/src-tauri/Cargo.toml
 +++ b/src-tauri/Cargo.toml
 @@ -1,6 +1,6 @@
  [package]
  name = "game-passport"
 -version = "0.6.0"
-+version = "0.9.1"
++version = "0.9.2"
  description = "Portable gaming profiles for Windows PCs"
  authors = ["Game Passport"]
  license = "Proprietary"
@@ -1946,7 +2094,7 @@ index 0000000..00e237e
 +    }
 +}
 diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
-index ebda9ab..2ecaabf 100644
+index ebda9ab..b22819a 100644
 --- a/src-tauri/src/cs2.rs
 +++ b/src-tauri/src/cs2.rs
 @@ -19,6 +19,10 @@ pub struct Cs2Payload {
@@ -1960,7 +2108,21 @@ index ebda9ab..2ecaabf 100644
  }
  
  #[derive(Debug, Serialize)]
-@@ -44,6 +48,16 @@ impl Cs2CommandResponse {
+@@ -30,6 +34,8 @@ pub struct Cs2CommandResponse {
+     retryable: bool,
+     #[serde(skip_serializing_if = "Option::is_none")]
+     payload: Option<Cs2Payload>,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    manual_launch_options: Option<String>,
+ }
+ 
+ impl Cs2CommandResponse {
+@@ -40,10 +46,22 @@ impl Cs2CommandResponse {
+             details: vec![],
+             retryable: false,
+             payload: None,
++            manual_launch_options: None,
+         }
      }
  }
  
@@ -1971,13 +2133,14 @@ index ebda9ab..2ecaabf 100644
 +        details: vec!["DEVICE_LICENSE_REQUIRED".into()],
 +        retryable: true,
 +        payload: None,
++        manual_launch_options: None,
 +    }
 +}
 +
  #[cfg(not(target_os = "windows"))]
  pub fn capture() -> Cs2CommandResponse {
      Cs2CommandResponse::unsupported(
-@@ -79,16 +93,27 @@ mod windows {
+@@ -79,16 +97,26 @@ mod windows {
      use chrono::Utc;
      use sha2::{Digest, Sha256};
      use std::{
@@ -1991,9 +2154,8 @@ index ebda9ab..2ecaabf 100644
 +        os::windows::ffi::OsStrExt,
          path::{Component, Path, PathBuf},
 +        ptr::null,
-+        process::Command,
 +        thread,
-+        time::{Duration, Instant},
++        time::Duration,
      };
      use windows_sys::Win32::{
          Foundation::{CloseHandle, INVALID_HANDLE_VALUE},
@@ -2006,7 +2168,7 @@ index ebda9ab..2ecaabf 100644
          System::Diagnostics::ToolHelp::{
              CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
              TH32CS_SNAPPROCESS,
-@@ -100,15 +125,20 @@ mod windows {
+@@ -100,15 +128,19 @@ mod windows {
      const MAX_FILE_BYTES: u64 = 512 * 1024;
      const MAX_TOTAL_BYTES: u64 = 2 * 1024 * 1024;
      const MAX_FILES: usize = 32;
@@ -2022,15 +2184,25 @@ index ebda9ab..2ecaabf 100644
 +    const OPTIONAL_CORE: [&str; 1] = ["cs2_machine_convars.vcfg"];
  
      struct SteamContext {
-+        steam_root: PathBuf,
          userdata_cfg: PathBuf,
          install_cfg: Option<PathBuf>,
 +        localconfig_vdf: PathBuf,
      }
  
      #[derive(Debug)]
-@@ -165,12 +195,30 @@ mod windows {
+@@ -137,6 +169,7 @@ mod windows {
+                 details: self.details,
+                 retryable: self.retryable,
                  payload: None,
++                manual_launch_options: None,
+             }
+         }
+     }
+@@ -163,14 +196,34 @@ mod windows {
+                 details: vec!["После закрытия нажмите «Повторить проверку».".into()],
+                 retryable: true,
+                 payload: None,
++                manual_launch_options: None,
              };
          }
 -        Cs2CommandResponse {
@@ -2043,13 +2215,13 @@ index ebda9ab..2ecaabf 100644
 +            Ok(context) => Cs2CommandResponse {
 +                state: "success".into(),
 +                message: if steam_process_running() {
-+                    "CS2 закрыта, пользователь Steam найден. Steam будет автоматически перезапущен во время применения настроек.".into()
++                    "CS2 закрыта, пользователь Steam найден. Steam останется открытым.".into()
 +                } else {
 +                    "CS2 закрыта. Локальный профиль Steam найден.".into()
 +                },
 +                details: vec![
 +                    if steam_process_running() {
-+                        "Не выходите из аккаунта Steam: Game Passport сам корректно закроет клиент, применит настройки и запустит его снова.".into()
++                        "Закрывать Steam и выходить из аккаунта не нужно. Если параметры запуска требуют ручного переноса, Game Passport покажет готовую строку.".into()
 +                    } else {
 +                        "Steam уже закрыт; настройки можно применить без повторного входа.".into()
 +                    },
@@ -2061,12 +2233,13 @@ index ebda9ab..2ecaabf 100644
 +                ],
 +                retryable: false,
 +                payload: None,
++                manual_launch_options: None,
 +            },
 +            Err(error) => error.response(),
          }
      }
  
-@@ -183,7 +231,7 @@ mod windows {
+@@ -183,7 +236,7 @@ mod windows {
  
      fn capture_inner() -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
@@ -2075,7 +2248,7 @@ index ebda9ab..2ecaabf 100644
          let mut files = Vec::new();
          let mut details = Vec::new();
          let mut core_files_found = Vec::new();
-@@ -192,13 +240,24 @@ mod windows {
+@@ -192,13 +245,24 @@ mod windows {
          for name in REQUIRED_CORE.into_iter().chain(OPTIONAL_CORE) {
              let path = context.userdata_cfg.join(name);
              if path.is_file() {
@@ -2105,7 +2278,7 @@ index ebda9ab..2ecaabf 100644
              } else {
                  optional_files_missing.push(name.to_string());
              }
-@@ -211,6 +270,9 @@ mod windows {
+@@ -211,6 +275,9 @@ mod windows {
              optional_files_missing.push("autoexec.cfg (CS2 installation not located)".into());
          }
  
@@ -2115,7 +2288,7 @@ index ebda9ab..2ecaabf 100644
          if files.len() > MAX_FILES {
              return Err(UserFacingError::new(
                  "Too many CS2 configuration files were found. Nothing was saved.",
-@@ -225,7 +287,7 @@ mod windows {
+@@ -225,7 +292,7 @@ mod windows {
              ));
          }
  
@@ -2124,7 +2297,7 @@ index ebda9ab..2ecaabf 100644
              "success"
          } else {
              "warning"
-@@ -241,14 +303,16 @@ mod windows {
+@@ -241,14 +308,16 @@ mod windows {
          let custom_count = files.len().saturating_sub(core_files_found.len());
          let video_captured = core_files_found.iter().any(|name| name == "cs2_video.txt");
          let payload = Cs2Payload {
@@ -2143,7 +2316,7 @@ index ebda9ab..2ecaabf 100644
          let mut summary = vec![
              "Сохранены чувствительность, игровые параметры и звук из cs2_user_convars_0_slot0.vcfg.".into(),
              "Сохранены привязки клавиш из cs2_user_keys_0_slot0.vcfg.".into(),
-@@ -263,6 +327,17 @@ mod windows {
+@@ -263,6 +332,17 @@ mod windows {
                  "Сохранено дополнительных CFG-файлов: {custom_count}."
              ));
          }
@@ -2161,164 +2334,44 @@ index ebda9ab..2ecaabf 100644
          summary.push("Не сохраняются идентификаторы монитора, видеокарты и аудиоустройства; точная герцовка выбирается заново на целевом ПК.".into());
          summary.append(&mut details);
          details = summary;
-@@ -283,7 +358,180 @@ mod windows {
+@@ -277,13 +357,64 @@ mod windows {
+             details,
+             retryable,
+             payload: Some(payload),
++            manual_launch_options: None,
+         })
+     }
+ 
      fn apply_inner(payload: Cs2Payload) -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
          validate_payload(&payload)?;
 -        let context = discover_steam_context()?;
 +        let context = discover_steam_context(false, false)?;
-+        let restart_steam_after_apply = stop_steam_for_apply(&context.steam_root)?;
-+        let verification_payload = payload.clone();
-+        let result = apply_with_closed_steam(payload, &context);
-+
-+        if !restart_steam_after_apply {
-+            return result;
-+        }
-+
-+        match restart_steam(&context.steam_root) {
-+            Ok(()) => match result {
-+                Ok(mut response) => {
-+                    response
-+                        .details
-+                        .push("Steam автоматически запущен после применения настроек.".into());
-+                    match verify_after_steam_restart_stable(&verification_payload, &context) {
-+                        Ok(details) => {
-+                            response.state = "success".into();
-+                            response.retryable = false;
-+                            response.message = "Настройки CS2 применены и повторно проверены после запуска Steam.".into();
-+                            response.details.extend(details);
-+                        }
-+                        Err(error) => {
-+                            response.state = "warning".into();
-+                            response.retryable = true;
-+                            response.message = "Настройки записаны, но после запуска Steam часть значений не прошла повторную проверку.".into();
-+                            response.details.push(error.message);
-+                            response.details.extend(error.details);
-+                        }
-+                    }
-+                    Ok(response)
-+                }
-+                Err(mut error) => {
-+                    error
-+                        .details
-+                        .push("Steam автоматически запущен после неудачного применения.".into());
-+                    Err(error)
-+                }
-+            },
-+            Err(restart_error) => match result {
-+                Ok(mut response) => {
-+                    response.state = "warning".into();
-+                    response.details.push(
-+                        "Настройки применены, но Steam не удалось запустить автоматически. Откройте Steam обычным способом.".into(),
-+                    );
-+                    response.details.push(restart_error.message);
-+                    response.details.extend(restart_error.details);
-+                    Ok(response)
-+                }
-+                Err(mut error) => {
-+                    error.details.push(
-+                        "Steam не удалось запустить автоматически после ошибки. Откройте Steam обычным способом.".into(),
-+                    );
-+                    error.details.push(restart_error.message);
-+                    error.details.extend(restart_error.details);
-+                    Err(error)
-+                }
-+            },
-+        }
++        apply_with_context(
++            payload,
++            &context,
++            &backup_root()?,
++            &steam_process_running,
++            &ensure_game_closed,
++            Duration::from_secs(2),
++        )
 +    }
 +
-+    fn verify_after_steam_restart(
-+        payload: &Cs2Payload,
-+        context: &SteamContext,
-+    ) -> Result<Vec<String>, UserFacingError> {
-+        let mut details = Vec::new();
-+        if let Some(video) = payload.files.iter().find(|file| {
-+            file.scope == "userdata" && file.relative_path.eq_ignore_ascii_case("cs2_video.txt")
-+        }) {
-+            let saved = BASE64.decode(&video.content_base64).map_err(|_| {
-+                UserFacingError::new(
-+                    "Не удалось повторно проверить сохранённый cs2_video.txt.",
-+                    false,
-+                )
++    // Verify every exact file we wrote, not only video settings. This detects a
++    // concurrent writer but does not promise to control a future Steam Cloud sync.
++    fn verify_written_files(files: &[&DecodedFile]) -> Result<(), UserFacingError> {
++        for item in files {
++            let actual = fs::read(&item.target).map_err(|error| {
++                io_error("Не удалось проверить записанные настройки CS2.", error)
 +            })?;
-+            let saved = sanitize_hardware_config(&saved)?.0;
-+            let display_mode = display_mode_intent(&saved)?;
-+            let expected = normalize_saved_display_mode(&saved, display_mode)?;
-+            let actual_path = context.userdata_cfg.join("cs2_video.txt");
-+            let actual = fs::read(&actual_path).map_err(|error| {
-+                io_error("После запуска Steam файл cs2_video.txt не найден.", error)
-+            })?;
-+            let actual = sanitize_hardware_config(&actual)?.0;
-+            let expected_values = video_key_values(&expected)?;
-+            let actual_values = video_key_values(&actual)?;
-+            let mismatched = expected_values
-+                .iter()
-+                .filter(|(key, value)| actual_values.get(*key) != Some(*value))
-+                .map(|(key, _)| key.clone())
-+                .collect::<Vec<_>>();
-+            if !mismatched.is_empty() {
++            if actual != item.content {
 +                return Err(UserFacingError::new(
-+                    "Steam или драйвер изменил параметры видео CS2 после записи.",
++                    "Другой процесс изменил настройки после записи. Полное применение не подтверждено.",
 +                    true,
-+                )
-+                .detail(format!("Не совпали параметры: {}", mismatched.join(", "))));
++                ).detail(format!("Файл не совпал: {}", item.relative_path)));
 +            }
-+            details.push(match display_mode {
-+                DisplayModeIntent::ExclusiveFullscreen => "После запуска Steam графика CS2 и настоящий полноэкранный режим повторно проверены.".into(),
-+                _ => "После запуска Steam графика CS2 и сохранённый режим отображения повторно проверены.".into(),
-+            });
 +        }
-+        if payload.launch_options_captured || payload.launch_options.is_some() {
-+            let display_mode = profile_display_mode_intent(payload)?;
-+            let expected = normalize_launch_options(
-+                payload.launch_options.as_deref().unwrap_or(""),
-+                display_mode,
-+            );
-+            let text = fs::read_to_string(&context.localconfig_vdf).map_err(|error| {
-+                io_error(
-+                    "Не удалось повторно проверить параметры запуска Steam.",
-+                    error,
-+                )
-+            })?;
-+            let actual = find_launch_options(&text).unwrap_or_default();
-+            if actual.trim() != expected {
-+                return Err(UserFacingError::new(
-+                    "Steam изменил параметры запуска CS2 после записи.",
-+                    true,
-+                )
-+                .detail(format!("Ожидалось: {expected}"))
-+                .detail(format!("Найдено: {}", actual.trim())));
-+            }
-+            details.push("Параметры запуска CS2 повторно проверены после запуска Steam.".into());
-+        }
-+        Ok(details)
-+    }
-+
-+    fn verify_after_steam_restart_stable(
-+        payload: &Cs2Payload,
-+        context: &SteamContext,
-+    ) -> Result<Vec<String>, UserFacingError> {
-+        let started = Instant::now();
-+        let deadline = started + Duration::from_secs(25);
-+        let earliest_success = started + Duration::from_secs(10);
-+        let mut last_error = None;
-+
-+        loop {
-+            match verify_after_steam_restart(payload, context) {
-+                Ok(details) if Instant::now() >= earliest_success => return Ok(details),
-+                Ok(_) => last_error = None,
-+                Err(error) => last_error = Some(error),
-+            }
-+            if Instant::now() >= deadline {
-+                return Err(last_error.unwrap_or_else(|| {
-+                    UserFacingError::new(
-+                        "Steam не завершил синхронизацию настроек CS2 за 25 секунд.",
-+                        true,
-+                    )
-+                }));
-+            }
-+            thread::sleep(Duration::from_millis(500));
-+        }
++        Ok(())
 +    }
 +
 +    fn video_key_values(bytes: &[u8]) -> Result<HashMap<String, String>, UserFacingError> {
@@ -2334,50 +2387,76 @@ index ebda9ab..2ecaabf 100644
 +            .collect())
 +    }
 +
-+    fn apply_with_closed_steam(
++    fn apply_with_context(
 +        payload: Cs2Payload,
 +        context: &SteamContext,
++        backup_root: &Path,
++        steam_running: &dyn Fn() -> bool,
++        game_closed: &dyn Fn() -> Result<(), UserFacingError>,
++        verify_delay: Duration,
 +    ) -> Result<Cs2CommandResponse, UserFacingError> {
-+        ensure_game_closed()?;
-+        ensure_steam_closed()?;
++        game_closed()?;
++        validate_payload(&payload)?;
          let needs_install = payload.files.iter().any(|file| file.scope == "install");
          if needs_install && context.install_cfg.is_none() {
              return Err(UserFacingError::new(
-@@ -292,7 +540,14 @@ mod windows {
+@@ -292,8 +423,18 @@ mod windows {
              ));
          }
  
 -        let decoded = decode_and_resolve(&payload, &context)?;
+-        let backup_root = backup_root()?;
 +        let mut decoded = decode_and_resolve(&payload, context)?;
-+        let launch_options_staged = match prepare_launch_options_update(&payload, context)? {
-+            Some(item) => {
++        let requested_launch_options = saved_launch_options(&payload)?;
++        let mut manual_launch_options = None;
++        let mut launch_options_staged = false;
++        match prepare_launch_options_update(&payload, context, steam_running())? {
++            LaunchOptionsUpdate::Staged(item) => {
 +                decoded.push(item);
-+                true
++                launch_options_staged = true;
 +            }
-+            None => false,
-+        };
-         let backup_root = backup_root()?;
++            LaunchOptionsUpdate::Manual(value) => manual_launch_options = Some(value),
++            LaunchOptionsUpdate::NotCaptured => {}
++        }
          fs::create_dir_all(&backup_root)
              .map_err(|error| io_error("Could not create a CS2 backup folder.", error))?;
-@@ -311,7 +566,7 @@ mod windows {
+ 
+@@ -311,19 +452,31 @@ mod windows {
              }
          }
  
 -        if let Err(error) = ensure_game_closed() {
-+        if let Err(error) = ensure_game_closed().and_then(|_| ensure_steam_closed()) {
++        if let Err(error) = game_closed() {
              cleanup_staged(&staged);
              return Err(error);
          }
-@@ -322,7 +577,7 @@ mod windows {
+         let mut committed: Vec<(&DecodedFile, Option<PathBuf>)> = Vec::new();
+         for (index, (item, temporary)) in staged.iter().enumerate() {
++            // Steam may start between planning and commit. Never replace its live configuration.
++            if item.scope == "steam" && steam_running() {
++                let _ = fs::remove_file(temporary);
++                manual_launch_options = requested_launch_options.clone();
++                launch_options_staged = false;
++                continue;
++            }
++            if let Err(error) = game_closed() {
++                rollback(&committed, steam_running);
++                cleanup_staged(&staged);
++                return Err(error);
++            }
+             let previous = if item.target.exists() {
+                 let path = item
                      .target
                      .with_extension(format!("gamepassport-{index}.previous"));
                  let _ = fs::remove_file(&path);
 -                if let Err(error) = fs::rename(&item.target, &path) {
+-                    rollback(&committed);
 +                if let Err(error) = fs::copy(&item.target, &path) {
-                     rollback(&committed);
++                    rollback(&committed, steam_running);
                      cleanup_staged(&staged);
                      return Err(io_error(
-@@ -335,10 +590,7 @@ mod windows {
+                         "Could not replace an existing CS2 configuration file.",
+@@ -335,11 +488,8 @@ mod windows {
              } else {
                  None
              };
@@ -2385,108 +2464,141 @@ index ebda9ab..2ecaabf 100644
 -                if let Some(path) = previous.as_ref() {
 -                    let _ = fs::rename(path, &item.target);
 -                }
+-                rollback(&committed);
 +            if let Err(error) = atomic_replace(temporary, &item.target) {
-                 rollback(&committed);
++                rollback(&committed, steam_running);
                  cleanup_staged(&staged);
                  return Err(
-@@ -384,11 +636,18 @@ mod windows {
+                     io_error("Could not activate a CS2 configuration file.", error)
+@@ -348,25 +498,10 @@ mod windows {
+             }
+             committed.push((item, previous));
+         }
+-        for (item, _) in &committed {
+-            let written = match fs::read(&item.target) {
+-                Ok(bytes) => bytes,
+-                Err(error) => {
+-                    rollback(&committed);
+-                    return Err(io_error(
+-                        "Не удалось проверить записанный файл CS2; изменения отменены.",
+-                        error,
+-                    ));
+-                }
+-            };
+-            if written != item.content {
+-                rollback(&committed);
+-                return Err(UserFacingError::new(
+-                    "Проверка записанных настроек CS2 не пройдена; изменения отменены.",
+-                    true,
+-                )
+-                .detail(format!("Файл не совпал: {}", item.relative_path)));
+-            }
++        let written_files = committed.iter().map(|(item, _)| *item).collect::<Vec<_>>();
++        if let Err(error) = verify_written_files(&written_files) {
++            rollback(&committed, steam_running);
++            return Err(error.detail("Выполнен доступный откат; резервная копия сохранена."));
+         }
+         for (_, previous) in &committed {
+             if let Some(path) = previous {
+@@ -374,6 +509,21 @@ mod windows {
+             }
+         }
+ 
++        // A Steam client started after a disk write may still have a cached value.
++        if launch_options_staged && steam_running() {
++            manual_launch_options = requested_launch_options.clone();
++        }
++        let verification = (|| {
++            thread::sleep(verify_delay);
++            game_closed()?;
++            verify_written_files(&written_files)?;
++            thread::sleep(verify_delay);
++            game_closed()?;
++            verify_written_files(&written_files)
++        })();
++        if launch_options_staged && steam_running() {
++            manual_launch_options = requested_launch_options;
++        }
+         let hardware_specific = payload.files.iter().any(|file| {
+             matches!(
+                 file.relative_path.as_str(),
+@@ -384,22 +534,58 @@ mod windows {
              format!("Локальная резервная копия: {}", backup_root.display()),
              format!("Записано и проверено файлов: {}.", committed.len()),
          ];
-+        if launch_options_staged {
-+            details.push("Параметры запуска CS2 записаны в Steam и проверены.".into());
++        details.push("Game Passport не закрывал и не перезапускал Steam.".into());
++        if launch_options_staged && manual_launch_options.is_none() {
++            details
++                .push("Параметры запуска CS2 записаны и проверены при уже закрытом Steam.".into());
++        }
++        if manual_launch_options.is_some() {
++            details.push("Параметры запуска не подтверждены в Steam. Вставьте строку из подсказки в свойства CS2; закрывать Steam не нужно.".into());
++        }
++        details.push("Steam Cloud может синхронизировать файлы при следующем запуске игры. Проверены локальные файлы сейчас, а не будущий запуск CS2.".into());
++        let verification_failed = verification.is_err();
++        if let Err(error) = verification {
++            details.push(error.message);
++            details.extend(error.details);
 +        }
          if hardware_specific {
              details.push("Разрешение и переносимые параметры видео записаны. После запуска CS2 может заменить значения, которые не поддерживаются этим компьютером.".into());
          }
          Ok(Cs2CommandResponse {
 -            state: if hardware_specific { "warning".into() } else { "success".into() },
-+            state: if hardware_specific {
+-            message: format!("Настройки CS2 применены и проверены: {} файлов. Запустите CS2 и проверьте итоговые значения в игре.", committed.len()),
++            state: if hardware_specific || manual_launch_options.is_some() || verification_failed {
 +                "warning".into()
 +            } else {
 +                "success".into()
 +            },
-             message: format!("Настройки CS2 применены и проверены: {} файлов. Запустите CS2 и проверьте итоговые значения в игре.", committed.len()),
++            message: if verification_failed {
++                "Файлы CS2 записаны, но повторная проверка не пройдена. Steam не закрывался.".into()
++            } else if manual_launch_options.is_some() {
++                "Файлы CS2 применены. Steam не закрывался; параметры запуска требуют проверки вручную.".into()
++            } else {
++                format!(
++                    "Файлы CS2 применены и проверены: {}. Steam не закрывался.",
++                    committed.len()
++                )
++            },
              details,
-             retryable: false,
-@@ -398,7 +657,56 @@ mod windows {
+-            retryable: false,
++            retryable: verification_failed,
+             payload: None,
++            manual_launch_options,
+         })
+     }
  
      fn restore_inner() -> Result<Cs2CommandResponse, UserFacingError> {
          ensure_game_closed()?;
 -        let context = discover_steam_context()?;
+-        let backups = cs2_backup_directory()?;
 +        let context = discover_steam_context(false, false)?;
-+        let restart_steam_after_restore = stop_steam_for_apply(&context.steam_root)?;
-+        let result = restore_with_closed_steam(&context);
-+
-+        if !restart_steam_after_restore {
-+            return result;
-+        }
-+
-+        match restart_steam(&context.steam_root) {
-+            Ok(()) => match result {
-+                Ok(mut response) => {
-+                    response
-+                        .details
-+                        .push("Steam автоматически запущен после восстановления.".into());
-+                    Ok(response)
-+                }
-+                Err(mut error) => {
-+                    error
-+                        .details
-+                        .push("Steam автоматически запущен после ошибки восстановления.".into());
-+                    Err(error)
-+                }
-+            },
-+            Err(restart_error) => match result {
-+                Ok(mut response) => {
-+                    response.state = "warning".into();
-+                    response.details.push(
-+                        "Настройки восстановлены, но Steam не удалось запустить автоматически. Откройте Steam обычным способом.".into(),
-+                    );
-+                    response.details.push(restart_error.message);
-+                    response.details.extend(restart_error.details);
-+                    Ok(response)
-+                }
-+                Err(mut error) => {
-+                    error.details.push(
-+                        "Steam не удалось запустить автоматически после ошибки. Откройте Steam обычным способом.".into(),
-+                    );
-+                    error.details.push(restart_error.message);
-+                    error.details.extend(restart_error.details);
-+                    Err(error)
-+                }
-+            },
-+        }
++        restore_with_context(&context, &cs2_backup_directory()?, &ensure_game_closed)
 +    }
 +
-+    fn restore_with_closed_steam(
++    fn restore_with_context(
 +        context: &SteamContext,
++        backups: &Path,
++        game_closed: &dyn Fn() -> Result<(), UserFacingError>,
 +    ) -> Result<Cs2CommandResponse, UserFacingError> {
-+        ensure_game_closed()?;
-+        ensure_steam_closed()?;
-         let backups = cs2_backup_directory()?;
++        game_closed()?;
          let mut candidates = fs::read_dir(&backups)
              .map_err(|_| UserFacingError::new("No Game Passport CS2 backup was found.", false))?
-@@ -412,7 +720,7 @@ mod windows {
+             .filter_map(Result::ok)
+@@ -412,6 +598,11 @@ mod windows {
              .ok_or_else(|| UserFacingError::new("No Game Passport CS2 backup was found.", false))?;
          let mut restored = 0usize;
          let mut details = vec![format!("Backup used: {}", backup.display())];
--        for scope in ["userdata", "install"] {
-+        for scope in ["userdata", "install", "steam"] {
++        // Legacy backups may contain a complete localconfig.vdf. Restoring that
++        // would overwrite unrelated Steam state, so only game files are restored.
++        if backup.join("steam").is_dir() {
++            details.push("Резервная копия Steam не заменялась: полный localconfig.vdf может содержать состояние аккаунта. Параметры запуска проверьте в свойствах CS2.".into());
++        }
+         for scope in ["userdata", "install"] {
              let source_root = backup.join(scope);
              if !source_root.is_dir() {
-                 continue;
-@@ -426,6 +734,9 @@ mod windows {
-                         continue;
-                     }
-                 },
-+                "steam" => context.localconfig_vdf.parent().ok_or_else(|| {
-+                    UserFacingError::new("Steam configuration folder is unavailable.", true)
-+                })?,
-                 _ => unreachable!(),
-             };
-             let mut queue = VecDeque::from([source_root.clone()]);
-@@ -453,12 +764,7 @@ mod windows {
+@@ -453,12 +644,11 @@ mod windows {
                      let temporary = target.with_extension("gamepassport-restore.tmp");
                      fs::copy(&source, &temporary)
                          .map_err(|error| io_error("Could not stage a CS2 backup file.", error))?;
@@ -2494,13 +2606,29 @@ index ebda9ab..2ecaabf 100644
 -                        fs::remove_file(&target).map_err(|error| {
 -                            io_error("Could not replace a CS2 configuration file.", error)
 -                        })?;
--                    }
++                    if let Err(error) = game_closed() {
++                        let _ = fs::remove_file(&temporary);
++                        return Err(error);
+                     }
 -                    fs::rename(&temporary, &target).map_err(|error| {
 +                    atomic_replace(&temporary, &target).map_err(|error| {
                          io_error("Could not activate a restored CS2 file.", error)
                      })?;
                      restored += 1;
-@@ -578,6 +884,21 @@ mod windows {
+@@ -474,10 +664,11 @@ mod windows {
+         details.push("Files created by a previous apply but absent from the backup are not deleted automatically.".into());
+         Ok(Cs2CommandResponse {
+             state: "warning".into(),
+-            message: format!("Restored {restored} CS2 configuration files."),
++            message: format!("Восстановлено файлов CS2: {restored}. Steam не закрывался."),
+             details,
+             retryable: false,
+             payload: None,
++            manual_launch_options: None,
+         })
+     }
+ 
+@@ -578,6 +769,21 @@ mod windows {
                      false,
                  ));
              }
@@ -2522,7 +2650,7 @@ index ebda9ab..2ecaabf 100644
              result.push(DecodedFile {
                  scope: file.scope.clone(),
                  relative_path: file.relative_path.clone(),
-@@ -595,7 +916,7 @@ mod windows {
+@@ -595,7 +801,7 @@ mod windows {
      }
  
      fn validate_payload(payload: &Cs2Payload) -> Result<(), UserFacingError> {
@@ -2531,7 +2659,7 @@ index ebda9ab..2ecaabf 100644
              return Err(UserFacingError::new(
                  "This CS2 profile format is not supported by this app version.",
                  false,
-@@ -622,8 +943,11 @@ mod windows {
+@@ -622,8 +828,11 @@ mod windows {
          Ok(())
      }
  
@@ -2545,7 +2673,7 @@ index ebda9ab..2ecaabf 100644
              return Err(UserFacingError::new(
                  "Войдите в Steam, чтобы Game Passport смог определить ваши настройки CS2.",
                  true,
-@@ -631,25 +955,35 @@ mod windows {
+@@ -631,25 +840,34 @@ mod windows {
          }
          let steam_root = find_steam_root()
              .ok_or_else(|| UserFacingError::new("Steam installation could not be found.", true))?;
@@ -2581,85 +2709,16 @@ index ebda9ab..2ecaabf 100644
 +            .join("config")
 +            .join("localconfig.vdf");
          Ok(SteamContext {
-+            steam_root,
              userdata_cfg,
              install_cfg,
 +            localconfig_vdf,
          })
      }
  
-@@ -664,6 +998,78 @@ mod windows {
+@@ -664,6 +882,10 @@ mod windows {
          }
      }
  
-+    fn ensure_steam_closed() -> Result<(), UserFacingError> {
-+        if steam_process_running() {
-+            Err(UserFacingError::new(
-+                "Steam не успел полностью закрыться. Подождите несколько секунд и повторите применение.",
-+                true,
-+            ))
-+        } else {
-+            Ok(())
-+        }
-+    }
-+
-+    fn stop_steam_for_apply(steam_root: &Path) -> Result<bool, UserFacingError> {
-+        if !steam_process_running() {
-+            return Ok(false);
-+        }
-+
-+        let steam_exe = steam_root.join("steam.exe");
-+        if !steam_exe.is_file() {
-+            return Err(UserFacingError::new(
-+                "Game Passport нашёл запущенный Steam, но не смог найти steam.exe для безопасного перезапуска.",
-+                true,
-+            ));
-+        }
-+
-+        Command::new(&steam_exe)
-+            .arg("-shutdown")
-+            .spawn()
-+            .map_err(|error| {
-+                io_error(
-+                    "Не удалось попросить Steam корректно завершить работу.",
-+                    error,
-+                )
-+                .detail("Закройте Steam обычным способом и повторите применение.")
-+            })?;
-+
-+        let deadline = Instant::now() + Duration::from_secs(30);
-+        while steam_process_running() {
-+            if Instant::now() >= deadline {
-+                return Err(
-+                    UserFacingError::new("Steam не завершил работу за 30 секунд.", true)
-+                        .detail("Закройте открытые окна Steam или загрузки и нажмите «Повторить»."),
-+                );
-+            }
-+            thread::sleep(Duration::from_millis(250));
-+        }
-+        Ok(true)
-+    }
-+
-+    fn restart_steam(steam_root: &Path) -> Result<(), UserFacingError> {
-+        let steam_exe = steam_root.join("steam.exe");
-+        Command::new(&steam_exe).spawn().map_err(|error| {
-+            io_error("Не удалось автоматически запустить Steam.", error)
-+                .detail(format!("Steam: {}", steam_exe.display()))
-+        })?;
-+
-+        let deadline = Instant::now() + Duration::from_secs(10);
-+        while !is_process_running("steam.exe") {
-+            if Instant::now() >= deadline {
-+                return Err(UserFacingError::new(
-+                    "Steam был запущен, но его процесс не появился за 10 секунд.",
-+                    true,
-+                ));
-+            }
-+            thread::sleep(Duration::from_millis(250));
-+        }
-+        Ok(())
-+    }
-+
 +    fn steam_process_running() -> bool {
 +        is_process_running("steam.exe") || is_process_running("steamwebhelper.exe")
 +    }
@@ -2667,7 +2726,7 @@ index ebda9ab..2ecaabf 100644
      fn find_steam_root() -> Option<PathBuf> {
          let hkcu = RegKey::predef(HKEY_CURRENT_USER);
          if let Ok(key) = hkcu.open_subkey("Software\\Valve\\Steam") {
-@@ -693,6 +1099,26 @@ mod windows {
+@@ -693,6 +915,26 @@ mod windows {
              .or_else(|| steam.get_value("ActiveUser").ok())
      }
  
@@ -2694,7 +2753,7 @@ index ebda9ab..2ecaabf 100644
      fn find_install_cfg(steam_root: &Path) -> Option<PathBuf> {
          let mut libraries = vec![steam_root.to_path_buf()];
          let library_file = steam_root.join("steamapps").join("libraryfolders.vdf");
-@@ -761,6 +1187,333 @@ mod windows {
+@@ -761,6 +1003,340 @@ mod windows {
          result
      }
  
@@ -2737,46 +2796,53 @@ index ebda9ab..2ecaabf 100644
 +        Ok((Some(value), true))
 +    }
 +
++    enum LaunchOptionsUpdate {
++        NotCaptured,
++        Manual(String),
++        Staged(DecodedFile),
++    }
++
++    fn saved_launch_options(payload: &Cs2Payload) -> Result<Option<String>, UserFacingError> {
++        if !payload.launch_options_captured && payload.launch_options.is_none() {
++            return Ok(None);
++        }
++        let raw = payload.launch_options.as_deref().unwrap_or("");
++        validate_launch_options(raw)?;
++        let value = normalize_launch_options(raw, profile_display_mode_intent(payload)?);
++        validate_launch_options(&value)?;
++        Ok(Some(value))
++    }
++
 +    fn prepare_launch_options_update(
 +        payload: &Cs2Payload,
 +        context: &SteamContext,
-+    ) -> Result<Option<DecodedFile>, UserFacingError> {
-+        let should_apply = payload.launch_options_captured || payload.launch_options.is_some();
-+        if !should_apply {
-+            return Ok(None);
++        steam_running: bool,
++    ) -> Result<LaunchOptionsUpdate, UserFacingError> {
++        let Some(value) = saved_launch_options(payload)? else {
++            return Ok(LaunchOptionsUpdate::NotCaptured);
++        };
++        // No read/write of localconfig.vdf is needed while Steam owns it.
++        if steam_running {
++            return Ok(LaunchOptionsUpdate::Manual(value));
 +        }
-+        let display_mode = profile_display_mode_intent(payload)?;
-+        let value = normalize_launch_options(
-+            payload.launch_options.as_deref().unwrap_or(""),
-+            display_mode,
-+        );
-+        validate_launch_options(&value)?;
-+        if !context.localconfig_vdf.is_file() {
-+            return Err(UserFacingError::new(
-+                "Параметры запуска CS2 не найдены для этого пользователя Steam. Запустите CS2 один раз, закройте игру и Steam, затем повторите.",
-+                true,
-+            ));
-+        }
-+        if context
-+            .localconfig_vdf
-+            .metadata()
-+            .map(|value| value.len() > MAX_LOCALCONFIG_BYTES)
-+            .unwrap_or(true)
-+        {
-+            return Err(UserFacingError::new(
-+                "Файл настроек Steam слишком большой или недоступен; параметры запуска не изменены.",
-+                false,
-+            ));
-+        }
-+        let text = fs::read_to_string(&context.localconfig_vdf)
-+            .map_err(|error| io_error("Could not read Steam launch options.", error))?;
-+        let updated = set_launch_options(&text, &value)?;
-+        Ok(Some(DecodedFile {
-+            scope: "steam".into(),
-+            relative_path: "localconfig.vdf".into(),
-+            target: context.localconfig_vdf.clone(),
-+            content: updated.into_bytes(),
-+        }))
++        // A missing/new/locked Steam config must not prevent applying game files.
++        let item = (|| {
++            if fs::metadata(&context.localconfig_vdf).ok()?.len() > MAX_LOCALCONFIG_BYTES {
++                return None;
++            }
++            let text = fs::read_to_string(&context.localconfig_vdf).ok()?;
++            let updated = set_launch_options(&text, &value).ok()?;
++            Some(DecodedFile {
++                scope: "steam".into(),
++                relative_path: "localconfig.vdf".into(),
++                target: context.localconfig_vdf.clone(),
++                content: updated.into_bytes(),
++            })
++        })();
++        Ok(match item {
++            Some(item) => LaunchOptionsUpdate::Staged(item),
++            None => LaunchOptionsUpdate::Manual(value),
++        })
 +    }
 +
 +    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -3028,7 +3094,7 @@ index ebda9ab..2ecaabf 100644
      fn capture_userdata_cfg_files(
          root: &Path,
          files: &mut Vec<Cs2ConfigFile>,
-@@ -774,7 +1527,7 @@ mod windows {
+@@ -774,7 +1350,7 @@ mod windows {
                  continue;
              };
              if path.is_file() && name.to_ascii_lowercase().ends_with(".cfg") {
@@ -3037,7 +3103,7 @@ index ebda9ab..2ecaabf 100644
              }
          }
          Ok(())
-@@ -806,6 +1559,7 @@ mod windows {
+@@ -806,6 +1382,7 @@ mod windows {
                  ));
                  continue;
              }
@@ -3045,7 +3111,7 @@ index ebda9ab..2ecaabf 100644
              let bytes = fs::read(&path)
                  .map_err(|error| io_error("Could not read a custom CS2 cfg file.", error))?;
              let (sanitized, removed) = sanitize_custom_cfg(&bytes)?;
-@@ -834,6 +1588,7 @@ mod windows {
+@@ -834,6 +1411,7 @@ mod windows {
          files: &mut Vec<Cs2ConfigFile>,
          scope: &str,
          relative: &str,
@@ -3053,7 +3119,7 @@ index ebda9ab..2ecaabf 100644
          path: &Path,
          sanitize: bool,
          details: &mut Vec<String>,
-@@ -844,6 +1599,7 @@ mod windows {
+@@ -844,6 +1422,7 @@ mod windows {
          {
              return Ok(());
          }
@@ -3061,7 +3127,7 @@ index ebda9ab..2ecaabf 100644
          let bytes = fs::read(path)
              .map_err(|error| io_error("Could not read a CS2 configuration file.", error))?;
          if bytes.len() as u64 > MAX_FILE_BYTES {
-@@ -901,6 +1657,30 @@ mod windows {
+@@ -901,6 +1480,30 @@ mod windows {
          Ok(())
      }
  
@@ -3092,7 +3158,7 @@ index ebda9ab..2ecaabf 100644
      fn sanitize_custom_cfg(bytes: &[u8]) -> Result<(Vec<u8>, usize), UserFacingError> {
          let text = std::str::from_utf8(bytes).map_err(|_| {
              UserFacingError::new(
-@@ -951,6 +1731,245 @@ mod windows {
+@@ -951,6 +1554,245 @@ mod windows {
          Ok((output.into_bytes(), removed))
      }
  
@@ -3338,7 +3404,7 @@ index ebda9ab..2ecaabf 100644
      fn sensitive_line(line: &str) -> bool {
          let value = line.trim().to_ascii_lowercase();
          [
-@@ -1032,6 +2051,7 @@ mod windows {
+@@ -1032,6 +1874,7 @@ mod windows {
          let allowed = match scope {
              "userdata" => core || (cfg && relative.components().count() == 1),
              "install" => cfg,
@@ -3346,7 +3412,7 @@ index ebda9ab..2ecaabf 100644
              _ => false,
          };
          if allowed {
-@@ -1045,7 +2065,7 @@ mod windows {
+@@ -1045,7 +1888,7 @@ mod windows {
      }
  
      fn backup_root() -> Result<PathBuf, UserFacingError> {
@@ -3355,11 +3421,17 @@ index ebda9ab..2ecaabf 100644
      }
  
      fn cs2_backup_directory() -> Result<PathBuf, UserFacingError> {
-@@ -1063,13 +2083,39 @@ mod windows {
+@@ -1061,15 +1904,44 @@ mod windows {
+             .join("CS2"))
+     }
  
-     fn rollback(committed: &[(&DecodedFile, Option<PathBuf>)]) {
+-    fn rollback(committed: &[(&DecodedFile, Option<PathBuf>)]) {
++    fn rollback(committed: &[(&DecodedFile, Option<PathBuf>)], steam_running: &dyn Fn() -> bool) {
          for (item, previous) in committed.iter().rev() {
 -            let _ = fs::remove_file(&item.target);
++            if item.scope == "steam" && steam_running() {
++                continue; // Preserve live Steam state and leave the backup for manual recovery.
++            }
              if let Some(path) = previous {
 -                let _ = fs::rename(path, &item.target);
 +                let _ = atomic_replace(path, &item.target);
@@ -3397,7 +3469,364 @@ index ebda9ab..2ecaabf 100644
      fn cleanup_staged(staged: &[(&DecodedFile, PathBuf)]) {
          for (_, path) in staged {
              let _ = fs::remove_file(path);
-@@ -1146,6 +2192,168 @@ mod windows {
+@@ -1084,12 +1956,16 @@ mod windows {
+         unsafe {
+             let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+             if snapshot == INVALID_HANDLE_VALUE {
+-                return false;
++                return true; // Fail closed: unknown process state must not allow writes.
+             }
+             let mut entry: PROCESSENTRY32W = zeroed();
+             entry.dwSize = size_of::<PROCESSENTRY32W>() as u32;
+             let mut found = false;
+-            if Process32FirstW(snapshot, &mut entry) != 0 {
++            if Process32FirstW(snapshot, &mut entry) == 0 {
++                CloseHandle(snapshot);
++                return true;
++            }
++            {
+                 loop {
+                     let length = entry
+                         .szExeFile
+@@ -1116,6 +1992,337 @@ mod windows {
+     mod tests {
+         use super::*;
+ 
++        struct ApplyFixture {
++            root: PathBuf,
++            context: SteamContext,
++            payload: Cs2Payload,
++        }
++
++        impl ApplyFixture {
++            fn new() -> Self {
++                static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
++                let root = env::temp_dir().join(format!(
++                    "gp-steam-session-{}-{}-{}",
++                    std::process::id(),
++                    Utc::now().timestamp_nanos_opt().unwrap(),
++                    NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
++                ));
++                let context = SteamContext {
++                    userdata_cfg: root.join("userdata/730/local/cfg"),
++                    install_cfg: Some(root.join("install/cfg")),
++                    localconfig_vdf: root.join("userdata/config/localconfig.vdf"),
++                };
++                fs::create_dir_all(&context.userdata_cfg).unwrap();
++                fs::create_dir_all(context.install_cfg.as_ref().unwrap()).unwrap();
++                fs::create_dir_all(context.localconfig_vdf.parent().unwrap()).unwrap();
++                fs::write(&context.localconfig_vdf, "\"Software\"\n{\n\"Valve\"\n{\n\"Steam\"\n{\n\"KeepMe\" \"unchanged\"\n\"apps\"\n{\n\"730\"\n{\n\"LaunchOptions\" \"-windowed\"\n}\n}\n}\n}\n}\n").unwrap();
++                fs::write(context.userdata_cfg.join("cs2_video.txt"), b"\"video.cfg\"\n{\n\"VendorID\" \"4318\"\n\"DeviceID\" \"1234\"\n\"setting.defaultres\" \"1920\"\n}\n").unwrap();
++                let files = [
++                    ("userdata", REQUIRED_CORE[0], "\"sensitivity\" \"1.25\"\n"),
++                    ("userdata", REQUIRED_CORE[1], "\"SPACE\" \"+jump\"\n"),
++                    ("userdata", REQUIRED_CORE[2], "\"video.cfg\"\n{\n\"setting.fullscreen\" \"1\"\n\"setting.coop_fullscreen\" \"0\"\n\"setting.defaultres\" \"1280\"\n\"setting.defaultresheight\" \"960\"\n\"setting.videocfg_shadow_quality\" \"2\"\n}\n"),
++                    ("install", "autoexec.cfg", "sensitivity 1.25\n"),
++                ].into_iter().map(|(scope, name, content)| Cs2ConfigFile {
++                    scope: scope.into(), relative_path: name.into(), content_base64: BASE64.encode(content),
++                    sha256: format!("{:x}", Sha256::digest(content.as_bytes())), size: content.len() as u64,
++                }).collect::<Vec<_>>();
++                let payload = Cs2Payload {
++                    schema_version: 2,
++                    captured_at: "test".into(),
++                    total_bytes: files.iter().map(|file| file.size).sum(),
++                    files,
++                    core_files_found: REQUIRED_CORE.iter().map(|s| s.to_string()).collect(),
++                    optional_files_missing: vec![],
++                    launch_options: Some("-console -windowed".into()),
++                    launch_options_captured: true,
++                };
++                Self {
++                    root,
++                    context,
++                    payload,
++                }
++            }
++
++            fn apply(&self, running: &dyn Fn() -> bool) -> Cs2CommandResponse {
++                apply_with_context(
++                    self.payload.clone(),
++                    &self.context,
++                    &self.root.join("backups"),
++                    running,
++                    &|| Ok(()),
++                    Duration::ZERO,
++                )
++                .unwrap()
++            }
++        }
++
++        impl Drop for ApplyFixture {
++            fn drop(&mut self) {
++                let _ = fs::remove_dir_all(&self.root);
++            }
++        }
++
++        #[test]
++        fn applies_game_files_with_steam_open_without_touching_steam_config() {
++            let fixture = ApplyFixture::new();
++            let before = fs::read(&fixture.context.localconfig_vdf).unwrap();
++            let result = fixture.apply(&|| true);
++            assert_eq!(result.state, "warning");
++            assert!(result
++                .manual_launch_options
++                .as_deref()
++                .unwrap()
++                .contains("-fullscreen"));
++            assert!(!result
++                .manual_launch_options
++                .as_deref()
++                .unwrap()
++                .contains("-windowed"));
++            assert_eq!(fs::read(&fixture.context.localconfig_vdf).unwrap(), before);
++            assert!(!fixture.root.join("backups/steam").exists());
++            assert_eq!(
++                fs::read_to_string(fixture.context.userdata_cfg.join(REQUIRED_CORE[0])).unwrap(),
++                "\"sensitivity\" \"1.25\"\n"
++            );
++            let video = video_key_values(
++                &fs::read(fixture.context.userdata_cfg.join(REQUIRED_CORE[2])).unwrap(),
++            )
++            .unwrap();
++            assert_eq!(video.get("setting.fullscreen").unwrap(), "1");
++            assert_eq!(video.get("setting.defaultres").unwrap(), "1280");
++            assert_eq!(video.get("setting.videocfg_shadow_quality").unwrap(), "2");
++            assert!(fixture
++                .context
++                .install_cfg
++                .as_ref()
++                .unwrap()
++                .join("autoexec.cfg")
++                .is_file());
++        }
++
++        #[test]
++        fn applies_launch_options_if_steam_is_already_closed() {
++            let fixture = ApplyFixture::new();
++            let result = fixture.apply(&|| false);
++            assert!(result.manual_launch_options.is_none());
++            let actual = fs::read_to_string(&fixture.context.localconfig_vdf).unwrap();
++            assert_eq!(
++                find_launch_options(&actual),
++                saved_launch_options(&fixture.payload).unwrap()
++            );
++            assert!(actual.contains("\"KeepMe\" \"unchanged\""));
++        }
++
++        #[test]
++        fn captures_and_applies_portable_audio_without_copying_another_pcs_device() {
++            let mut fixture = ApplyFixture::new();
++            let source = fixture.root.join("source-cfg");
++            fs::create_dir_all(&source).unwrap();
++            let user_audio = "\"convars\"\n{\n\"volume\" \"0.35\"\n\"snd_voipvolume\" \"0.6\"\n\"snd_menumusic_volume\" \"0.05\"\n\"voice_modenable\" \"1\"\n}\n";
++            let machine_audio = "\"convars\"\n{\n\"snd_headphone_eq\" \"2\"\n\"snd_spatialize_lerp\" \"0.5\"\n\"sound_device_override\" \"source-pc-device\"\n\"audio_device\" \"source-pc-output\"\n}\n";
++            let cfg_audio = "snd_roundstart_volume 0.15\nvoice_modenable 1\n";
++            let mut captured = Vec::new();
++            let mut details = Vec::new();
++            for (scope, name, text, sanitize) in [
++                ("userdata", REQUIRED_CORE[0], user_audio, false),
++                ("userdata", "cs2_machine_convars.vcfg", machine_audio, false),
++                ("install", "autoexec.cfg", cfg_audio, true),
++            ] {
++                let path = source.join(name);
++                fs::write(&path, text).unwrap();
++                add_file(
++                    &mut captured,
++                    scope,
++                    name,
++                    &source,
++                    &path,
++                    sanitize,
++                    &mut details,
++                )
++                .unwrap();
++            }
++            for file in &captured {
++                let decoded = BASE64.decode(&file.content_base64).unwrap();
++                assert_eq!(decoded.len() as u64, file.size);
++                assert_eq!(format!("{:x}", Sha256::digest(&decoded)), file.sha256);
++                assert!(!String::from_utf8(decoded).unwrap().contains("source-pc"));
++            }
++            fixture.payload.files.retain(|file| {
++                !captured
++                    .iter()
++                    .any(|new| new.scope == file.scope && new.relative_path == file.relative_path)
++            });
++            fixture.payload.files.extend(captured);
++            fixture.payload.total_bytes = fixture.payload.files.iter().map(|file| file.size).sum();
++            // Same serialized payload shape saved to Supabase; execute the actual file apply path.
++            fixture.payload =
++                serde_json::from_slice(&serde_json::to_vec(&fixture.payload).unwrap()).unwrap();
++            let result = fixture.apply(&|| true);
++            assert_ne!(result.state, "error");
++            assert!(result
++                .details
++                .iter()
++                .any(|detail| detail.contains("Записано и проверено файлов")));
++            assert_eq!(
++                fs::read_to_string(fixture.context.userdata_cfg.join(REQUIRED_CORE[0])).unwrap(),
++                user_audio
++            );
++            let machine = fs::read_to_string(
++                fixture
++                    .context
++                    .userdata_cfg
++                    .join("cs2_machine_convars.vcfg"),
++            )
++            .unwrap();
++            assert!(machine.contains("\"snd_headphone_eq\" \"2\""));
++            assert!(machine.contains("\"snd_spatialize_lerp\" \"0.5\""));
++            assert!(!machine.contains("source-pc"));
++            assert_eq!(
++                fs::read_to_string(
++                    fixture
++                        .context
++                        .install_cfg
++                        .as_ref()
++                        .unwrap()
++                        .join("autoexec.cfg")
++                )
++                .unwrap(),
++                cfg_audio
++            );
++        }
++
++        #[test]
++        fn skips_steam_write_if_client_starts_during_apply() {
++            let fixture = ApplyFixture::new();
++            let before = fs::read(&fixture.context.localconfig_vdf).unwrap();
++            let calls = std::cell::Cell::new(0);
++            let result = fixture.apply(&|| {
++                let n = calls.get();
++                calls.set(n + 1);
++                n > 0
++            });
++            assert!(result.manual_launch_options.is_some());
++            assert_eq!(fs::read(&fixture.context.localconfig_vdf).unwrap(), before);
++            assert!(fixture
++                .context
++                .userdata_cfg
++                .join(REQUIRED_CORE[1])
++                .is_file());
++        }
++
++        #[test]
++        fn missing_steam_config_does_not_block_game_settings() {
++            let fixture = ApplyFixture::new();
++            fs::remove_file(&fixture.context.localconfig_vdf).unwrap();
++            let result = fixture.apply(&|| false);
++            assert_eq!(result.state, "warning");
++            assert!(result.manual_launch_options.is_some());
++            assert!(!fixture.context.localconfig_vdf.exists());
++            assert!(fixture.context.userdata_cfg.join(REQUIRED_CORE[1]).exists());
++        }
++
++        #[test]
++        fn empty_launch_options_remain_an_explicit_manual_clear_action() {
++            let mut fixture = ApplyFixture::new();
++            fixture.payload.files.clear();
++            fixture.payload.launch_options = None;
++            match prepare_launch_options_update(&fixture.payload, &fixture.context, true).unwrap() {
++                LaunchOptionsUpdate::Manual(value) => assert_eq!(value, ""),
++                _ => panic!("A captured empty value must not be lost"),
++            }
++            fixture.payload.launch_options_captured = false;
++            assert!(matches!(
++                prepare_launch_options_update(&fixture.payload, &fixture.context, true).unwrap(),
++                LaunchOptionsUpdate::NotCaptured
++            ));
++        }
++
++        #[test]
++        fn invalid_launch_options_are_rejected_before_any_write() {
++            let mut fixture = ApplyFixture::new();
++            fixture.payload.launch_options = Some("+password secret".into());
++            assert!(apply_with_context(
++                fixture.payload.clone(),
++                &fixture.context,
++                &fixture.root.join("backups"),
++                &|| true,
++                &|| Ok(()),
++                Duration::ZERO
++            )
++            .is_err());
++            assert!(!fixture.context.userdata_cfg.join(REQUIRED_CORE[0]).exists());
++        }
++
++        #[test]
++        fn running_cs2_still_blocks_apply() {
++            let fixture = ApplyFixture::new();
++            assert!(apply_with_context(
++                fixture.payload.clone(),
++                &fixture.context,
++                &fixture.root.join("backups"),
++                &|| true,
++                &|| Err(UserFacingError::new("CS2 running", true)),
++                Duration::ZERO
++            )
++            .is_err());
++            assert!(!fixture.context.userdata_cfg.join(REQUIRED_CORE[0]).exists());
++        }
++
++        #[test]
++        fn detects_external_overwrite_of_keybinds_after_commit() {
++            let fixture = ApplyFixture::new();
++            let calls = std::cell::Cell::new(0);
++            let result = apply_with_context(
++                fixture.payload.clone(),
++                &fixture.context,
++                &fixture.root.join("backups"),
++                &|| true,
++                &|| {
++                    let n = calls.get() + 1;
++                    calls.set(n);
++                    if n == 7 {
++                        fs::write(
++                            fixture.context.userdata_cfg.join(REQUIRED_CORE[1]),
++                            b"external update",
++                        )
++                        .unwrap();
++                    }
++                    Ok(())
++                },
++                Duration::ZERO,
++            )
++            .unwrap();
++            assert_eq!(result.state, "warning");
++            assert!(result.retryable);
++            assert!(result.message.contains("повторная проверка не пройдена"));
++        }
++
++        #[test]
++        fn restore_never_replaces_legacy_full_steam_configuration() {
++            let fixture = ApplyFixture::new();
++            let before = fs::read(&fixture.context.localconfig_vdf).unwrap();
++            let backups = fixture.root.join("restore-backups");
++            fs::create_dir_all(backups.join("001/steam")).unwrap();
++            fs::create_dir_all(backups.join("001/userdata")).unwrap();
++            fs::write(
++                backups.join("001/steam/localconfig.vdf"),
++                b"old Steam state",
++            )
++            .unwrap();
++            fs::write(
++                backups.join("001/userdata").join(REQUIRED_CORE[1]),
++                b"old binds",
++            )
++            .unwrap();
++            let result = restore_with_context(&fixture.context, &backups, &|| Ok(())).unwrap();
++            assert_eq!(result.state, "warning");
++            assert_eq!(fs::read(&fixture.context.localconfig_vdf).unwrap(), before);
++            assert_eq!(
++                fs::read(fixture.context.userdata_cfg.join(REQUIRED_CORE[1])).unwrap(),
++                b"old binds"
++            );
++        }
++
+         #[test]
+         fn parses_steam_library_path() {
+             assert_eq!(
+@@ -1146,6 +2353,168 @@ mod windows {
              assert_eq!(removed, 1);
              assert!(String::from_utf8(video).unwrap().contains("defaultres"));
          }
@@ -3566,7 +3995,7 @@ index ebda9ab..2ecaabf 100644
      }
  }
  
-@@ -1182,9 +2390,12 @@ mod tests {
+@@ -1182,9 +2551,12 @@ mod tests {
              total_bytes: 0,
              core_files_found: vec![],
              optional_files_missing: vec![],
@@ -3580,10 +4009,35 @@ index ebda9ab..2ecaabf 100644
      }
  }
 diff --git a/src-tauri/src/display.rs b/src-tauri/src/display.rs
-index 4a96bfe..70768fa 100644
+index 4a96bfe..d64c9f1 100644
 --- a/src-tauri/src/display.rs
 +++ b/src-tauri/src/display.rs
-@@ -74,6 +74,18 @@ impl DisplayCommandResponse {
+@@ -14,6 +14,8 @@ pub struct DisplayMode {
+ #[serde(rename_all = "camelCase")]
+ pub struct DisplayPayload {
+     pub schema_version: u32,
++    #[serde(default)]
++    pub capture_source: Option<String>,
+     pub captured_at: String,
+     pub width: u32,
+     pub height: u32,
+@@ -23,15 +25,6 @@ pub struct DisplayPayload {
+     pub refresh_rate_policy: String,
+ }
+ 
+-#[derive(Debug, Clone, Deserialize)]
+-#[serde(rename_all = "camelCase")]
+-#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+-pub struct DisplayCaptureRequest {
+-    pub width: u32,
+-    pub height: u32,
+-    pub display_mode: String,
+-}
+-
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct DisplayDiagnostics {
+@@ -74,6 +67,18 @@ impl DisplayCommandResponse {
      }
  }
  
@@ -3602,7 +4056,114 @@ index 4a96bfe..70768fa 100644
  pub fn aspect_ratio(width: u32, height: u32) -> String {
      if width == 0 || height == 0 {
          return "unknown".into();
-@@ -267,7 +279,51 @@ mod windows {
+@@ -106,8 +111,32 @@ pub fn choose_primary_index(primary_flags: &[bool]) -> Option<usize> {
+         .or_else(|| (!primary_flags.is_empty()).then_some(0))
+ }
+ 
++fn is_independent_desktop_snapshot(payload: &DisplayPayload) -> bool {
++    payload.schema_version == 2 && payload.capture_source.as_deref() == Some("windows_desktop")
++}
++
++// Only accepts the current mode read from Windows, never CS2/PUBG video settings.
++fn desktop_snapshot(current: &DisplayMode, captured_at: String) -> Result<DisplayPayload, String> {
++    if !(320..=16384).contains(&current.width) || !(200..=16384).contains(&current.height) {
++        return Err(
++            "Windows reported invalid desktop dimensions. No display snapshot was saved.".into(),
++        );
++    }
++    Ok(DisplayPayload {
++        schema_version: 2,
++        capture_source: Some("windows_desktop".into()),
++        captured_at,
++        width: current.width,
++        height: current.height,
++        aspect_ratio: aspect_ratio(current.width, current.height),
++        display_mode: "unknown".into(), // Fullscreen/windowed describes the game, not the desktop.
++        scaling_preference: "driver_managed".into(), // NVIDIA scaling lives in its own snapshot.
++        refresh_rate_policy: "MAX_AVAILABLE".into(),
++    })
++}
++
+ #[cfg(not(target_os = "windows"))]
+-pub fn capture(_request: DisplayCaptureRequest) -> DisplayCommandResponse {
++pub fn capture() -> DisplayCommandResponse {
+     DisplayCommandResponse::unsupported()
+ }
+ 
+@@ -165,11 +194,18 @@ mod windows {
+         mode: DisplayMode,
+     }
+ 
+-    pub fn capture(request: DisplayCaptureRequest) -> DisplayCommandResponse {
++    pub fn capture() -> DisplayCommandResponse {
+         match inspect(None) {
+             Ok(diagnostics) => {
++                let Some(current) = diagnostics.current_mode.as_ref() else {
++                    return error_response("Windows did not report the current desktop mode. No display snapshot was saved.".into(), true);
++                };
++                let payload = match desktop_snapshot(current, Utc::now().to_rfc3339()) {
++                    Ok(payload) => payload,
++                    Err(message) => return error_response(message, true),
++                };
+                 let exact =
+-                    choose_best_mode(&diagnostics.supported_modes, request.width, request.height);
++                    choose_best_mode(&diagnostics.supported_modes, current.width, current.height);
+                 let mut details = vec![format!(
+                     "Primary gaming display: {}",
+                     diagnostics
+@@ -185,28 +221,18 @@ mod windows {
+                 if exact.is_none() {
+                     details.push(format!(
+                         "{}x{} is not currently exposed by Windows for this display connection.",
+-                        request.width, request.height
++                        current.width, current.height
+                     ));
+                 }
+-                let payload = DisplayPayload {
+-                    schema_version: 1,
+-                    captured_at: Utc::now().to_rfc3339(),
+-                    width: request.width,
+-                    height: request.height,
+-                    aspect_ratio: aspect_ratio(request.width, request.height),
+-                    display_mode: request.display_mode,
+-                    scaling_preference: "driver_managed".into(),
+-                    refresh_rate_policy: "MAX_AVAILABLE".into(),
+-                };
+                 DisplayCommandResponse {
+                     state: state.into(),
+                     message: if exact.is_some() {
+                         format!(
+-                            "Saved display policy {}x{} at maximum available refresh rate.",
+-                            request.width, request.height
++                            "Saved Windows desktop resolution {}x{}, independently of the game. Refresh policy: maximum available.",
++                            current.width, current.height
+                         )
+                     } else {
+-                        "Saved the requested display policy, but it is unavailable on this monitor."
++                        "Saved the current Windows desktop resolution, but Windows did not list a matching supported mode."
+                             .into()
+                     },
+                     details,
+@@ -221,6 +247,18 @@ mod windows {
+     }
+ 
+     pub fn apply(payload: DisplayPayload) -> DisplayCommandResponse {
++        // Schema 1 copied game dimensions. Guard the native boundary before any OS reads or writes.
++        if !is_independent_desktop_snapshot(&payload) {
++            return DisplayCommandResponse {
++                state: "warning".into(),
++                message: "Экран не изменён: сохраните профиль заново на исходном ПК, чтобы отдельно сохранить разрешение рабочего стола.".into(),
++                details: vec!["Legacy or unknown display snapshot: game resolution is never used as desktop resolution.".into()],
++                retryable: false,
++                payload: None,
++                diagnostics: None,
++                backup_token: None,
++            };
++        }
+         if let Err(message) = validate_payload(&payload) {
+             return error_response(message, false);
+         }
+@@ -267,7 +305,51 @@ mod windows {
          };
          match set_mode(&monitor.device_name, &selected) {
              Ok(result) => {
@@ -3654,7 +4215,7 @@ index 4a96bfe..70768fa 100644
                  DisplayCommandResponse {
                      state: if result == "restart_required" {
                          "warning"
-@@ -281,6 +337,10 @@ mod windows {
+@@ -281,6 +363,10 @@ mod windows {
                      ),
                      details: vec![
                          "RefreshRatePolicy = MAX_AVAILABLE".into(),
@@ -3665,8 +4226,58 @@ index 4a96bfe..70768fa 100644
                          format!("Display backup: {}", backup_path.display()),
                      ],
                      retryable: result == "restart_required",
+@@ -528,7 +614,7 @@ mod windows {
+     }
+ 
+     fn validate_payload(payload: &DisplayPayload) -> Result<(), String> {
+-        if payload.schema_version != 1 {
++        if !is_independent_desktop_snapshot(payload) {
+             return Err("Unsupported or corrupted display snapshot schema.".into());
+         }
+         if !(320..=16384).contains(&payload.width) || !(200..=16384).contains(&payload.height) {
+@@ -690,4 +776,40 @@ mod tests {
+         assert_eq!(choose_primary_index(&[false, false]), Some(0));
+         assert_eq!(choose_primary_index(&[]), None);
+     }
++
++    #[test]
++    fn captures_the_actual_desktop_not_game_resolution() {
++        let payload = desktop_snapshot(&mode(1920, 1080, 144, false), "now".into()).unwrap();
++        assert_eq!((payload.width, payload.height), (1920, 1080));
++        assert_eq!(payload.aspect_ratio, "16:9");
++        assert_eq!(payload.display_mode, "unknown");
++        assert!(is_independent_desktop_snapshot(&payload));
++    }
++
++    #[test]
++    fn refuses_legacy_and_unproven_desktop_dimensions() {
++        let mut payload = desktop_snapshot(&mode(1280, 960, 144, false), "now".into()).unwrap();
++        payload.schema_version = 1;
++        payload.capture_source = None;
++        let mut json = serde_json::to_value(&payload).unwrap();
++        json.as_object_mut().unwrap().remove("captureSource");
++        let legacy: DisplayPayload = serde_json::from_value(json).unwrap();
++        assert!(!is_independent_desktop_snapshot(&legacy));
++        #[cfg(target_os = "windows")]
++        {
++            let response = apply(legacy);
++            assert_eq!(response.state, "warning");
++            assert!(response.backup_token.is_none());
++            assert!(response.diagnostics.is_none());
++        }
++        payload.schema_version = 2;
++        assert!(!is_independent_desktop_snapshot(&payload));
++        payload.capture_source = Some("game_video".into());
++        assert!(!is_independent_desktop_snapshot(&payload));
++    }
++
++    #[test]
++    fn never_invents_missing_desktop_dimensions() {
++        assert!(desktop_snapshot(&mode(0, 0, 60, false), "now".into()).is_err());
++    }
+ }
 diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
-index 664e070..5ee1f19 100644
+index 664e070..af48b45 100644
 --- a/src-tauri/src/lib.rs
 +++ b/src-tauri/src/lib.rs
 @@ -1,11 +1,14 @@
@@ -3702,7 +4313,7 @@ index 664e070..5ee1f19 100644
      cs2::apply(payload)
  }
  
-@@ -43,6 +52,9 @@ fn check_cs2_closed() -> cs2::Cs2CommandResponse {
+@@ -43,18 +52,25 @@ fn check_cs2_closed() -> cs2::Cs2CommandResponse {
  
  #[tauri::command]
  fn restore_cs2_settings() -> cs2::Cs2CommandResponse {
@@ -3712,14 +4323,16 @@ index 664e070..5ee1f19 100644
      cs2::restore()
  }
  
-@@ -50,11 +62,17 @@ fn restore_cs2_settings() -> cs2::Cs2CommandResponse {
- fn capture_display_settings(
-     request: display::DisplayCaptureRequest,
- ) -> display::DisplayCommandResponse {
+ #[tauri::command]
+-fn capture_display_settings(
+-    request: display::DisplayCaptureRequest,
+-) -> display::DisplayCommandResponse {
+-    display::capture(request)
++fn capture_display_settings() -> display::DisplayCommandResponse {
 +    if let Err(message) = license::require_active() {
 +        return display::license_denied(message);
 +    }
-     display::capture(request)
++    display::capture()
  }
  
  #[tauri::command]
@@ -3730,7 +4343,7 @@ index 664e070..5ee1f19 100644
      display::apply(payload)
  }
  
-@@ -65,19 +83,36 @@ fn get_display_diagnostics() -> display::DisplayCommandResponse {
+@@ -65,19 +81,36 @@ fn get_display_diagnostics() -> display::DisplayCommandResponse {
  
  #[tauri::command]
  fn restore_display_settings(backup_token: Option<String>) -> display::DisplayCommandResponse {
@@ -3767,7 +4380,7 @@ index 664e070..5ee1f19 100644
  #[tauri::command]
  fn get_nvidia_diagnostics() -> nvidia::NvidiaCommandResponse {
      nvidia::diagnostics()
-@@ -85,16 +120,25 @@ fn get_nvidia_diagnostics() -> nvidia::NvidiaCommandResponse {
+@@ -85,16 +118,25 @@ fn get_nvidia_diagnostics() -> nvidia::NvidiaCommandResponse {
  
  #[tauri::command]
  fn restore_nvidia_settings(backup_token: Option<String>) -> nvidia::NvidiaCommandResponse {
@@ -3793,7 +4406,7 @@ index 664e070..5ee1f19 100644
      mouse::apply(payload)
  }
  
-@@ -105,16 +149,25 @@ fn get_mouse_diagnostics() -> mouse::MouseCommandResponse {
+@@ -105,16 +147,25 @@ fn get_mouse_diagnostics() -> mouse::MouseCommandResponse {
  
  #[tauri::command]
  fn restore_mouse_settings(backup_token: Option<String>) -> mouse::MouseCommandResponse {
@@ -3819,7 +4432,7 @@ index 664e070..5ee1f19 100644
      pubg::apply(payload)
  }
  
-@@ -125,9 +178,121 @@ fn check_pubg_closed() -> pubg::PubgCommandResponse {
+@@ -125,9 +176,121 @@ fn check_pubg_closed() -> pubg::PubgCommandResponse {
  
  #[tauri::command]
  fn restore_pubg_settings(backup_token: Option<String>) -> pubg::PubgCommandResponse {
@@ -3941,7 +4554,7 @@ index 664e070..5ee1f19 100644
  #[tauri::command]
  fn get_pubg_diagnostics() -> pubg::PubgCommandResponse {
      pubg::diagnostics()
-@@ -151,6 +316,14 @@ fn save_diagnostic_report(contents: String) -> release::FileCommandResponse {
+@@ -151,6 +314,14 @@ fn save_diagnostic_report(contents: String) -> release::FileCommandResponse {
  #[cfg_attr(mobile, tauri::mobile_entry_point)]
  pub fn run() {
      tauri::Builder::default()
@@ -3956,7 +4569,7 @@ index 664e070..5ee1f19 100644
          .invoke_handler(tauri::generate_handler![
              get_platform_info,
              check_cs2_closed,
-@@ -163,6 +336,7 @@ pub fn run() {
+@@ -163,6 +334,7 @@ pub fn run() {
              restore_display_settings,
              capture_nvidia_settings,
              apply_nvidia_settings,
@@ -3964,7 +4577,7 @@ index 664e070..5ee1f19 100644
              get_nvidia_diagnostics,
              restore_nvidia_settings,
              capture_mouse_settings,
-@@ -174,6 +348,19 @@ pub fn run() {
+@@ -174,6 +346,19 @@ pub fn run() {
              apply_pubg_settings,
              restore_pubg_settings,
              get_pubg_diagnostics,
@@ -6027,7 +6640,7 @@ index 0000000..e9bdcd3
 +#[cfg(target_os = "windows")]
 +pub use windows::{get, remove, set};
 diff --git a/src-tauri/tauri.conf.json b/src-tauri/tauri.conf.json
-index 3d191e8..2f53a6a 100644
+index 3d191e8..3b7987c 100644
 --- a/src-tauri/tauri.conf.json
 +++ b/src-tauri/tauri.conf.json
 @@ -1,7 +1,7 @@
@@ -6035,7 +6648,7 @@ index 3d191e8..2f53a6a 100644
    "$schema": "https://schema.tauri.app/config/2",
    "productName": "Game Passport",
 -  "version": "0.6.0",
-+  "version": "0.9.1",
++  "version": "0.9.2",
    "identifier": "app.gamepassport.desktop",
    "build": {
      "beforeDevCommand": "pnpm dev",
@@ -6049,7 +6662,7 @@ index 3d191e8..2f53a6a 100644
        }
      ],
 diff --git a/src/App.tsx b/src/App.tsx
-index 1080cbb..4e804a6 100644
+index 1080cbb..29847c6 100644
 --- a/src/App.tsx
 +++ b/src/App.tsx
 @@ -4,13 +4,54 @@ import { createServices } from "./infrastructure/createServices";
@@ -6109,13 +6722,21 @@ index 1080cbb..4e804a6 100644
 +  if (services.mode === "cloud" && !["not_required", "active", "offline_grace"].includes(license.state)) {
 +    return <DeviceActivationScreen status={license} busy={licenseBusy} onRetry={refreshLicense} onActivate={activate} onSignOut={() => void signOut()} />;
 +  }
-+  return <Dashboard user={user} services={services} license={license} onSignOut={() => void signOut()} />;
++  return <Dashboard key={user.id} user={user} services={services} license={license} onSignOut={() => void signOut()} />;
  }
 diff --git a/src/adapters/Cs2Adapter.ts b/src/adapters/Cs2Adapter.ts
-index 668ecab..3cbd4ce 100644
+index 668ecab..87bd823 100644
 --- a/src/adapters/Cs2Adapter.ts
 +++ b/src/adapters/Cs2Adapter.ts
-@@ -51,6 +51,11 @@ export class Cs2Adapter implements SettingsAdapter {
+@@ -13,6 +13,7 @@ function mapResponse(response: Cs2CommandResponse, settingsPatch?: Record<string
+     message: response.message,
+     details: response.details,
+     retryable: response.retryable,
++    manualLaunchOptions: response.manualLaunchOptions,
+     ...(settingsPatch && { settingsPatch })
+   };
+ }
+@@ -51,6 +52,11 @@ export class Cs2Adapter implements SettingsAdapter {
      } catch (error) { return this.runtimeError(error); }
    }
  
@@ -6140,6 +6761,78 @@ index ef10397..cbfbae8 100644
    readonly status = "implemented" as const;
  
    supports(profile: GameProfile) { return profile.game === "cs2"; }
+diff --git a/src/adapters/DisplayAdapter.ts b/src/adapters/DisplayAdapter.ts
+index 66f1cc0..386486f 100644
+--- a/src/adapters/DisplayAdapter.ts
++++ b/src/adapters/DisplayAdapter.ts
+@@ -1,5 +1,5 @@
+ import { invoke } from "@tauri-apps/api/core";
+-import { displayRequestFromProfile, getDisplayPayload, type DisplayCommandResponse, type DisplayPayload } from "../domain/display";
++import { getDisplayPayload, isIndependentDesktopSnapshot, type DisplayCommandResponse } from "../domain/display";
+ import type { AdapterResult, GameProfile } from "../domain/types";
+ import type { SettingsAdapter } from "../ports/SettingsAdapter";
+ import { isTauriDesktop } from "../services/platform";
+@@ -24,30 +24,27 @@ export class DisplayAdapter implements SettingsAdapter {
+ 
+   supports(profile: GameProfile) { return profile.game === "cs2" || profile.game === "pubg"; }
+ 
+-  async capture(profile: GameProfile): Promise<AdapterResult> {
++  async capture(): Promise<AdapterResult> {
+     if (!isTauriDesktop()) return this.desktopRequired();
+-    const request = displayRequestFromProfile(profile.game, profile.settings);
+-    if (!request) return {
+-      adapterId: this.id,
+-      label: this.label,
+-      state: "warning",
+-      message: `${profile.game === "pubg" ? "PUBG" : "CS2"} video resolution could not be read, so no Display snapshot was saved.`,
+-      details: [profile.game === "pubg" ? "GameUserSettings.ini must contain ResolutionSizeX and ResolutionSizeY." : "cs2_video.txt must contain setting.defaultres and setting.defaultresheight."],
+-      retryable: true
+-    };
+     try {
+-      const response = await invoke<DisplayCommandResponse>("capture_display_settings", { request });
++      const response = await invoke<DisplayCommandResponse>("capture_display_settings");
+       const patch = response.payload ? { adapters: { [this.id]: response.payload } } : undefined;
+       return mapResponse(response, patch);
+     } catch (error) { return this.runtimeError(error); }
+   }
+ 
+   async apply(profile: GameProfile): Promise<AdapterResult> {
++    this.backupToken = undefined;
+     if (!isTauriDesktop()) return this.desktopRequired();
+     const payload = getDisplayPayload(profile.settings);
+     if (!payload) return { adapterId: this.id, label: this.label, state: "warning", message: "This profile has no saved Display policy.", retryable: false };
++    if (!isIndependentDesktopSnapshot(payload)) return {
++      adapterId: this.id, label: this.label, state: "warning",
++      message: "Экран не изменён: в старом профиле нет независимых настроек рабочего стола. Сохраните профиль заново на исходном ПК.",
++      details: ["Разрешение CS2/PUBG не используется для настройки Windows или NVIDIA."], retryable: false
++    };
+     try {
+-      const response = await invoke<DisplayCommandResponse>("apply_display_settings", { payload: payload as DisplayPayload });
++      const response = await invoke<DisplayCommandResponse>("apply_display_settings", { payload });
+       this.backupToken = response.backupToken;
+       return mapResponse(response);
+     } catch (error) { return this.runtimeError(error); }
+diff --git a/src/adapters/NvidiaAdapter.ts b/src/adapters/NvidiaAdapter.ts
+index daa1b8b..622c138 100644
+--- a/src/adapters/NvidiaAdapter.ts
++++ b/src/adapters/NvidiaAdapter.ts
+@@ -1,6 +1,5 @@
+ import { invoke } from "@tauri-apps/api/core";
+ import { getNvidiaPayload, type NvidiaCommandResponse, type NvidiaPayload } from "../domain/nvidia";
+-import { getDisplayPayload } from "../domain/display";
+ import type { AdapterResult, GameProfile } from "../domain/types";
+ import type { SettingsAdapter } from "../ports/SettingsAdapter";
+ import { isTauriDesktop } from "../services/platform";
+@@ -31,8 +30,7 @@ export class NvidiaAdapter implements SettingsAdapter {
+       const response = await invoke<NvidiaCommandResponse>("capture_nvidia_settings", { request: { game: profile.game } });
+       const patch = response.payload ? {
+         adapters: {
+-          [this.id]: response.payload,
+-          ...(getDisplayPayload(profile.settings) && { display: { scalingPreference: response.payload.scalingMode } })
++          [this.id]: response.payload
+         }
+       } : undefined;
+       return mapResponse(response, patch);
 diff --git a/src/adapters/NvidiaDisplayControlsAdapter.ts b/src/adapters/NvidiaDisplayControlsAdapter.ts
 new file mode 100644
 index 0000000..8565c6b
@@ -14307,7 +15000,7 @@ index fb90ae7..0f59672 100644
 +  return variant === "recovery" ? "Не удалось отправить письмо. Повторите попытку позже." : "Не удалось выполнить вход. Повторите попытку.";
  }
 diff --git a/src/components/Dashboard.tsx b/src/components/Dashboard.tsx
-index 0603812..e8526de 100644
+index 0603812..83e4db3 100644
 --- a/src/components/Dashboard.tsx
 +++ b/src/components/Dashboard.tsx
 @@ -1,5 +1,5 @@
@@ -14317,7 +15010,7 @@ index 0603812..e8526de 100644
  import type { GameId, GameProfile, SessionUser } from "../domain/types";
  import type { Services } from "../infrastructure/createServices";
  import { applyAdapterRegistry, captureAdapterRegistry, restoreAdapterRegistry } from "../adapters/registry";
-@@ -16,15 +16,24 @@ import type { CloudState } from "../domain/release";
+@@ -16,15 +16,23 @@ import type { CloudState } from "../domain/release";
  import type { MousePayload } from "../domain/mouse";
  import { fieldValidation } from "../services/fieldValidation";
  import { operationHistory } from "../services/operationHistory";
@@ -14325,6 +15018,7 @@ index 0603812..e8526de 100644
 +import type { InterruptedApply } from "../domain/applyLock";
 +import { applyLock } from "../services/applyLock";
 +import { Onboarding } from "./Onboarding";
++import { useOneTimeHelp } from "../services/useOneTimeHelp";
  
 -interface Props { user: SessionUser; services: Services; onSignOut: () => void }
 +interface Props { user: SessionUser; services: Services; license: DeviceLicenseStatus; onSignOut: () => void }
@@ -14339,14 +15033,12 @@ index 0603812..e8526de 100644
 +  const [captureAfterCreate, setCaptureAfterCreate] = useState(false);
 +  const [operation, setOperation] = useState<{ profile: GameProfile; type: "capture" | "apply" | "restore"; returnView: View; recovery?: boolean } | null>(null);
 +  const [view, setView] = useState<View>("profiles");
-+  const onboardingKey = `game-passport.onboarding.v1.${user.id}`;
-+  const startupHelpKey = `game-passport.startup-help.hidden.v1.${user.id}`;
-+  const [onboarding, setOnboarding] = useState<"full" | "compact" | null>(() => !localStorage.getItem(onboardingKey) ? "full" : !localStorage.getItem(startupHelpKey) ? "compact" : null);
++  const [onboarding, setOnboarding] = useOneTimeHelp("onboarding", user.id);
 +  const [interrupted, setInterrupted] = useState<InterruptedApply>();
    const [cloudState, setCloudState] = useState<CloudState>(services.mode === "demo" ? "demo" : services.mode === "field-test" ? "field-test" : "checking");
    const [error, setError] = useState("");
    const applyOrchestrator = useMemo(() => new ProfileOrchestrator(applyAdapterRegistry), []);
-@@ -32,6 +41,7 @@ export function Dashboard({ user, services, onSignOut }: Props) {
+@@ -32,6 +40,7 @@ export function Dashboard({ user, services, onSignOut }: Props) {
    const restoreOrchestrator = useMemo(() => new ProfileOrchestrator(restoreAdapterRegistry), []);
    const load = useCallback(async () => { try { setProfiles(await services.profiles.list(user.id)); } catch (cause) { setError("Не удалось загрузить профили."); logger.error("profiles", "Profile loading failed", cause); } finally { setLoading(false); } }, [services.profiles, user.id]);
    useEffect(() => { void load(); }, [load]);
@@ -14354,7 +15046,7 @@ index 0603812..e8526de 100644
    const refreshCloud = useCallback(async () => { const state = await services.checkCloud(); setCloudState(state); }, [services]);
    useEffect(() => {
      void refreshCloud();
-@@ -46,7 +56,12 @@ export function Dashboard({ user, services, onSignOut }: Props) {
+@@ -46,7 +55,12 @@ export function Dashboard({ user, services, onSignOut }: Props) {
        const settings = mousePatch ? mergeSettingsPatch(modal.profile.settings, mousePatch) : modal.profile.settings;
        await services.profiles.update(user.id, modal.profile.id, { name, game, settings });
      } else {
@@ -14368,7 +15060,7 @@ index 0603812..e8526de 100644
      }
      logger.info("profiles", modal?.profile ? "Updated selected profile" : "Created a profile"); setModal(null); await load();
    }
-@@ -70,6 +85,9 @@ export function Dashboard({ user, services, onSignOut }: Props) {
+@@ -70,6 +84,9 @@ export function Dashboard({ user, services, onSignOut }: Props) {
      if ((operation.profile.game === "cs2" || operation.profile.game === "pubg") && (operation.type === "capture" || operation.type === "apply")) {
        fieldValidation.recordSoftware(operation.profile.game, operation.type, results);
      }
@@ -14378,14 +15070,14 @@ index 0603812..e8526de 100644
    }, [operation]);
  
    function beginOperation(profile: GameProfile, type: "capture" | "apply" | "restore", returnView: View = view) {
-@@ -85,18 +103,20 @@ export function Dashboard({ user, services, onSignOut }: Props) {
+@@ -85,18 +102,20 @@ export function Dashboard({ user, services, onSignOut }: Props) {
    if (operation) return <OperationScreen profile={operation.profile} operation={operation.type} orchestrator={operation.type === "capture" ? captureOrchestrator : operation.type === "restore" ? restoreOrchestrator : applyOrchestrator} onCapture={operation.type === "capture" ? persistCapture : undefined} onComplete={completeOperation} onClose={() => { setView(operation.returnView); setOperation(null); void load(); void refreshCloud(); }} />;
    return <div className="app-shell">
      <aside className="sidebar">
 -      <div className="brand"><span className="brand-mark"><Gamepad2 size={21} /></span><span>GAME PASSPORT</span></div>
 -      <nav><button className={view === "profiles" ? "active" : ""} onClick={() => setView("profiles")}><Settings2 size={19} /> Мои профили</button><button className={view === "validation" ? "active" : ""} onClick={() => setView("validation")}><ListChecks size={19} /> Проверка Game Passport</button><button className={view === "diagnostics" ? "active" : ""} onClick={() => setView("diagnostics")}><Activity size={19} /> Диагностика</button><button className={view === "setup" ? "active" : ""} onClick={() => setView("setup")}><SlidersHorizontal size={19} /> Первичная настройка</button></nav>
 +      <div className="brand"><span className="brand-mark">GP</span><span>GAME PASSPORT</span></div>
-+      <nav><button className={view === "profiles" ? "active" : ""} onClick={() => setView("profiles")}><Settings2 size={19} /> Мои профили</button><button className={view === "validation" ? "active" : ""} onClick={() => setView("validation")}><ListChecks size={19} /> Проверка Game Passport</button><button className={view === "diagnostics" ? "active" : ""} onClick={() => setView("diagnostics")}><Activity size={19} /> Диагностика</button><button className={view === "setup" ? "active" : ""} onClick={() => setView("setup")}><SlidersHorizontal size={19} /> Первичная настройка</button><button onClick={() => setOnboarding("full")}><HelpCircle size={19} /> Как пользоваться</button></nav>
++      <nav><button className={view === "profiles" ? "active" : ""} onClick={() => setView("profiles")}><Settings2 size={19} /> Мои профили</button><button className={view === "validation" ? "active" : ""} onClick={() => setView("validation")}><ListChecks size={19} /> Проверка Game Passport</button><button className={view === "diagnostics" ? "active" : ""} onClick={() => setView("diagnostics")}><Activity size={19} /> Диагностика</button><button className={view === "setup" ? "active" : ""} onClick={() => setView("setup")}><SlidersHorizontal size={19} /> Первичная настройка</button><button onClick={() => setOnboarding(true)}><HelpCircle size={19} /> Как пользоваться</button></nav>
        <div className="sidebar-bottom"><div className={`cloud-state ${cloudState}`}>{cloudState === "connected" ? <Cloud size={17} /> : <CloudOff size={17} />}<span><strong>{cloudLabel(cloudState)}</strong><small>{cloudDetail(cloudState)}</small></span></div><div className="account"><span>{user.email.slice(0, 1).toUpperCase()}</span><div><strong>{user.email.split("@")[0]}</strong><small>{user.email}</small></div><button className="icon-button" aria-label="Выйти" onClick={onSignOut}><LogOut size={17} /></button></div></div>
      </aside>
 -    {view === "setup" ? <InitialSetup mode={services.mode} cloudState={cloudState} refreshCloud={refreshCloud} onContinue={() => { localStorage.setItem("game-passport.initial-setup.v1", new Date().toISOString()); setView("profiles"); }} /> : view === "validation" ? <FieldValidationWizard profiles={profiles} mode={services.mode} onRun={(profile, type) => beginOperation(profile, type, "validation")} /> : view === "diagnostics" ? <Diagnostics mode={services.mode} cloudState={cloudState} /> : <main className="content-view">
@@ -14400,7 +15092,7 @@ index 0603812..e8526de 100644
      </main>}
 -    {modal && <ProfileModal profile={modal.profile} onClose={() => setModal(null)} onSave={save} />}
 +    {modal && <ProfileModal profile={modal.profile} onClose={() => { setCaptureAfterCreate(false); setModal(null); }} onSave={save} />}
-+    {onboarding && <Onboarding compact={onboarding === "compact"} onComplete={(hideOnStartup) => { localStorage.setItem(onboardingKey, new Date().toISOString()); if (hideOnStartup) localStorage.setItem(startupHelpKey, "true"); setOnboarding(null); }} />}
++    {onboarding && <Onboarding onComplete={() => setOnboarding(false)} />}
    </div>;
  }
  
@@ -14495,14 +15187,14 @@ index 2f03fe6..6b6ed13 100644
          {display?.diagnostics ? <><div className="metric-grid"><Metric label="Монитор" value={display.diagnostics.primaryMonitor ?? "Неизвестно"} /><Metric label="Экранов" value={String(display.diagnostics.monitorCount)} /><Metric label="Текущий режим" value={formatMode(display.diagnostics.currentMode)} /><Metric label="Режимов" value={String(display.diagnostics.supportedModes.length)} /></div><div className="mode-list">{groupModes(display.diagnostics.supportedModes).map((entry) => <div key={entry.resolution}><strong>{entry.resolution}</strong><span>{entry.rates.join(" · ")} Гц</span></div>)}</div></> : <p className="validation-message">{display?.message ?? "Считываем настройки экрана Windows…"}</p>}
 diff --git a/src/components/Onboarding.tsx b/src/components/Onboarding.tsx
 new file mode 100644
-index 0000000..2b7172d
+index 0000000..6e812b4
 --- /dev/null
 +++ b/src/components/Onboarding.tsx
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,19 @@
 +import { Check, ChevronRight, Gamepad2, MonitorUp, Save, ShieldAlert, X } from "lucide-react";
 +import { useState } from "react";
 +
-+interface Props { compact?: boolean; onComplete: (hideOnStartup: boolean) => void }
++interface Props { onComplete: () => void }
 +
 +const steps = [
 +  { icon: Gamepad2, title: "Настрой компьютер один раз", text: "Запустите игру и выставьте настройки так, как вам удобно." },
@@ -14511,20 +15203,18 @@ index 0000000..2b7172d
 +  { icon: ShieldAlert, title: "Важно", text: "Перед сохранением и применением закройте CS2 или PUBG, если приложение попросит. Не прерывайте применение." },
 +];
 +
-+export function Onboarding({ compact = false, onComplete }: Props) {
++export function Onboarding({ onComplete }: Props) {
 +  const [step, setStep] = useState(0);
-+  const [hideOnStartup, setHideOnStartup] = useState(false);
-+  if (compact) return <div className="onboarding-backdrop"><section className="onboarding-card compact" role="dialog" aria-modal="true" aria-labelledby="quick-help-title"><button className="onboarding-close" aria-label="Закрыть" onClick={() => onComplete(hideOnStartup)}><X size={18} /></button><p className="eyebrow">КОРОТКАЯ ИНСТРУКЦИЯ</p><h2 id="quick-help-title">Как использовать Game Passport</h2><ol><li>Настройте игру под себя.</li><li>Нажмите «Сохранить текущие настройки».</li><li>На другом ПК войдите в аккаунт.</li><li>Выберите профиль.</li><li>Нажмите «Настроить этот ПК».</li></ol><label className="startup-choice"><input type="checkbox" checked={hideOnStartup} onChange={(event) => setHideOnStartup(event.target.checked)} /> Не показывать при запуске</label><button className="button primary wide" onClick={() => onComplete(hideOnStartup)}><Check size={18} /> Понятно</button></section></div>;
 +
 +  const current = steps[step];
 +  const Icon = current.icon;
-+  return <div className="onboarding-backdrop"><section className="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><div className="onboarding-progress">{steps.map((_, index) => <i className={index <= step ? "active" : ""} key={index} />)}</div><div className="onboarding-icon"><Icon size={34} /></div><p className="eyebrow">ШАГ {step + 1} ИЗ {steps.length}</p><h2 id="onboarding-title">{current.title}</h2><p>{current.text}</p><button className="button primary wide" onClick={() => step < steps.length - 1 ? setStep(step + 1) : onComplete(false)}>{step < steps.length - 1 ? <>Далее <ChevronRight size={18} /></> : <><Check size={18} /> Начать</>}</button></section></div>;
++  return <div className="onboarding-backdrop"><section className="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><button className="onboarding-close" aria-label="Закрыть инструкцию" onClick={onComplete}><X size={18} /></button><div className="onboarding-progress">{steps.map((_, index) => <i className={index <= step ? "active" : ""} key={index} />)}</div><div className="onboarding-icon"><Icon size={34} /></div><p className="eyebrow">ШАГ {step + 1} ИЗ {steps.length}</p><h2 id="onboarding-title">{current.title}</h2><p>{current.text}</p><button className="button primary wide" onClick={() => step < steps.length - 1 ? setStep(step + 1) : onComplete()}>{step < steps.length - 1 ? <>Далее <ChevronRight size={18} /></> : <><Check size={18} /> Начать</>}</button></section></div>;
 +}
 diff --git a/src/components/OperationScreen.tsx b/src/components/OperationScreen.tsx
-index 1c235e6..2da831a 100644
+index 1c235e6..3999f1c 100644
 --- a/src/components/OperationScreen.tsx
 +++ b/src/components/OperationScreen.tsx
-@@ -1,7 +1,9 @@
+@@ -1,7 +1,10 @@
  import { AlertTriangle, ArrowLeft, Check, CircleX, LoaderCircle, RotateCw, ShieldAlert } from "lucide-react";
 -import { useEffect, useMemo, useState } from "react";
 +import { useEffect, useMemo, useRef, useState } from "react";
@@ -14532,10 +15222,11 @@ index 1c235e6..2da831a 100644
  import { ProfileOrchestrator } from "../services/profileOrchestrator";
 +import { applyLock } from "../services/applyLock";
 +import { logger } from "../services/logger";
++import { SteamLaunchOptionsHelp } from "./SteamLaunchOptionsHelp";
  
  interface Props {
    profile: GameProfile;
-@@ -24,13 +26,89 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
+@@ -24,13 +27,89 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
    const [results, setResults] = useState<AdapterResult[]>([]);
    const [done, setDone] = useState(false);
    const [attempt, setAttempt] = useState(0);
@@ -14627,7 +15318,7 @@ index 1c235e6..2da831a 100644
        const patches = completed.flatMap((result) => result.settingsPatch ? [result.settingsPatch] : []);
        let finalResults = completed;
        if (operation === "capture" && patches.length > 0 && onCapture) {
-@@ -45,7 +123,7 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
+@@ -45,7 +124,7 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
            if (mounted) setResults((old) => [...old, syncResult]);
          }
        }
@@ -14636,7 +15327,7 @@ index 1c235e6..2da831a 100644
      }
      void run();
      return () => { mounted = false; };
-@@ -59,29 +137,40 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
+@@ -59,31 +138,43 @@ export function OperationScreen({ profile, operation, orchestrator, onCapture, o
    const hasRestoredResult = results.some((result) => !result.adapterId.endsWith(".rollback") && (result.state === "success" || result.state === "warning"));
    const capturePersisted = results.some((result) => result.adapterId === "profile.sync" && result.state === "success");
    const retryable = results.some((result) => result.retryable);
@@ -14683,23 +15374,27 @@ index 1c235e6..2da831a 100644
 +          <span>{row.label}<small>{result?.message ?? (running ? "Выполняется…" : "Ожидание…")}</small>{result?.details && result.details.length > 0 && <details className="technical-details"><summary>Технические подробности</summary>{result.details.map((detail) => <em key={detail}>{detail}</em>)}</details>}</span>{running ? stateIcon() : result ? stateIcon(result.state) : <span className="stage-wait">—</span>}
          </div>;
        })}</div>
++      {done && results.filter((result) => result.manualLaunchOptions !== undefined).map((result) => <SteamLaunchOptionsHelp key={`${attempt}-${result.adapterId}`} userId={profile.userId} value={result.manualLaunchOptions!} />)}
        {done && hasWarning && <div className="unsupported-summary"><ShieldAlert size={19} /><span><strong>Нужна проверка</strong>Некоторые настройки не удалось считать или полностью проверить.</span></div>}
+       {done && retryable && <button className="button secondary wide" onClick={() => setAttempt((value) => value + 1)}><RotateCw size={17} /> Повторить</button>}
+       {done && <button className="button primary wide" onClick={onClose}>Вернуться к профилям</button>}
 diff --git a/src/components/ProfileCard.tsx b/src/components/ProfileCard.tsx
-index cfb39ea..52c14e8 100644
+index cfb39ea..83e627f 100644
 --- a/src/components/ProfileCard.tsx
 +++ b/src/components/ProfileCard.tsx
-@@ -1,17 +1,21 @@
+@@ -1,17 +1,22 @@
  import { MoreHorizontal, Pencil, Play, RotateCcw, Save, Trash2 } from "lucide-react";
  import { useState } from "react";
  import { GAME_META, type GameProfile } from "../domain/types";
-+import { displayRequestFromProfile, getDisplayPayload } from "../domain/display";
++import { gameVideoFromProfile, getDisplayPayload, isIndependentDesktopSnapshot } from "../domain/display";
 +import { getMousePayload } from "../domain/mouse";
  
  interface Props { profile: GameProfile; onApply: () => void; onCapture: () => void; onRestore: () => void; onEdit: () => void; onDelete: () => void }
  
  export function ProfileCard({ profile, onApply, onCapture, onRestore, onEdit, onDelete }: Props) {
    const [menu, setMenu] = useState(false); const meta = GAME_META[profile.game];
-+  const display = getDisplayPayload(profile.settings) ?? displayRequestFromProfile(profile.game, profile.settings);
++  const display = getDisplayPayload(profile.settings);
++  const gameVideo = gameVideoFromProfile(profile.game, profile.settings);
 +  const mouse = getMousePayload(profile.settings);
    return <article className="profile-card" style={{ "--game-accent": meta.accent } as React.CSSProperties}>
      <div className="card-glow" />
@@ -14707,12 +15402,12 @@ index cfb39ea..52c14e8 100644
        {menu && <div className="card-menu"><button onClick={() => { setMenu(false); onEdit(); }}><Pencil size={15} /> Изменить</button><button onClick={() => { setMenu(false); onRestore(); }}><RotateCcw size={15} /> Восстановить прежние настройки</button><button className="danger" onClick={() => { setMenu(false); onDelete(); }}><Trash2 size={15} /> Удалить</button></div>}
      </div></header>
 -    <div className="profile-card-copy"><p>{meta.name}</p><h3>{profile.name}</h3><span>Обновлён {new Date(profile.updatedAt).toLocaleDateString("ru-RU", { month: "short", day: "numeric" })}</span></div>
-+    <div className="profile-card-copy"><p>{meta.name}</p><h3>{profile.name}</h3><div className="profile-facts">{display && <><b>{display.width}×{display.height}</b>{"aspectRatio" in display && typeof display.aspectRatio === "string" && <b>{display.aspectRatio}</b>}</>}{mouse && <b>{mouse.dpi} DPI</b>}</div><span>Обновлён {new Date(profile.updatedAt).toLocaleDateString("ru-RU", { month: "short", day: "numeric" })}</span></div>
++    <div className="profile-card-copy"><p>{meta.name}</p><h3>{profile.name}</h3><div className="profile-facts">{gameVideo && <b>{meta.short}: {gameVideo.width}×{gameVideo.height}</b>}{isIndependentDesktopSnapshot(display) && <b>Экран: {display.width}×{display.height}</b>}{mouse && <b>{mouse.dpi} DPI</b>}</div><span>Обновлён {new Date(profile.updatedAt).toLocaleDateString("ru-RU", { month: "short", day: "numeric" })}</span></div>
      <div className="card-actions"><button className="button secondary" onClick={onCapture}><Save size={16} /> Сохранить текущие</button><button className="button apply" onClick={onApply}><Play size={17} fill="currentColor" /> Настроить этот ПК</button></div>
    </article>;
  }
 diff --git a/src/components/ProfileModal.tsx b/src/components/ProfileModal.tsx
-index 1155800..0a8b968 100644
+index 1155800..5b887e9 100644
 --- a/src/components/ProfileModal.tsx
 +++ b/src/components/ProfileModal.tsx
 @@ -15,7 +15,7 @@ export function ProfileModal({ profile, onClose, onSave }: Props) {
@@ -14741,13 +15436,49 @@ index 1155800..0a8b968 100644
          </div></fieldset>
          <fieldset className="mouse-fallback"><legend>Мышь · необязательно</legend><p className="muted">Если Logitech не считывается автоматически, впишите значения из G HUB. Они сохранятся в профиле; на другом ПК приложение применит их автоматически либо покажет точную ручную инструкцию.</p><div className="mouse-fields"><label>DPI<input inputMode="numeric" min={50} max={100000} type="number" value={dpi} onChange={(event) => setDpi(event.target.value)} placeholder="например, 800" /></label><label>Частота опроса<select value={polling} onChange={(event) => setPolling(event.target.value)}><option value="">Не указана</option>{[125, 250, 500, 1000, 2000, 4000, 8000].map((rate) => <option key={rate} value={rate}>{rate} Гц</option>)}</select></label></div></fieldset>
 -        <div className="info-box">{game === "cs2" ? "Сохранение считывает реальные настройки CS2, экрана, NVIDIA и мыши. Сначала закройте CS2 и войдите в Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
-+        <div className="info-box">{game === "cs2" ? "Сохранение считывает настройки CS2, параметры запуска Steam, экран, NVIDIA и мышь. Закройте CS2 и войдите в Steam. При применении Game Passport сам безопасно перезапустит Steam." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
++        <div className="info-box">{game === "cs2" ? "Сохранение считывает настройки CS2, параметры запуска Steam, экран, NVIDIA и мышь. Закройте CS2. Steam можно оставить открытым: Game Passport не закрывает его и не выходит из аккаунта. Для параметров запуска при необходимости появится отдельная подсказка." : "Сохранение считывает переносимые настройки PUBG, экрана, NVIDIA и мыши. Сначала закройте PUBG."}</div>
          {error && <div className="form-error" role="alert">{error}</div>}
 -        <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Отмена</button><button className="button primary" disabled={busy || !name.trim()}>{busy ? "Сохраняем…" : profile ? "Сохранить изменения" : "Создать профиль"}</button></div>
 +        <div className="modal-actions"><button type="button" className="button secondary" disabled={busy} onClick={onClose}>Отмена</button><button className="button primary" disabled={busy || !name.trim()}>{busy ? "Сохраняем…" : profile ? "Сохранить изменения" : "Создать профиль"}</button></div>
        </form>
      </section>
    </div>;
+diff --git a/src/components/SteamLaunchOptionsHelp.tsx b/src/components/SteamLaunchOptionsHelp.tsx
+new file mode 100644
+index 0000000..06f4119
+--- /dev/null
++++ b/src/components/SteamLaunchOptionsHelp.tsx
+@@ -0,0 +1,30 @@
++import { useId, useState } from "react";
++import { useOneTimeHelp } from "../services/useOneTimeHelp";
++
++export function SteamLaunchOptionsHelp({ value, userId }: { value: string; userId: string }) {
++  const [open, setOpen] = useOneTimeHelp("steam-launch", userId);
++  const helpId = useId();
++  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
++  async function copy() {
++    try {
++      await navigator.clipboard.writeText(value);
++      setCopyState("copied");
++    } catch {
++      setCopyState("error");
++    }
++  }
++  return <section className="steam-launch-help" aria-label="Параметры запуска CS2">
++    <h2>Параметры запуска — без выхода из Steam</h2>
++    <p>Параметры запуска в Steam не применены автоматически. Проверьте их отдельно.</p>
++    <button className="button secondary" aria-expanded={open} aria-controls={helpId} onClick={() => setOpen(!open)}>{open ? "Скрыть инструкцию" : "Как пользоваться"}</button>
++    {open && <div id={helpId}>
++    <p>Steam → Библиотека → Counter-Strike 2 → Свойства → Общие → Параметры запуска.</p>
++    {value ? <>
++      <p>Замените содержимое поля этой строкой. Если она уже совпадает, ничего менять не нужно.</p>
++      <textarea aria-label="Строка параметров запуска CS2" readOnly value={value} rows={3} onFocus={(event) => event.currentTarget.select()} />
++      <button className="button secondary" onClick={() => void copy()}>Скопировать параметры</button>
++    </> : <p>В сохранённом профиле параметры запуска пустые. Очистите это поле в Steam, если в нём есть текст.</p>}
++    <p role="status">{copyState === "copied" ? "Строка скопирована. Теперь вставьте её в Steam — копирование само по себе настройки не применяет." : copyState === "error" ? "Не удалось скопировать. Выделите строку и скопируйте её вручную." : "Game Passport не изменял это поле в работающем Steam и не подтверждает его применение."}</p>
++    </div>}
++  </section>;
++}
 diff --git a/src/domain/accessPolicy.json b/src/domain/accessPolicy.json
 new file mode 100644
 index 0000000..7e5cca8
@@ -14798,7 +15529,7 @@ index 0000000..6df711b
 +  confirmationRequired: boolean;
 +}
 diff --git a/src/domain/cs2.ts b/src/domain/cs2.ts
-index 171e206..3a7eabb 100644
+index 171e206..ff51299 100644
 --- a/src/domain/cs2.ts
 +++ b/src/domain/cs2.ts
 @@ -9,12 +9,14 @@ export interface Cs2ConfigFile {
@@ -14817,6 +15548,71 @@ index 171e206..3a7eabb 100644
  }
  
  export interface Cs2CommandResponse {
+@@ -23,6 +25,7 @@ export interface Cs2CommandResponse {
+   details: string[];
+   retryable: boolean;
+   payload?: Cs2Payload;
++  manualLaunchOptions?: string;
+ }
+ 
+ export function getCs2Payload(settings: Record<string, unknown>): Cs2Payload | null {
+diff --git a/src/domain/display.ts b/src/domain/display.ts
+index 377acf8..4e7165c 100644
+--- a/src/domain/display.ts
++++ b/src/domain/display.ts
+@@ -11,7 +11,8 @@ export interface DisplayMode {
+ }
+ 
+ export interface DisplayPayload {
+-  schemaVersion: 1;
++  schemaVersion: 1 | 2;
++  captureSource?: "windows_desktop";
+   capturedAt: string;
+   width: number;
+   height: number;
+@@ -42,7 +43,8 @@ export interface DisplayCommandResponse {
+   backupToken?: string;
+ }
+ 
+-export interface DisplayCaptureRequest {
++/** Informational game-video summary only. Never a Windows/NVIDIA capture or apply request. */
++export interface GameVideoSummary {
+   width: number;
+   height: number;
+   displayMode: DisplayPayload["displayMode"];
+@@ -56,7 +58,11 @@ export function getDisplayPayload(settings: Record<string, unknown>): DisplayPay
+   return value as DisplayPayload;
+ }
+ 
+-export function displayRequestFromCs2(settings: Record<string, unknown>): DisplayCaptureRequest | null {
++export function isIndependentDesktopSnapshot(payload: DisplayPayload | null): payload is DisplayPayload {
++  return payload?.schemaVersion === 2 && payload.captureSource === "windows_desktop";
++}
++
++export function gameVideoFromCs2(settings: Record<string, unknown>): GameVideoSummary | null {
+   const payload = getCs2Payload(settings);
+   const file = payload?.files.find((candidate) => candidate.relativePath.toLowerCase() === "cs2_video.txt");
+   if (!file) return null;
+@@ -69,7 +75,7 @@ export function displayRequestFromCs2(settings: Record<string, unknown>): Displa
+     if (!width || !height) return null;
+     const fullscreen = numericSetting(text, "setting.fullscreen");
+     const borderless = numericSetting(text, "setting.nowindowborder");
+-    const displayMode: DisplayCaptureRequest["displayMode"] = fullscreen === 1
++    const displayMode: GameVideoSummary["displayMode"] = fullscreen === 1
+       ? "fullscreen"
+       : borderless === 1 || fullscreen === 2 ? "borderless" : fullscreen === 0 ? "windowed" : "unknown";
+     return { width, height, displayMode };
+@@ -78,8 +84,8 @@ export function displayRequestFromCs2(settings: Record<string, unknown>): Displa
+   }
+ }
+ 
+-export function displayRequestFromProfile(game: GameId, settings: Record<string, unknown>): DisplayCaptureRequest | null {
+-  if (game === "cs2") return displayRequestFromCs2(settings);
++export function gameVideoFromProfile(game: GameId, settings: Record<string, unknown>): GameVideoSummary | null {
++  if (game === "cs2") return gameVideoFromCs2(settings);
+   if (game !== "pubg") return null;
+   const value = getPubgPayload(settings)?.normalized;
+   return value?.width && value.height ? { width: value.width, height: value.height, displayMode: value.displayMode } : null;
 diff --git a/src/domain/license.ts b/src/domain/license.ts
 new file mode 100644
 index 0000000..da0e9fa
@@ -14917,6 +15713,18 @@ index f674e99..787c479 100644
  
  export interface ReleasePreflight {
    appVersion: string;
+diff --git a/src/domain/types.ts b/src/domain/types.ts
+index 140b746..9cb6251 100644
+--- a/src/domain/types.ts
++++ b/src/domain/types.ts
+@@ -31,6 +31,7 @@ export interface AdapterResult {
+   details?: string[];
+   retryable?: boolean;
+   settingsPatch?: ProfileSettings;
++  manualLaunchOptions?: string;
+ }
+ 
+ export interface DiagnosticEntry {
 diff --git a/src/infrastructure/createServices.ts b/src/infrastructure/createServices.ts
 index 4938090..4d96300 100644
 --- a/src/infrastructure/createServices.ts
@@ -15533,8 +16341,41 @@ index 0000000..e7e7fe4
 +    if (response.state !== "success") throw new Error(response.message);
 +  },
 +};
+diff --git a/src/services/useOneTimeHelp.ts b/src/services/useOneTimeHelp.ts
+new file mode 100644
+index 0000000..f9bbe99
+--- /dev/null
++++ b/src/services/useOneTimeHelp.ts
+@@ -0,0 +1,27 @@
++import { useEffect, useState } from "react";
++
++type HelpTopic = "onboarding" | "steam-launch";
++const sessionSeen = new Set<string>();
++
++function wasShown(topic: HelpTopic, userId: string): boolean {
++  const key = `game-passport.help.seen.v1.${topic}.${userId}`;
++  try {
++    // Preserve acknowledgement from older releases; do not show the compact startup popup again.
++    return Boolean(localStorage.getItem(key) || (topic === "onboarding" && (
++      localStorage.getItem(`game-passport.onboarding.v1.${userId}`) ||
++      localStorage.getItem(`game-passport.startup-help.hidden.v1.${userId}`)
++    )));
++  } catch { return sessionSeen.has(key); }
++}
++
++/** Per account on this installation. Storage failure must not block the application. */
++export function useOneTimeHelp(topic: HelpTopic, userId: string) {
++  const [open, setOpen] = useState(() => !wasShown(topic, userId));
++  useEffect(() => {
++    if (!open) return;
++    const key = `game-passport.help.seen.v1.${topic}.${userId}`;
++    sessionSeen.add(key);
++    try { localStorage.setItem(key, "true"); } catch { /* Session-only fallback. */ }
++  }, [open, topic, userId]);
++  return [open, setOpen] as const;
++}
 diff --git a/src/styles.css b/src/styles.css
-index 19fcc39..6467650 100644
+index 19fcc39..cc3c1c8 100644
 --- a/src/styles.css
 +++ b/src/styles.css
 @@ -1,15 +1,23 @@
@@ -15646,9 +16487,14 @@ index 19fcc39..6467650 100644
  .process-list { display: grid; gap: 7px; margin: 28px 0 18px; text-align: left; }
  .process-row { display: flex; align-items: center; justify-content: space-between; min-height: 58px; padding: 10px 15px; color: #aaa; border: 1px solid var(--line); border-radius: 10px; background: #111217; }
  .process-row > span { display: grid; gap: 3px; font-size: 11px; font-weight: 700; }
-@@ -174,6 +201,9 @@ legend { margin-bottom: 10px; }
+@@ -173,7 +200,14 @@ legend { margin-bottom: 10px; }
+ .technical-details { margin-top: 4px; font-weight: 500; }
  .technical-details summary { color: #7f828b; font-size: 9px; cursor: pointer; }
  .technical-details em { display: block; padding-top: 4px; overflow-wrap: anywhere; }
++.steam-launch-help { margin: 18px 0; padding: 18px; border: 1px solid #635438; border-radius: 12px; background: #181713; text-align: left; }
++.steam-launch-help h2 { font-size: 13px; line-height: 1.6; color: #f1d5a2; }
++.steam-launch-help p { font-size: 12px; line-height: 1.7; color: #c6c3bb; overflow-wrap: anywhere; }
++.steam-launch-help textarea { width: 100%; box-sizing: border-box; resize: vertical; margin-bottom: 10px; padding: 12px; background: #101115; color: #eee; border: 1px solid var(--line); border-radius: 8px; font: 12px/1.6 monospace; }
  .process-row.pending svg { color: #6e717a; }
 +.process-row.running { border-color: rgba(166,255,63,.25); background: rgba(166,255,63,.035); }
 +.process-row.running svg { color: var(--accent); }
@@ -15656,7 +16502,7 @@ index 19fcc39..6467650 100644
  .process-row.success svg { color: var(--accent); }
  .process-row.unsupported svg, .process-row.warning svg { color: #ffc445; }
  .process-row.error svg { color: var(--danger); }
-@@ -182,6 +212,22 @@ legend { margin-bottom: 10px; }
+@@ -182,6 +216,22 @@ legend { margin-bottom: 10px; }
  .unsupported-summary strong { color: #d8d3bd; font-size: 10px; }
  .process-card > .button + .button { margin-top: 8px; }
  
@@ -15679,7 +16525,7 @@ index 19fcc39..6467650 100644
  .diagnostics .page-heading { align-items: flex-end; }
  .diagnostic-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin-top: 32px; }
  .diagnostic-card { display: flex; align-items: center; gap: 13px; min-height: 112px; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: #111217; }
-@@ -272,6 +318,20 @@ legend { margin-bottom: 10px; }
+@@ -272,6 +322,20 @@ legend { margin-bottom: 10px; }
  .export-result.success { border-color: rgba(166,255,63,.2); }
  .export-result.error { border-color: rgba(255,100,100,.25); }
  
@@ -15700,7 +16546,7 @@ index 19fcc39..6467650 100644
  @media (max-width: 1120px) {
    .profile-grid { grid-template-columns: repeat(2, 1fr); }
    .diagnostic-grid { grid-template-columns: 1fr; }
-@@ -279,3 +339,139 @@ legend { margin-bottom: 10px; }
+@@ -279,3 +343,139 @@ legend { margin-bottom: 10px; }
    .auth-hero { padding-inline: 4vw; }
    .setup-grid { grid-template-columns: 1fr; }
  }
@@ -16117,17 +16963,160 @@ index 0000000..e66f842
 +    expect(fetchMock).not.toHaveBeenCalled();
 +  });
 +});
+diff --git a/src/test/DisplayProfile.test.ts b/src/test/DisplayProfile.test.ts
+index ff39d2d..5654ec2 100644
+--- a/src/test/DisplayProfile.test.ts
++++ b/src/test/DisplayProfile.test.ts
+@@ -1,5 +1,5 @@
+ import { describe, expect, it } from "vitest";
+-import { displayRequestFromCs2 } from "../domain/display";
++import { gameVideoFromCs2 } from "../domain/display";
+ 
+ function settingsWithVideo(text: string) {
+   const bytes = new TextEncoder().encode(text);
+@@ -19,13 +19,13 @@ function settingsWithVideo(text: string) {
+   };
+ }
+ 
+-describe("Display profile normalization", () => {
+-  it("reads the desired resolution and fullscreen mode from CS2", () => {
++describe("Game video summary (not a desktop policy)", () => {
++  it("reads CS2 resolution and fullscreen mode for the profile card", () => {
+     const settings = settingsWithVideo('"setting.defaultres" "1280"\n"setting.defaultresheight" "960"\n"setting.fullscreen" "1"\n');
+-    expect(displayRequestFromCs2(settings)).toEqual({ width: 1280, height: 960, displayMode: "fullscreen" });
++    expect(gameVideoFromCs2(settings)).toEqual({ width: 1280, height: 960, displayMode: "fullscreen" });
+   });
+ 
+   it("does not invent a resolution when CS2 video data is incomplete", () => {
+-    expect(displayRequestFromCs2(settingsWithVideo('"setting.defaultres" "1280"\n'))).toBeNull();
++    expect(gameVideoFromCs2(settingsWithVideo('"setting.defaultres" "1280"\n'))).toBeNull();
+   });
+ });
+diff --git a/src/test/IndependentDisplay.test.tsx b/src/test/IndependentDisplay.test.tsx
+new file mode 100644
+index 0000000..8ba9cf6
+--- /dev/null
++++ b/src/test/IndependentDisplay.test.tsx
+@@ -0,0 +1,101 @@
++import { cleanup, render, screen } from "@testing-library/react";
++import { afterEach, describe, expect, it, vi } from "vitest";
++import { invoke } from "@tauri-apps/api/core";
++import { DisplayAdapter } from "../adapters/DisplayAdapter";
++import { NvidiaAdapter } from "../adapters/NvidiaAdapter";
++import { NvidiaDisplayControlsAdapter } from "../adapters/NvidiaDisplayControlsAdapter";
++import { Cs2Adapter } from "../adapters/Cs2Adapter";
++import { ProfileCard } from "../components/ProfileCard";
++import { getCs2Payload, mergeSettingsPatch, type Cs2Payload } from "../domain/cs2";
++import { getDisplayPayload, type DisplayPayload } from "../domain/display";
++import type { NvidiaPayload } from "../domain/nvidia";
++import type { GameProfile } from "../domain/types";
++import { ProfileOrchestrator } from "../services/profileOrchestrator";
++
++vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
++vi.mock("../services/platform", () => ({ isTauriDesktop: () => true }));
++afterEach(() => { cleanup(); vi.mocked(invoke).mockReset(); });
++
++const desktop: DisplayPayload = { schemaVersion: 2, captureSource: "windows_desktop", capturedAt: "now", width: 1920, height: 1080, aspectRatio: "16:9", displayMode: "unknown", scalingPreference: "driver_managed", refreshRatePolicy: "MAX_AVAILABLE" };
++const nvidia: NvidiaPayload = { schemaVersion: 2, capturedAt: "now", profileExecutable: "cs2.exe", settings: [], scalingMode: "aspect_ratio", scalingValue: 3, scalingSupported: true };
++const cs2: Cs2Payload = { schemaVersion: 2, capturedAt: "now", files: [
++  { scope: "userdata", relativePath: "cs2_video.txt", contentBase64: btoa('"setting.defaultres" "1280"\n"setting.defaultresheight" "960"\n"setting.fullscreen" "1"\n'), sha256: "fixture", size: 100 },
++  { scope: "userdata", relativePath: "cs2_user_convars_0_slot0.vcfg", contentBase64: btoa('"volume" "0.35"\n"snd_voipvolume" "0.6"\n'), sha256: "fixture", size: 50 }
++], totalBytes: 150, coreFilesFound: [], optionalFilesMissing: [] };
++const profile: GameProfile = { id: "p", userId: "u", name: "Independent", game: "cs2", settings: { adapters: { "game.cs2": cs2, display: desktop, nvidia } }, createdAt: "now", updatedAt: "now" };
++const ok = (payload?: unknown) => ({ state: "success", message: "ok", details: [], retryable: false, ...(payload !== undefined ? { payload } : {}) });
++
++describe("Independent game, desktop and NVIDIA snapshots", () => {
++  it("captures the desktop without sending any game resolution to native code", async () => {
++    vi.mocked(invoke).mockResolvedValue(ok(desktop));
++    const result = await new ProfileOrchestrator([new DisplayAdapter()]).capture(profile);
++    expect(invoke).toHaveBeenCalledWith("capture_display_settings");
++    expect(getDisplayPayload(result[0].settingsPatch!)).toEqual(desktop);
++  });
++
++  it("does not need a game video file to capture the real desktop", async () => {
++    vi.mocked(invoke).mockResolvedValue(ok(desktop));
++    const [result] = await new ProfileOrchestrator([new DisplayAdapter()]).capture({ ...profile, settings: {} });
++    expect(result.state).toBe("success");
++    expect(invoke).toHaveBeenCalledWith("capture_display_settings");
++  });
++
++  it("never substitutes game dimensions if desktop detection fails", async () => {
++    vi.mocked(invoke).mockResolvedValue({ ...ok(), state: "error", message: "Desktop unavailable" });
++    const result = await new DisplayAdapter().capture();
++    expect(result.state).toBe("error");
++    expect(result.settingsPatch).toBeUndefined();
++    expect(invoke).toHaveBeenCalledTimes(1);
++  });
++
++  it("keeps NVIDIA scaling only in its own adapter snapshot", async () => {
++    vi.mocked(invoke).mockResolvedValue(ok(nvidia));
++    const result = await new NvidiaAdapter().capture(profile);
++    expect(result.settingsPatch).toEqual({ adapters: { nvidia } });
++    expect(getDisplayPayload(mergeSettingsPatch(profile.settings, result.settingsPatch!))).toEqual(desktop);
++  });
++
++  it("round-trips a cloud-shaped profile and applies each adapter's own dimensions and sound", async () => {
++    vi.mocked(invoke).mockImplementation(async (command) => ok(command === "capture_cs2_settings" ? cs2 : command === "capture_display_settings" ? desktop : nvidia));
++    const orchestrator = new ProfileOrchestrator([new Cs2Adapter(), new DisplayAdapter(), new NvidiaAdapter()]);
++    const results = await orchestrator.capture({ ...profile, settings: {} });
++    const settings = results.reduce((settings, result) => mergeSettingsPatch(settings, result.settingsPatch!), {});
++    const restored = JSON.parse(JSON.stringify({ ...profile, settings })) as GameProfile;
++    expect(getDisplayPayload(restored.settings)).toEqual(desktop);
++    expect(getCs2Payload(restored.settings)).toEqual(cs2);
++    vi.mocked(invoke).mockClear().mockResolvedValue(ok());
++    await new ProfileOrchestrator([new NvidiaAdapter(), new DisplayAdapter(), new NvidiaDisplayControlsAdapter(), new Cs2Adapter()]).apply(restored);
++    expect(invoke).toHaveBeenNthCalledWith(1, "apply_nvidia_settings", { payload: nvidia });
++    expect(invoke).toHaveBeenNthCalledWith(2, "apply_display_settings", { payload: desktop });
++    expect(invoke).toHaveBeenNthCalledWith(3, "apply_nvidia_display_controls", { payload: nvidia });
++    expect(invoke).toHaveBeenNthCalledWith(4, "apply_cs2_settings", { payload: cs2 });
++    expect(atob(getCs2Payload(restored.settings)!.files[1].contentBase64)).toContain('"snd_voipvolume" "0.6"');
++  });
++
++  it.each([
++    { ...desktop, schemaVersion: 1, captureSource: undefined, width: 1280, height: 960 },
++    { ...desktop, captureSource: undefined },
++  ])("refuses legacy/unproven display values without touching Windows", async (display) => {
++    const result = await new DisplayAdapter().apply({ ...profile, settings: { adapters: { display, "game.cs2": cs2 } } });
++    expect(result.state).toBe("warning");
++    expect(result.message).toContain("на исходном ПК");
++    expect(invoke).not.toHaveBeenCalled();
++  });
++
++  it("does not reuse a previous rollback token after skipping a legacy snapshot", async () => {
++    const adapter = new DisplayAdapter();
++    vi.mocked(invoke).mockResolvedValue({ ...ok(), backupToken: "old-backup" });
++    await adapter.apply(profile);
++    vi.mocked(invoke).mockClear();
++    await adapter.apply({ ...profile, settings: { adapters: { display: { ...desktop, schemaVersion: 1 } } } });
++    expect((await adapter.rollback()).state).toBe("unsupported");
++    expect(invoke).not.toHaveBeenCalled();
++  });
++
++  it("labels game and desktop dimensions separately on the profile card", () => {
++    const noop = () => undefined;
++    render(<ProfileCard profile={profile} onApply={noop} onCapture={noop} onRestore={noop} onEdit={noop} onDelete={noop} />);
++    expect(screen.getByText("CS2: 1280×960")).toBeInTheDocument();
++    expect(screen.getByText("Экран: 1920×1080")).toBeInTheDocument();
++  });
++});
 diff --git a/src/test/Onboarding.test.tsx b/src/test/Onboarding.test.tsx
 new file mode 100644
-index 0000000..62fffcd
+index 0000000..ed53245
 --- /dev/null
 +++ b/src/test/Onboarding.test.tsx
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,68 @@
 +import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 +import { afterEach, describe, expect, it, vi } from "vitest";
 +import { Onboarding } from "../components/Onboarding";
++import { useOneTimeHelp } from "../services/useOneTimeHelp";
++import { StrictMode } from "react";
 +
-+afterEach(cleanup);
++afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); });
++
++function HelpHost({ userId = "u" }: { userId?: string }) {
++  const [open, setOpen] = useOneTimeHelp("onboarding", userId);
++  return <><button onClick={() => setOpen(true)}>Как пользоваться</button>{open && <Onboarding onComplete={() => setOpen(false)} />}</>;
++}
 +
 +describe("Onboarding", () => {
 +  it("shows all four required first-use steps", () => {
@@ -16141,12 +17130,47 @@ index 0000000..62fffcd
 +    expect(screen.getByRole("heading", { name: "Важно" })).toBeInTheDocument();
 +  });
 +
-+  it("persists the compact startup preference through its callback", () => {
++  it("can be dismissed immediately", () => {
 +    const complete = vi.fn();
-+    render(<Onboarding compact onComplete={complete} />);
-+    fireEvent.click(screen.getByRole("checkbox", { name: /Не показывать при запуске/ }));
-+    fireEvent.click(screen.getByRole("button", { name: /Понятно/ }));
-+    expect(complete).toHaveBeenCalledWith(true);
++    render(<Onboarding onComplete={complete} />);
++    fireEvent.click(screen.getByRole("button", { name: "Закрыть инструкцию" }));
++    expect(complete).toHaveBeenCalledOnce();
++  });
++
++  it("appears once, survives a restart, and can be reopened by its button", () => {
++    const first = render(<StrictMode><HelpHost /></StrictMode>);
++    expect(screen.getByRole("dialog")).toBeInTheDocument();
++    first.unmount(); // Even closing the app halfway through must not auto-open it next time.
++    render(<HelpHost />);
++    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++    fireEvent.click(screen.getByRole("button", { name: "Как пользоваться" }));
++    expect(screen.getByRole("dialog")).toBeInTheDocument();
++    fireEvent.click(screen.getByRole("button", { name: "Закрыть инструкцию" }));
++    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++  });
++
++  it.each(["game-passport.onboarding.v1.u", "game-passport.startup-help.hidden.v1.u"])("respects existing acknowledgement %s without another popup", (key) => {
++    localStorage.setItem(key, "true");
++    render(<HelpHost />);
++    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++    expect(screen.getByRole("button", { name: "Как пользоваться" })).toBeInTheDocument();
++  });
++
++  it("keeps first-use help independent for another account", () => {
++    const first = render(<HelpHost />);
++    first.unmount();
++    render(<HelpHost userId="another-account" />);
++    expect(screen.getByRole("dialog")).toBeInTheDocument();
++  });
++
++  it("does not crash with unavailable local storage and remembers for this session", () => {
++    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("blocked"); });
++    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked"); });
++    const first = render(<HelpHost userId="storage-blocked" />);
++    expect(screen.getByRole("dialog")).toBeInTheDocument();
++    first.unmount();
++    render(<HelpHost userId="storage-blocked" />);
++    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 +  });
 +});
 diff --git a/src/test/OperationScreen.test.tsx b/src/test/OperationScreen.test.tsx
@@ -16264,6 +17288,28 @@ index 6ce41bf..de36d5e 100644
 +    expect(secondApplied).toBe(false);
 +    expect(results.map((result) => result.adapterId)).toEqual(["display", "apply.cancelled", "display.rollback"]);
 +  });
+ });
+diff --git a/src/test/PubgProfile.test.ts b/src/test/PubgProfile.test.ts
+index 44f67be..a63b325 100644
+--- a/src/test/PubgProfile.test.ts
++++ b/src/test/PubgProfile.test.ts
+@@ -3,7 +3,7 @@ import { DisplayAdapter } from "../adapters/DisplayAdapter";
+ import { MouseAdapter } from "../adapters/MouseAdapter";
+ import { NvidiaAdapter } from "../adapters/NvidiaAdapter";
+ import { PubgAdapter } from "../adapters/PubgAdapter";
+-import { displayRequestFromProfile } from "../domain/display";
++import { gameVideoFromProfile } from "../domain/display";
+ import { getPubgPayload, type PubgPayload } from "../domain/pubg";
+ import type { GameProfile } from "../domain/types";
+ 
+@@ -12,7 +12,7 @@ const profile: GameProfile = { id: "p", userId: "u", name: "PUBG", game: "pubg",
+ 
+ describe("PUBG profile integration", () => {
+   it("keeps the versioned payload in the generic Supabase settings shape", () => expect(getPubgPayload(profile.settings)).toEqual(payload));
+-  it("feeds exact resolution to the existing Display Adapter policy", () => expect(displayRequestFromProfile("pubg", profile.settings)).toEqual({ width: 1728, height: 1080, displayMode: "fullscreen" }));
++  it("summarizes game resolution independently of the desktop", () => expect(gameVideoFromProfile("pubg", profile.settings)).toEqual({ width: 1728, height: 1080, displayMode: "fullscreen" }));
+   it("uses shared Display, NVIDIA and Mouse adapters", () => { expect(new DisplayAdapter().supports(profile)).toBe(true); expect(new NvidiaAdapter().supports(profile)).toBe(true); expect(new MouseAdapter().supports(profile)).toBe(true); });
+   it("does not claim browser mock success", async () => { const result = await new PubgAdapter().capture(); expect(result.state).toBe("unsupported"); expect(result.message).not.toMatch(/captured|success/i); });
  });
 diff --git a/src/test/PublicAccess.test.tsx b/src/test/PublicAccess.test.tsx
 new file mode 100644
@@ -16411,6 +17457,104 @@ index 2b8416d..d77eb97 100644
 +    expect(logger.list()[0].message).toBe("[REDACTED: sensitive-looking value]");
    });
  });
+diff --git a/src/test/SteamSession.test.tsx b/src/test/SteamSession.test.tsx
+new file mode 100644
+index 0000000..5965c7f
+--- /dev/null
++++ b/src/test/SteamSession.test.tsx
+@@ -0,0 +1,92 @@
++import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
++import { afterEach, describe, expect, it, vi } from "vitest";
++import { SteamLaunchOptionsHelp } from "../components/SteamLaunchOptionsHelp";
++import { OperationScreen } from "../components/OperationScreen";
++import { Cs2Adapter } from "../adapters/Cs2Adapter";
++import { ProfileOrchestrator } from "../services/profileOrchestrator";
++import { applyLock } from "../services/applyLock";
++import type { GameProfile } from "../domain/types";
++import native from "../../src-tauri/src/cs2.rs?raw";
++import profileModal from "../components/ProfileModal.tsx?raw";
++
++vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
++vi.mock("../services/platform", () => ({ isTauriDesktop: () => true }));
++import { invoke } from "@tauri-apps/api/core";
++
++const profile: GameProfile = { id: "p", userId: "u", name: "CS2", game: "cs2", settings: { adapters: { "game.cs2": { schemaVersion: 2, files: [] } } }, createdAt: "now", updatedAt: "now" };
++
++afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.mocked(invoke).mockReset(); });
++
++describe("Steam stays open", () => {
++  it("has no Steam shutdown, restart or full localconfig restore path", () => {
++    const production = native.split("#[cfg(test)]")[0];
++    expect(production).not.toContain('"-shutdown"');
++    expect(production).not.toContain("Command::");
++    expect(production).not.toContain("stop_steam_for_apply");
++    expect(production).not.toContain("restart_steam");
++    expect(production).not.toContain("ensure_steam_closed");
++    expect(production).toContain('for scope in ["userdata", "install"]');
++    expect(profileModal).not.toContain("перезапустит Steam");
++  });
++
++  it("preserves the native warning and explicit empty launch options", async () => {
++    vi.mocked(invoke).mockResolvedValue({ state: "warning", message: "Steam remains open", details: [], retryable: false, manualLaunchOptions: "" });
++    const result = await new Cs2Adapter().apply(profile);
++    expect(result.state).toBe("warning");
++    expect(result.manualLaunchOptions).toBe("");
++    expect(invoke).toHaveBeenCalledTimes(1);
++    expect(invoke).toHaveBeenCalledWith("apply_cs2_settings", expect.any(Object));
++  });
++
++  it("copies launch options without claiming that copying applied them", async () => {
++    const writeText = vi.fn().mockResolvedValue(undefined);
++    vi.stubGlobal("navigator", { clipboard: { writeText } });
++    render(<SteamLaunchOptionsHelp userId="u" value="-fullscreen -console" />);
++    fireEvent.click(screen.getByRole("button", { name: "Скопировать параметры" }));
++    await waitFor(() => expect(writeText).toHaveBeenCalledWith("-fullscreen -console"));
++    expect(await screen.findByText(/копирование само по себе настройки не применяет/)).toBeInTheDocument();
++  });
++
++  it("gives a manual fallback if clipboard access fails", async () => {
++    vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
++    render(<SteamLaunchOptionsHelp userId="u" value="-console" />);
++    fireEvent.click(screen.getByRole("button", { name: "Скопировать параметры" }));
++    expect(await screen.findByText(/Не удалось скопировать/)).toBeInTheDocument();
++    expect(screen.getByRole("textbox")).toHaveValue("-console");
++  });
++
++  it("tells the user to clear Steam options when the saved value is empty", () => {
++    render(<SteamLaunchOptionsHelp userId="u" value="" />);
++    expect(screen.getByText(/Очистите это поле/)).toBeInTheDocument();
++    expect(screen.queryByRole("button", { name: "Скопировать параметры" })).not.toBeInTheDocument();
++  });
++
++  it("auto-expands only once while keeping unapplied status and the latest saved value accessible", () => {
++    const first = render(<SteamLaunchOptionsHelp userId="u" value="-console" />);
++    expect(screen.getByRole("textbox")).toHaveValue("-console");
++    first.unmount();
++    render(<SteamLaunchOptionsHelp userId="u" value="-fullscreen -w 1280 -h 960" />);
++    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
++    expect(screen.getByText(/не применены автоматически/)).toBeInTheDocument();
++    fireEvent.click(screen.getByRole("button", { name: "Как пользоваться" }));
++    expect(screen.getByRole("textbox")).toHaveValue("-fullscreen -w 1280 -h 960");
++    fireEvent.click(screen.getByRole("button", { name: "Скрыть инструкцию" }));
++    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
++    expect(screen.getByText(/не применены автоматически/)).toBeInTheDocument();
++  });
++
++  it("shows manual launch options after releasing Apply Lock, without a success summary", async () => {
++    vi.mocked(invoke).mockResolvedValue({ state: "warning", message: "Steam remains open", details: [], retryable: false, manualLaunchOptions: "-fullscreen" });
++    vi.spyOn(applyLock, "begin").mockResolvedValue({ state: "success", message: "locked", active: true, cancelled: false });
++    vi.spyOn(applyLock, "heartbeat").mockResolvedValue({ state: "success", message: "active", active: true, cancelled: false });
++    let release: (value: Awaited<ReturnType<typeof applyLock.finish>>) => void = () => undefined;
++    const finish = vi.spyOn(applyLock, "finish").mockReturnValue(new Promise((resolve) => { release = resolve; }));
++    render(<OperationScreen profile={profile} operation="apply" orchestrator={new ProfileOrchestrator([new Cs2Adapter()])} onClose={() => undefined} />);
++    await waitFor(() => expect(finish).toHaveBeenCalledOnce());
++    expect(screen.queryByRole("button", { name: "Скопировать параметры" })).not.toBeInTheDocument();
++    release({ state: "success", message: "released", active: false, cancelled: false });
++    expect(await screen.findByRole("button", { name: "Скопировать параметры" })).toBeEnabled();
++    expect(screen.getByRole("heading", { name: "ГОТОВО С ПРЕДУПРЕЖДЕНИЯМИ" })).toBeInTheDocument();
++    expect(screen.queryByRole("heading", { name: "КОМПЬЮТЕР ГОТОВ" })).not.toBeInTheDocument();
++  });
++});
 diff --git a/src/test/SystemAdapters.test.ts b/src/test/SystemAdapters.test.ts
 index 8fc4e4e..7c527b1 100644
 --- a/src/test/SystemAdapters.test.ts
