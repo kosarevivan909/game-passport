@@ -1,36 +1,35 @@
 diff --git a/.env.example b/.env.example
-index f9293d7..91723db 100644
+index f9293d7..7fae415 100644
 --- a/.env.example
 +++ b/.env.example
-@@ -2,5 +2,8 @@ VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+@@ -2,5 +2,7 @@ VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
  VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
  # Set to false after Supabase is configured. Demo mode never sends data to the cloud.
  VITE_DEMO_MODE=true
 -# Set to true for a local-profile Windows field-test build with real adapters.
 +# Legacy switch. Real Windows adapters are intentionally blocked in this mode.
  VITE_FIELD_TEST_MODE=false
-+# Temporary unsigned club-test builds keep Supabase profiles and real adapters,
-+# but do not require per-PC commercial activation. Never enable for production.
-+VITE_CLUB_TEST_MODE=false
++# Device access is shared by React and Rust in src/domain/accessPolicy.json.
++# Public releases require a Supabase account, but no device activation.
 diff --git a/README.md b/README.md
-index c998d18..429c527 100644
+index c998d18..2d2f194 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,14 +1,14 @@
 -# Game Passport v0.6.0 RC
-+# Game Passport v0.9.0 RC
++# Game Passport v0.9.1 RC
  
  Windows Release Candidate существующего Game Passport на Tauri 2, React, TypeScript, Rust и Supabase. Реальные адаптеры CS2, PUBG, Display, NVIDIA и Mouse сохранены; Dota 2 убрана из основного пользовательского пути.
  
  ## Как установить в компьютерном клубе
  
 -1. Возьмите файл `Game Passport_0.6.0_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
-+1. Возьмите Authenticode-подписанный файл `Game Passport_0.8.0_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
++1. Возьмите файл `Game Passport_0.9.1_x64-setup.exe` из Windows CI artifact `game-passport-windows-*`.
  2. Запустите EXE обычным пользователем Windows. Постоянные права администратора не нужны.
  3. Выберите язык и завершите установку. Установщик создаёт ярлыки в меню «Пуск» и на рабочем столе; WebView2 включён внутрь инсталлятора и не требует отдельной загрузки.
 -4. Запустите Game Passport и войдите в аккаунт Supabase. Пароль Steam приложение не запрашивает.
 -5. Для CS2 войдите в Steam. Закройте CS2/PUBG перед сохранением или применением.
-+4. Запустите Game Passport, войдите в аккаунт Supabase и один раз активируйте этот компьютер кодом администратора клуба. Пароль Steam приложение не запрашивает.
++4. Запустите Game Passport, войдите в свой аккаунт. Активация компьютера и код администратора не требуются. Пароль Steam приложение не запрашивает.
 +5. Войдите в Steam и полностью закройте CS2. При применении CS2-профиля Game Passport сам корректно закроет Steam, запишет настройки и запустит Steam снова; выходить из аккаунта или повторно вводить пароль не требуется.
  6. Пройдите `Initial setup`, затем `Test Game Passport`. После входа в Steam проверку можно повторить без перезапуска приложения.
  7. В `Diagnostics` нажмите `Save report` и передайте сохранённый JSON при найденной проблеме.
@@ -44,7 +43,7 @@ index c998d18..429c527 100644
 +- Crash recovery: незавершённый Apply обнаруживается по локальному marker; после следующего запуска предлагается восстановить последние backup. Завершение процесса Windows автоматически снимает hooks.
 +- Auth: отдельные состояния подтверждения email, повторная отправка с cooldown, нейтральный forgot-password flow и защищённая web callback page для подтверждения/смены пароля.
 +- Onboarding: четыре обязательных шага при первом входе, повторный запуск через «Как пользоваться» и отключаемая краткая подсказка при старте.
-+- Diagnostics: версия `0.8.0 RC`, build id, состояние лицензии/offline grace, реальная доступность облака, права, политика обновления, путь логов, состояние адаптеров и обезличенный отчёт.
++- Diagnostics: версия `0.9.1 RC`, build id, состояние доступа (активация ПК не требуется), реальная доступность облака, права, политика обновления, путь логов, состояние адаптеров и обезличенный отчёт.
  - Production logging: JSONL в `%LOCALAPPDATA%\app.gamepassport.desktop\logs`, ротация 1 MB × 3 файла, без паролей, токенов, cookies и Steam auth.
  - Offline: ранее синхронизированные профили доступны только из локального кэша при ещё действующей локальной сессии. Вход, создание, изменение и удаление профилей офлайн не имитируются.
  - Demo mode всегда помечен как `DEMO MODE`, не запускает адаптеры и не заявляет успешную проверку оборудования.
@@ -54,18 +53,18 @@ index c998d18..429c527 100644
  ```text
 -Game Passport_0.6.0_x64-setup.exe   (NSIS, основной)
 -Game Passport_0.6.0_x64_en-US.msi   (WiX, дополнительный)
-+Game Passport_0.8.0_x64-setup.exe   (NSIS, основной)
-+Game Passport_0.8.0_x64_ru-RU.msi   (WiX, дополнительный)
++Game Passport_0.9.1_x64-setup.exe   (NSIS, основной)
++Game Passport_0.9.1_x64_ru-RU.msi   (WiX, дополнительный)
  SHA256SUMS.txt
  ```
  
  Фактические имена задаёт Tauri bundler и могут отличаться пробелами/дефисами. CI завершится ошибкой, если EXE или MSI отсутствует. Этот macOS-хост не может честно выполнить Windows installer smoke test; готовность инсталлятора подтверждается только успешным Windows job и установкой на чистом тестовом ПК.
  
 -Ручной запуск workflow по умолчанию создаёт `field-test` сборку. Она использует локальные профили, но запускает настоящие Windows-адаптеры и мастер проверки. Это позволяет начать тестирование в клубе до подключения Supabase; перенос профиля между двумя ПК в таком режиме не проверяется.
-+Ручной запуск workflow по умолчанию создаёт лицензированный `release-candidate`. Старый нелицензированный field-test путь заблокирован и больше не публикуется.
++Ручной запуск workflow создаёт общедоступную облачную сборку без активации ПК. Политика `src/domain/accessPolicy.json` общая для React и Rust; старые переменные club-test больше не определяют доступ.
  
 -Для `production` сборки в приватном GitHub-репозитории должны быть добавлены два Actions secret: `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY`. Workflow намеренно останавливает только production-сборку, если они отсутствуют или содержат значения-заглушки.
-+Production/RC сборка требует Supabase, публичный license verification key и Authenticode PFX. Auth callback нужно один раз развернуть и добавить в allowlist Supabase по инструкции [Auth flows](docs/AUTH_FLOWS_RU.md). Полный список ключей: [Security & Licensing](docs/SECURITY_AND_LICENSING_RU.md).
++Общедоступная сборка требует только настроенный Supabase. Подписи Authenticode пока нет: Windows может показывать «Неизвестный издатель». Существующие аккаунты и личные профили сохраняются; проверки доступа к чужим профилям не отключаются. Auth callback нужно один раз развернуть и добавить в allowlist Supabase по инструкции [Auth flows](docs/AUTH_FLOWS_RU.md). Полный список ключей: [Security & Licensing](docs/SECURITY_AND_LICENSING_RU.md).
  
  Локальные проверки разработки:
  
@@ -142,7 +141,7 @@ index 0000000..b84b1bf
 +
 +Используйте отдельный тестовый email и проверьте реальную доставку: signup → письмо → confirmation → вход; resend; forgot password → письмо → новый пароль → вход. Эти сценарии зависят от настроек SMTP, redirect allowlist и опубликованной Edge Function, поэтому локальные unit-тесты не подтверждают доставку писем.
 diff --git a/docs/CLUB_QUICK_START_RU.md b/docs/CLUB_QUICK_START_RU.md
-index a83a4a4..c41595a 100644
+index a83a4a4..79068aa 100644
 --- a/docs/CLUB_QUICK_START_RU.md
 +++ b/docs/CLUB_QUICK_START_RU.md
 @@ -2,7 +2,7 @@
@@ -150,7 +149,7 @@ index a83a4a4..c41595a 100644
  ## Сохранение профиля на первом ПК
  
 -1. Войдите в Steam под аккаунтом игрока и один раз запустите CS2.
-+1. Войдите в Game Passport. Если это первый запуск на компьютере, активируйте его одноразовым кодом администратора клуба. Затем войдите в Steam под аккаунтом игрока и один раз запустите CS2.
++1. Войдите в Game Passport. Активация компьютера и код администратора в версии 0.9.1 не требуются. Затем войдите в Steam под аккаунтом игрока и один раз запустите CS2.
  2. В CS2 выставьте чувствительность, клавиши, звук, графику и разрешение. Закройте игру полностью.
  3. Если используется Logitech, откройте G HUB и запомните активные DPI и частоту опроса. Закройте окно G HUB; его фоновая служба может работать.
  4. В Game Passport создайте профиль. Если мышь раньше не считывалась, сразу впишите DPI и частоту из G HUB в блоке «Мышь».
@@ -161,7 +160,7 @@ index a83a4a4..c41595a 100644
 -- Цветовые настройки в меню самого монитора не переносятся. Параметры рабочего стола NVIDIA тоже не равны игровому NVIDIA-профилю и могут потребовать отдельной настройки.
 -- Режим «Полевой тест» хранит профили только на текущем ПК. Для входа на другом ПК с теми же профилями нужна сборка с подключённым облаком Supabase.
 +- Цветовые настройки в меню самого монитора не переносятся. Game Passport переносит публично доступные NVIDIA output color и фактическую desktop gamma curve, но отдельные ползунки Digital Vibrance/Hue и пользовательский underscan публичным NVAPI не предоставлены и показываются как Warning.
-+- Публикуемая сборка всегда использует Supabase и лицензию устройства. Нелицензированный локальный field-test режим отключён.
++- Общедоступная сборка использует Supabase: нужен личный аккаунт, но не лицензия устройства. Старый локальный field-test режим не используется.
 diff --git a/docs/CS2_ADAPTER.md b/docs/CS2_ADAPTER.md
 index ce58938..cc745d8 100644
 --- a/docs/CS2_ADAPTER.md
@@ -335,6 +334,54 @@ index aa24ae3..0e7a449 100644
 +- визуальное сравнение Digital Vibrance/Hue, поскольку публичного read/write API для этих ползунков нет;
  - поведение multi-GPU, Optimus/MUX, clone/spanning и remote desktop topology;
  - создание NSIS/MSI и runtime loading `nvapi64.dll` на целевой машине.
+diff --git a/docs/PUBLIC_RELEASE_0_9_1_RU.md b/docs/PUBLIC_RELEASE_0_9_1_RU.md
+new file mode 100644
+index 0000000..d272fb7
+--- /dev/null
++++ b/docs/PUBLIC_RELEASE_0_9_1_RU.md
+@@ -0,0 +1,42 @@
++# Game Passport 0.9.1 — общедоступный режим
++
++Активация ПК не требуется. Вход по почте/паролю Supabase, подтверждение почты,
++личные облачные профили и ограничения доступа к чужим данным сохранены.
++Старые аккаунты не нужно пересоздавать. Миграции базы для этого изменения не нужны.
++
++React и Rust встраивают одну политику `src/domain/accessPolicy.json`.
++В этой версии `deviceActivationRequired` равен `false`. Старые переменные
++club-test и локальные лицензии не влияют на доступ. Приложение не получает
++отпечаток устройства и не обращается к device-license для допуска к профилям.
++Статус `not_required` означает отсутствие требования, а не успешную проверку лицензии.
++
++Авторизация аккаунта, проверка закрытой игры, резервные копии, откат,
++безопасная обработка файлов и блокировка ввода на время применения не отключаются.
++Будущая система администрирования/активации в этом выпуске не включается.
++
++## Проверки перед выпуском
++
++- Вход на новом ПК ведёт к облачным профилям без формы активации.
++- Восстановление сессии не читает старое разрешение устройства.
++- Неверный пароль не открывает профили.
++- Проверка native-доступа выполняется той же функцией в тестах и production.
++- Версии React/Cargo/Tauri и общедоступная политика проверяются тестами.
++- Windows CI проверяет облачные секреты и политику, собирает EXE/MSI и SHA-256.
++
++## Публикация
++
++При обычной сборке все исходники уже в дереве. Для существующего способа
++загрузки через браузер ветка создаётся от `release/v0.9.0-obsidian-cs2`;
++заменяются `game-passport-update.patch` и `.github/workflows/windows-build.yml`.
++Патч строится от `b4ff489` без workflow, `.gitattributes` и самого патча.
++`.gitattributes` должен сохранять `game-passport-update.patch -text`.
++Workflow применяет патч только если полная новая версия исходников ещё отсутствует,
++проверяет результат и публикует тег на точный commit сборки.
++
++## Ручная проверка на Windows
++
++Установить поверх 0.9.0 без удаления данных. Войти существующим аккаунтом;
++проверить профили, сохранение и применение CS2. Повторить на ранее не
++активированном ПК. Убедиться, что коды администратора не запрашиваются.
++Только после этой проверки устанавливать на остальные компьютеры клуба.
++Установщик пока без Authenticode-подписи; предупреждение Windows возможно.
 diff --git a/docs/SECURITY_AND_LICENSING_RU.md b/docs/SECURITY_AND_LICENSING_RU.md
 new file mode 100644
 index 0000000..e3836e2
@@ -594,7 +641,7 @@ index 0000000..9364e9b
 +</body>
 +</html>
 diff --git a/package.json b/package.json
-index 8d90a32..7e6f1d0 100644
+index 8d90a32..ed7ecb3 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,7 +1,7 @@
@@ -602,12 +649,12 @@ index 8d90a32..7e6f1d0 100644
    "name": "game-passport",
    "private": true,
 -  "version": "0.6.0",
-+  "version": "0.9.0",
++  "version": "0.9.1",
    "type": "module",
    "scripts": {
      "dev": "vite",
 diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
-index ee99788..6e5b2aa 100644
+index ee99788..936828a 100644
 --- a/src-tauri/Cargo.lock
 +++ b/src-tauri/Cargo.lock
 @@ -82,6 +82,12 @@ version = "1.5.1"
@@ -759,7 +806,7 @@ index ee99788..6e5b2aa 100644
  [[package]]
  name = "game-passport"
 -version = "0.6.0"
-+version = "0.9.0"
++version = "0.9.1"
  dependencies = [
   "base64 0.22.1",
   "cc",
@@ -994,14 +1041,14 @@ index ee99788..6e5b2aa 100644
  name = "zerotrie"
  version = "0.2.4"
 diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
-index 76495e5..0aadd00 100644
+index 76495e5..13271f4 100644
 --- a/src-tauri/Cargo.toml
 +++ b/src-tauri/Cargo.toml
 @@ -1,6 +1,6 @@
  [package]
  name = "game-passport"
 -version = "0.6.0"
-+version = "0.9.0"
++version = "0.9.1"
  description = "Portable gaming profiles for Windows PCs"
  authors = ["Game Passport"]
  license = "Proprietary"
@@ -3939,10 +3986,10 @@ index 664e070..5ee1f19 100644
              save_diagnostic_report
 diff --git a/src-tauri/src/license.rs b/src-tauri/src/license.rs
 new file mode 100644
-index 0000000..d66f647
+index 0000000..f4de107
 --- /dev/null
 +++ b/src-tauri/src/license.rs
-@@ -0,0 +1,815 @@
+@@ -0,0 +1,823 @@
 +use base64::{engine::general_purpose, Engine as _};
 +use chrono::Utc;
 +use p256::{
@@ -4179,9 +4226,8 @@ index 0000000..d66f647
 +    )
 +}
 +
-+#[cfg(not(test))]
 +pub fn require_active() -> Result<(), String> {
-+    if option_env!("GAME_PASSPORT_CLUB_TEST_BUILD") == Some("true") {
++    if !device_activation_required()? {
 +        return Ok(());
 +    }
 +    let current = cached_status();
@@ -4192,9 +4238,12 @@ index 0000000..d66f647
 +    }
 +}
 +
-+#[cfg(test)]
-+pub fn require_active() -> Result<(), String> {
-+    Ok(())
++fn device_activation_required() -> Result<bool, String> {
++    // The UI and native commands embed the same policy, independent of CI env flags.
++    let policy: serde_json::Value = serde_json::from_str(include_str!("../../src/domain/accessPolicy.json"))
++        .map_err(|_| "Некорректная политика доступа в сборке.".to_string())?;
++    policy.get("deviceActivationRequired").and_then(serde_json::Value::as_bool)
++        .ok_or_else(|| "Политика доступа не указана в сборке.".to_string())
 +}
 +
 +fn status(state_value: &str, message: &str) -> DeviceLicenseStatus {
@@ -4625,6 +4674,12 @@ index 0000000..d66f647
 +#[cfg(test)]
 +mod tests {
 +    use super::*;
++    #[test]
++    fn public_release_native_commands_do_not_require_a_device_grant() {
++        assert_eq!(device_activation_required(), Ok(false));
++        // Exercise the production guard itself, not a cfg(test) bypass.
++        assert_eq!(require_active(), Ok(()));
++    }
 +    use p256::{
 +        ecdsa::{signature::Signer, SigningKey},
 +        pkcs8::EncodePublicKey,
@@ -5676,7 +5731,7 @@ index 7bc4027..55ed183 100644
      fn entries_multiset_contains(actual: &[PubgIniEntry], expected: &[PubgIniEntry]) -> bool {
          let count = |items: &[PubgIniEntry]| {
 diff --git a/src-tauri/src/release.rs b/src-tauri/src/release.rs
-index 1f34e65..4207cdb 100644
+index 1f34e65..ac69f26 100644
 --- a/src-tauri/src/release.rs
 +++ b/src-tauri/src/release.rs
 @@ -331,12 +331,20 @@ mod windows {
@@ -5700,12 +5755,13 @@ index 1f34e65..4207cdb 100644
          ]
          .iter()
          .any(|marker| lower.contains(marker))
-@@ -401,7 +409,7 @@ pub use windows::{append_log, preflight, save_report};
+@@ -401,7 +409,8 @@ pub use windows::{append_log, preflight, save_report};
  mod tests {
      #[test]
      fn release_version_comes_from_package() {
 -        assert_eq!(super::APP_VERSION, "0.6.0");
-+        assert_eq!(super::APP_VERSION, "0.9.0");
++        let config: serde_json::Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
++        assert_eq!(super::APP_VERSION, config["version"].as_str().unwrap());
      }
      #[test]
      fn log_limits_are_bounded() {
@@ -5971,7 +6027,7 @@ index 0000000..e9bdcd3
 +#[cfg(target_os = "windows")]
 +pub use windows::{get, remove, set};
 diff --git a/src-tauri/tauri.conf.json b/src-tauri/tauri.conf.json
-index 3d191e8..38cdba7 100644
+index 3d191e8..2f53a6a 100644
 --- a/src-tauri/tauri.conf.json
 +++ b/src-tauri/tauri.conf.json
 @@ -1,7 +1,7 @@
@@ -5979,7 +6035,7 @@ index 3d191e8..38cdba7 100644
    "$schema": "https://schema.tauri.app/config/2",
    "productName": "Game Passport",
 -  "version": "0.6.0",
-+  "version": "0.9.0",
++  "version": "0.9.1",
    "identifier": "app.gamepassport.desktop",
    "build": {
      "beforeDevCommand": "pnpm dev",
@@ -5993,7 +6049,7 @@ index 3d191e8..38cdba7 100644
        }
      ],
 diff --git a/src/App.tsx b/src/App.tsx
-index 1080cbb..64d7e2d 100644
+index 1080cbb..4e804a6 100644
 --- a/src/App.tsx
 +++ b/src/App.tsx
 @@ -4,13 +4,54 @@ import { createServices } from "./infrastructure/createServices";
@@ -6049,8 +6105,8 @@ index 1080cbb..64d7e2d 100644
    if (!ready) return <main className="splash"><div className="passport-loader">GP</div><span>Загружаем ваш паспорт…</span></main>;
 -  return user ? <Dashboard user={user} services={services} onSignOut={() => void signOut()} /> : <AuthScreen auth={services.auth} mode={services.mode} onAuthenticated={setUser} />;
 +  if (!user) return <AuthScreen auth={services.auth} mode={services.mode} onAuthenticated={setUser} />;
-+  if (!license || license.state === "checking") return <main className="splash"><div className="passport-loader">GP</div><span>Проверяем этот компьютер…</span></main>;
-+  if (services.mode === "cloud" && !["active", "offline_grace"].includes(license.state)) {
++  if (!license || license.state === "checking") return <main className="splash"><div className="passport-loader">GP</div><span>Открываем ваши профили…</span></main>;
++  if (services.mode === "cloud" && !["not_required", "active", "offline_grace"].includes(license.state)) {
 +    return <DeviceActivationScreen status={license} busy={licenseBusy} onRetry={refreshLicense} onActivate={activate} onSignOut={() => void signOut()} />;
 +  }
 +  return <Dashboard user={user} services={services} license={license} onSignOut={() => void signOut()} />;
@@ -14402,7 +14458,7 @@ index 0000000..d83d2ef
 +  </main>;
 +}
 diff --git a/src/components/Diagnostics.tsx b/src/components/Diagnostics.tsx
-index 2f03fe6..da64e2d 100644
+index 2f03fe6..6b6ed13 100644
 --- a/src/components/Diagnostics.tsx
 +++ b/src/components/Diagnostics.tsx
 @@ -12,10 +12,11 @@ import { RELEASE_LABEL, type CloudState, type FileCommandResponse, type ReleaseP
@@ -14433,7 +14489,7 @@ index 2f03fe6..da64e2d 100644
        <div className="diagnostic-card"><span className="diagnostic-icon"><Bug /></span><div><small>СРЕДА</small><h3>{platform?.desktopRuntime ? "Приложение Windows" : "Просмотр в браузере"}</h3><p>{platform ? `${platform.os} · ${platform.architecture}` : "Определяем платформу…"}</p></div></div>
      </div>
 -    <div className="panel release-panel"><header><div><h2>Готовность сборки</h2><p>Права, автономная работа, обновления и локальные пути поддержки.</p></div><span className={`status-pill ${preflight?.administratorRequired ? "unsupported" : "implemented"}`}>{preflight ? preflight.administratorRequired ? "Нужен администратор" : "Обычный пользователь" : "проверка"}</span></header><div className="metric-grid"><Metric label="Облако" value={cloudState} /><Metric label="Windows" value={preflight?.windowsSupported ? "Поддерживается" : "Не проверена"} /><Metric label="Пользователь Steam" value={preflight?.steamUserAvailable ? "Найден" : "Нужно войти"} /><Metric label="CS2" value={preflight?.cs2Installed ? "Установлена" : "Не найдена"} /><Metric label="Настройки PUBG" value={preflight?.pubgConfigAvailable ? "Найдены" : "Не найдены"} /><Metric label="Обновления" value="Вручную" /><Metric label="Журналы" value={preflight?.logDirectory ?? "Только в Windows-сборке"} /><Metric label="Права" value={preflight?.administratorRequired ? "Нужно повышение прав" : "Постоянные права не нужны"} /></div></div>
-+    <div className="panel release-panel"><header><div><h2>Готовность сборки</h2><p>Лицензия устройства, права, автономная работа, обновления и локальные пути поддержки.</p></div><span className={`status-pill ${preflight?.administratorRequired ? "unsupported" : "implemented"}`}>{preflight ? preflight.administratorRequired ? "Нужен администратор" : "Обычный пользователь" : "проверка"}</span></header><div className="metric-grid"><Metric label="Лицензия устройства" value={license.state} /><Metric label="Последняя проверка" value={license.lastLicenseCheck ?? "Нет"} /><Metric label="Offline grace" value={license.offlineGrace ? `До ${license.expiresAt ?? "истечения"}` : "Не используется"} /><Metric label="Защита ключа" value={license.keyProtection?.toUpperCase() ?? "Не определена"} /><Metric label="Облако" value={cloudState} /><Metric label="Windows" value={preflight?.windowsSupported ? "Поддерживается" : "Не проверена"} /><Metric label="Пользователь Steam" value={preflight?.steamUserAvailable ? "Найден" : "Нужно войти"} /><Metric label="CS2" value={preflight?.cs2Installed ? "Установлена" : "Не найдена"} /><Metric label="Настройки PUBG" value={preflight?.pubgConfigAvailable ? "Найдены" : "Не найдены"} /><Metric label="Обновления" value="Вручную" /><Metric label="Журналы" value={preflight?.logDirectory ?? "Только в Windows-сборке"} /><Metric label="Права" value={preflight?.administratorRequired ? "Нужно повышение прав" : "Постоянные права не нужны"} /></div></div>
++    <div className="panel release-panel"><header><div><h2>Готовность сборки</h2><p>Доступ, права, автономная работа, обновления и локальные пути поддержки.</p></div><span className={`status-pill ${preflight?.administratorRequired ? "unsupported" : "implemented"}`}>{preflight ? preflight.administratorRequired ? "Нужен администратор" : "Обычный пользователь" : "проверка"}</span></header><div className="metric-grid"><Metric label="Активация ПК" value={license.state === "not_required" ? "Не требуется" : license.state} /><Metric label="Последняя проверка" value={license.state === "not_required" ? "Не требуется" : license.lastLicenseCheck ?? "Нет"} /><Metric label="Offline grace" value={license.offlineGrace ? `До ${license.expiresAt ?? "истечения"}` : "Не используется"} /><Metric label="Защита ключа" value={license.state === "not_required" ? "Не используется" : license.keyProtection?.toUpperCase() ?? "Не определена"} /><Metric label="Облако" value={cloudState} /><Metric label="Windows" value={preflight?.windowsSupported ? "Поддерживается" : "Не проверена"} /><Metric label="Пользователь Steam" value={preflight?.steamUserAvailable ? "Найден" : "Нужно войти"} /><Metric label="CS2" value={preflight?.cs2Installed ? "Установлена" : "Не найдена"} /><Metric label="Настройки PUBG" value={preflight?.pubgConfigAvailable ? "Найдены" : "Не найдены"} /><Metric label="Обновления" value="Вручную" /><Metric label="Журналы" value={preflight?.logDirectory ?? "Только в Windows-сборке"} /><Metric label="Права" value={preflight?.administratorRequired ? "Нужно повышение прав" : "Постоянные права не нужны"} /></div></div>
      <div className="validation-grid">
        <div className="panel validation-panel"><header><div><h2>Экран</h2><p>Основной игровой монитор и режимы, обнаруженные Windows.</p></div><span className={`status-pill ${display?.state === "success" ? "implemented" : "unsupported"}`}>{stateLabel(display?.state)}</span></header>
          {display?.diagnostics ? <><div className="metric-grid"><Metric label="Монитор" value={display.diagnostics.primaryMonitor ?? "Неизвестно"} /><Metric label="Экранов" value={String(display.diagnostics.monitorCount)} /><Metric label="Текущий режим" value={formatMode(display.diagnostics.currentMode)} /><Metric label="Режимов" value={String(display.diagnostics.supportedModes.length)} /></div><div className="mode-list">{groupModes(display.diagnostics.supportedModes).map((entry) => <div key={entry.resolution}><strong>{entry.resolution}</strong><span>{entry.rates.join(" · ")} Гц</span></div>)}</div></> : <p className="validation-message">{display?.message ?? "Считываем настройки экрана Windows…"}</p>}
@@ -14692,6 +14748,15 @@ index 1155800..0a8b968 100644
        </form>
      </section>
    </div>;
+diff --git a/src/domain/accessPolicy.json b/src/domain/accessPolicy.json
+new file mode 100644
+index 0000000..7e5cca8
+--- /dev/null
++++ b/src/domain/accessPolicy.json
+@@ -0,0 +1,3 @@
++{
++  "deviceActivationRequired": false
++}
 diff --git a/src/domain/applyLock.ts b/src/domain/applyLock.ts
 new file mode 100644
 index 0000000..8d89928
@@ -14754,11 +14819,12 @@ index 171e206..3a7eabb 100644
  export interface Cs2CommandResponse {
 diff --git a/src/domain/license.ts b/src/domain/license.ts
 new file mode 100644
-index 0000000..813f985
+index 0000000..da0e9fa
 --- /dev/null
 +++ b/src/domain/license.ts
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,40 @@
 +export type DeviceLicenseState =
++  | "not_required"
 +  | "checking"
 +  | "active"
 +  | "offline_grace"
@@ -14839,19 +14905,20 @@ index 80efb4e..bc91964 100644
  
  export interface NvidiaDiagnostics {
 diff --git a/src/domain/release.ts b/src/domain/release.ts
-index f674e99..429ae94 100644
+index f674e99..787c479 100644
 --- a/src/domain/release.ts
 +++ b/src/domain/release.ts
-@@ -1,6 +1,6 @@
+@@ -1,6 +1,7 @@
  import type { AdapterResult, GameId } from "./types";
++import { version } from "../../package.json";
  
 -export const RELEASE_LABEL = "0.6.0 RC";
-+export const RELEASE_LABEL = "0.8.0 RC";
++export const RELEASE_LABEL = `${version} RC`;
  
  export interface ReleasePreflight {
    appVersion: string;
 diff --git a/src/infrastructure/createServices.ts b/src/infrastructure/createServices.ts
-index 4938090..bc7e542 100644
+index 4938090..4d96300 100644
 --- a/src/infrastructure/createServices.ts
 +++ b/src/infrastructure/createServices.ts
 @@ -6,19 +6,26 @@ import { createSupabaseClient } from "./supabase/client";
@@ -14861,7 +14928,8 @@ index 4938090..bc7e542 100644
 +import type { DeviceLicenseProvider } from "../domain/license";
 +import { SupabaseDeviceLicenseProvider } from "./supabase/SupabaseDeviceLicenseProvider";
 +import { LocalDeviceLicenseProvider } from "./local/LocalDeviceLicenseProvider";
-+import { ClubTestDeviceLicenseProvider } from "./local/ClubTestDeviceLicenseProvider";
++import { PublicDeviceLicenseProvider } from "./local/PublicDeviceLicenseProvider";
++import accessPolicy from "../domain/accessPolicy.json";
  
  export type AppMode = "demo" | "field-test" | "cloud";
  
@@ -14869,20 +14937,19 @@ index 4938090..bc7e542 100644
 +export interface Services { auth: AuthProvider; profiles: ProfileRepository; license: DeviceLicenseProvider; mode: AppMode; checkCloud: () => Promise<CloudState> }
  
  export function createServices(): Services {
-+  const useClubTest = import.meta.env.VITE_CLUB_TEST_MODE === "true";
    const useFieldTest = import.meta.env.VITE_FIELD_TEST_MODE === "true";
 -  const useDemo = import.meta.env.VITE_DEMO_MODE === "true" || !import.meta.env.VITE_SUPABASE_URL;
 -  if (useFieldTest) return { auth: new LocalAuthProvider(), profiles: new LocalProfileRepository(), mode: "field-test", checkCloud: async () => "field-test" };
 -  if (useDemo) return { auth: new LocalAuthProvider(), profiles: new LocalProfileRepository(), mode: "demo", checkCloud: async () => "demo" };
 +  const useDemo = import.meta.env.VITE_DEMO_MODE === "true";
-+  if (useFieldTest) throw new Error("Нелицензированная field-test сборка отключена. Используйте облачную сборку с активацией устройства.");
++  if (useFieldTest) throw new Error("Старый локальный field-test режим отключён. Используйте общедоступную облачную сборку.");
 +  if (useDemo) return { auth: new LocalAuthProvider(), profiles: new LocalProfileRepository(), license: new LocalDeviceLicenseProvider(), mode: "demo", checkCloud: async () => "demo" };
    const client = createSupabaseClient();
 +  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 +  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
    return {
 -    auth: new SupabaseAuthProvider(client), profiles: new SupabaseProfileRepository(client), mode: "cloud",
-+    auth: new SupabaseAuthProvider(client, supabaseUrl!), profiles: new SupabaseProfileRepository(client), license: useClubTest ? new ClubTestDeviceLicenseProvider() : new SupabaseDeviceLicenseProvider(client, supabaseUrl!, anonKey!), mode: "cloud",
++    auth: new SupabaseAuthProvider(client, supabaseUrl!), profiles: new SupabaseProfileRepository(client), license: accessPolicy.deviceActivationRequired ? new SupabaseDeviceLicenseProvider(client, supabaseUrl!, anonKey!) : new PublicDeviceLicenseProvider(), mode: "cloud",
      checkCloud: async () => {
        if (!navigator.onLine) return "offline";
        try {
@@ -14931,6 +14998,22 @@ index 0000000..e96c3df
 +export class LocalDeviceLicenseProvider implements DeviceLicenseProvider {
 +  async check(): Promise<DeviceLicenseStatus> {
 +    return { state: "unsupported", message: "Демо-режим не предоставляет доступ к Windows-адаптерам.", offlineGrace: false };
++  }
++  async activate(): Promise<DeviceLicenseStatus> { return this.check(); }
++  async clear(): Promise<void> {}
++}
+diff --git a/src/infrastructure/local/PublicDeviceLicenseProvider.ts b/src/infrastructure/local/PublicDeviceLicenseProvider.ts
+new file mode 100644
+index 0000000..7c7a0fd
+--- /dev/null
++++ b/src/infrastructure/local/PublicDeviceLicenseProvider.ts
+@@ -0,0 +1,10 @@
++import type { DeviceLicenseProvider, DeviceLicenseStatus } from "../../domain/license";
++
++/** Public distribution does not issue or pretend to verify a device license. */
++export class PublicDeviceLicenseProvider implements DeviceLicenseProvider {
++  async check(): Promise<DeviceLicenseStatus> {
++    return { state: "not_required", message: "Общедоступная версия: активация компьютера не требуется.", offlineGrace: false };
 +  }
 +  async activate(): Promise<DeviceLicenseStatus> { return this.check(); }
 +  async clear(): Promise<void> {}
@@ -16182,6 +16265,131 @@ index 6ce41bf..de36d5e 100644
 +    expect(results.map((result) => result.adapterId)).toEqual(["display", "apply.cancelled", "display.rollback"]);
 +  });
  });
+diff --git a/src/test/PublicAccess.test.tsx b/src/test/PublicAccess.test.tsx
+new file mode 100644
+index 0000000..87bc922
+--- /dev/null
++++ b/src/test/PublicAccess.test.tsx
+@@ -0,0 +1,79 @@
++import { cleanup, fireEvent, render, screen } from "@testing-library/react";
++import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
++import accessPolicy from "../domain/accessPolicy.json";
++import { createServices } from "../infrastructure/createServices";
++import { SupabaseAuthProvider } from "../infrastructure/supabase/SupabaseAuthProvider";
++import { SupabaseProfileRepository } from "../infrastructure/supabase/SupabaseProfileRepository";
++import { PublicDeviceLicenseProvider } from "../infrastructure/local/PublicDeviceLicenseProvider";
++import { App } from "../App";
++
++const auth = vi.hoisted(() => ({
++  getUser: vi.fn(), getSession: vi.fn(), signInWithPassword: vi.fn(),
++  onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
++}));
++vi.mock("../infrastructure/supabase/client", () => ({ createSupabaseClient: () => ({ auth }) }));
++vi.mock("../components/Dashboard", () => ({ Dashboard: () => <h1>Мои облачные профили</h1> }));
++const native = vi.hoisted(() => vi.fn());
++vi.mock("@tauri-apps/api/core", () => ({ invoke: native }));
++
++beforeEach(() => {
++  vi.clearAllMocks();
++  vi.stubEnv("VITE_DEMO_MODE", "false");
++  vi.stubEnv("VITE_FIELD_TEST_MODE", "false");
++  vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
++  vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-public-key");
++  vi.stubGlobal("fetch", vi.fn());
++  vi.spyOn(navigator, "onLine", "get").mockReturnValue(true);
++  auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
++});
++afterEach(() => { cleanup(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
++
++describe("public cloud access", () => {
++  it("uses real cloud providers without per-PC activation or legacy CI flags", async () => {
++    vi.stubEnv("VITE_CLUB_TEST_MODE", "false");
++    expect(accessPolicy.deviceActivationRequired).toBe(false);
++    const services = createServices();
++    expect(services.mode).toBe("cloud");
++    expect(services.auth).toBeInstanceOf(SupabaseAuthProvider);
++    expect(services.profiles).toBeInstanceOf(SupabaseProfileRepository);
++    expect(services.license).toBeInstanceOf(PublicDeviceLicenseProvider);
++    await expect(services.license.check()).resolves.toMatchObject({ state: "not_required", offlineGrace: false });
++    expect(fetch).not.toHaveBeenCalled();
++    expect(native).not.toHaveBeenCalled();
++  });
++
++  it("still requires account login on a new PC, then opens profiles without an activation screen", async () => {
++    auth.signInWithPassword.mockResolvedValue({ data: { user: { id: "u1", email: "player@example.com" } }, error: null });
++    render(<App />);
++    await screen.findByRole("heading", { name: "Войти в Game Passport" });
++    expect(screen.queryByText("Мои облачные профили")).not.toBeInTheDocument();
++    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "player@example.com" } });
++    fireEvent.change(screen.getByLabelText("Пароль"), { target: { value: "test-password" } });
++    fireEvent.click(screen.getByRole("button", { name: "Войти" }));
++    await screen.findByRole("heading", { name: "Мои облачные профили" });
++    expect(auth.signInWithPassword).toHaveBeenCalledWith({ email: "player@example.com", password: "test-password" });
++    expect(screen.queryByText(/Game Passport не активирован/)).not.toBeInTheDocument();
++    expect(native).not.toHaveBeenCalled();
++    expect(fetch).not.toHaveBeenCalled();
++  });
++
++  it("restores an authenticated user without reading old revoked or expired device grants", async () => {
++    auth.getUser.mockResolvedValue({ data: { user: { id: "u1", email: "player@example.com" } }, error: null });
++    native.mockRejectedValue(new Error("old device grant revoked"));
++    render(<App />);
++    await screen.findByRole("heading", { name: "Мои облачные профили" });
++    expect(native).not.toHaveBeenCalled();
++    expect(fetch).not.toHaveBeenCalled();
++  });
++
++  it("does not turn invalid account credentials into a public sign-in", async () => {
++    auth.signInWithPassword.mockResolvedValue({ data: { user: null }, error: new Error("Invalid login credentials") });
++    render(<App />);
++    await screen.findByRole("heading", { name: "Войти в Game Passport" });
++    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "player@example.com" } });
++    fireEvent.change(screen.getByLabelText("Пароль"), { target: { value: "incorrect-password" } });
++    fireEvent.click(screen.getByRole("button", { name: "Войти" }));
++    await screen.findByRole("alert");
++    expect(screen.queryByText("Мои облачные профили")).not.toBeInTheDocument();
++  });
++});
+diff --git a/src/test/PublicBuildContract.test.ts b/src/test/PublicBuildContract.test.ts
+new file mode 100644
+index 0000000..435da82
+--- /dev/null
++++ b/src/test/PublicBuildContract.test.ts
+@@ -0,0 +1,34 @@
++import { describe, expect, it } from "vitest";
++import cargo from "../../src-tauri/Cargo.toml?raw";
++import cargoLock from "../../src-tauri/Cargo.lock?raw";
++import native from "../../src-tauri/src/license.rs?raw";
++import workflow from "../../.github/workflows/windows-build.yml?raw";
++import { version } from "../../package.json";
++import tauriConfig from "../../src-tauri/tauri.conf.json";
++import accessPolicy from "../domain/accessPolicy.json";
++import { RELEASE_LABEL } from "../domain/release";
++
++describe("public installer build contract", () => {
++  it("keeps UI, Cargo and installer version in sync", () => {
++    const lock = cargoLock.replace(/\r\n/g, "\n");
++    expect(tauriConfig.version).toBe(version);
++    expect(cargo).toContain(`version = "${version}"`);
++    expect(lock).toContain(`name = "game-passport"\nversion = "${version}"`);
++    expect(RELEASE_LABEL).toBe(`${version} RC`);
++  });
++
++  it("embeds one public policy in native production code, with no test-only guard bypass", () => {
++    expect(accessPolicy.deviceActivationRequired).toBe(false);
++    expect(native).toContain('include_str!("../../src/domain/accessPolicy.json")');
++    expect(native).not.toMatch(/#\[cfg\(test\)\]\s*pub fn require_active/);
++    expect(native).not.toContain('option_env!("GAME_PASSPORT_CLUB_TEST_BUILD")');
++  });
++
++  it("validates public access and real cloud configuration before publishing the exact source", () => {
++    expect(workflow).toContain('VITE_DEMO_MODE: "false"');
++    expect(workflow).toContain('VITE_FIELD_TEST_MODE: "false"');
++    expect(workflow).toContain("$policy.deviceActivationRequired");
++    expect(workflow).toContain('src/domain/accessPolicy.json');
++    expect(workflow).toContain('--target "${{ github.sha }}"');
++  });
++});
 diff --git a/src/test/ReleaseReadiness.test.ts b/src/test/ReleaseReadiness.test.ts
 index 2b8416d..d77eb97 100644
 --- a/src/test/ReleaseReadiness.test.ts
