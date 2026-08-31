@@ -2,15 +2,6 @@ name: Windows build
 
 on:
   workflow_dispatch:
-    inputs:
-      release_type:
-        description: Build type
-        required: true
-        default: field-test
-        type: choice
-        options:
-          - field-test
-          - production
   push:
     tags: ["v*"]
 
@@ -22,13 +13,34 @@ jobs:
       contents: write
     env:
       GAME_PASSPORT_BUILD: ${{ github.sha }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_DEMO_MODE: "false"
+      VITE_FIELD_TEST_MODE: "false"
     steps:
       - uses: actions/checkout@v4
-      - name: Apply staged Game Passport update
+      - name: Apply staged source update when building a web-uploaded release branch
         shell: pwsh
         run: |
-          if (Test-Path "game-passport-update.patch") {
+          if (-not (Test-Path "src/domain/accessPolicy.json")) {
+            if (-not (Test-Path "game-passport-update.patch")) { throw "Release source is missing." }
+            git apply --check --whitespace=nowarn "game-passport-update.patch"
+            if ($LASTEXITCODE -ne 0) { throw "Release patch validation failed." }
             git apply --whitespace=nowarn "game-passport-update.patch"
+            if ($LASTEXITCODE -ne 0) { throw "Release patch application failed." }
+          }
+      - name: Validate public cloud distribution
+        shell: pwsh
+        run: |
+          $policy = Get-Content "src/domain/accessPolicy.json" -Raw | ConvertFrom-Json
+          if ($policy.deviceActivationRequired -isnot [bool] -or $policy.deviceActivationRequired) {
+            throw "Public installer must not require per-PC activation."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_URL) -or
+              [string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_ANON_KEY) -or
+              $env:VITE_SUPABASE_URL.Contains("YOUR_PROJECT") -or
+              $env:VITE_SUPABASE_ANON_KEY.Contains("YOUR_PUBLIC_ANON_KEY")) {
+            throw "Add real VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY repository secrets."
           }
       - uses: pnpm/action-setup@v4
         with:
@@ -39,20 +51,7 @@ jobs:
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
       - run: pnpm install --frozen-lockfile
-      - name: Validate production cloud configuration
-        if: github.event_name != 'workflow_dispatch' || inputs.release_type == 'production'
-        shell: pwsh
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_URL) -or
-              [string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_ANON_KEY) -or
-              $env:VITE_SUPABASE_URL.Contains("YOUR_PROJECT") -or
-              $env:VITE_SUPABASE_ANON_KEY.Contains("YOUR_PUBLIC_ANON_KEY")) {
-            throw "Production build stopped: add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as GitHub Actions repository secrets."
-          }
-      - name: Frontend adapter and Supabase payload tests
+      - name: Public sign-in, cloud profiles and adapter tests
         run: pnpm test
       - name: TypeScript and production frontend build
         run: pnpm build
@@ -61,51 +60,36 @@ jobs:
         run: |
           cargo fmt --manifest-path src-tauri/Cargo.toml
           cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-      - name: Windows Rust, NVAPI bridge and adapter tests (CS2, Display, NVIDIA, Mouse, PUBG)
+      - name: Windows tests including the real public access guard
         run: cargo test --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib
       - name: Build real MSI and NSIS installers
         uses: tauri-apps/tauri-action@v0
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_DEMO_MODE: "false"
-          VITE_FIELD_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.release_type == 'field-test' }}
         with:
           args: --target x86_64-pc-windows-msvc
       - name: Verify and stage Windows installers
         shell: pwsh
         run: |
-          $nsis = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe"
-          $msi = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi"
+          $nsis = @(Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe")
+          $msi = @(Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi")
           if ($nsis.Count -lt 1 -or $msi.Count -lt 1) { throw "Both NSIS and MSI installers are required." }
           New-Item -ItemType Directory -Force "windows-artifacts" | Out-Null
           $installerFiles = @($nsis.FullName) + @($msi.FullName)
           Copy-Item -Path $installerFiles -Destination "windows-artifacts"
           Get-ChildItem "windows-artifacts" -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Set-Content "windows-artifacts/SHA256SUMS.txt"
-      - name: Upload Windows installers
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: game-passport-windows-${{ inputs.release_type || github.ref_name }}-${{ github.run_number }}
+          name: game-passport-windows-public-${{ github.run_number }}
           if-no-files-found: error
           retention-days: 14
           path: windows-artifacts/*
-      - name: Publish field-test installers as a private prerelease
-        if: github.event_name == 'workflow_dispatch' && inputs.release_type == 'field-test'
+      - name: Publish public installer from this exact source commit
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "field-test-${{ github.run_number }}" "windows-artifacts/*" `
-            --title "Game Passport v0.6.3 RC — Русская сборка #${{ github.run_number }}" `
-            --notes "Русская тестовая сборка для проверки в компьютерном клубе. Профили хранятся локально на этом ПК; реальные игровые и аппаратные Windows-адаптеры включены. Для обычной установки скачайте файл setup.exe. Контрольные суммы SHA-256 приложены." `
-            --prerelease
-      - name: Publish cloud-test installers as a private prerelease
-        if: github.event_name == 'workflow_dispatch' && inputs.release_type == 'production'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "cloud-test-${{ github.run_number }}" "windows-artifacts/*" `
-            --title "Game Passport v0.6.3 RC — Облачная сборка #${{ github.run_number }}" `
-            --notes "Облачная тестовая сборка для компьютерного клуба. Добавлен перенос публично доступных глобальных и игровых 3D-параметров NVIDIA, output color, scaling и фактической desktop gamma curve. Исправлены exclusive fullscreen, сохранение всей графики CS2, параметры запуска и повторная проверка после запуска Steam. Для установки скачайте setup.exe. Контрольные суммы SHA-256 приложены." `
+          $version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
+          $releaseTag = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF_NAME } else { "public-${{ github.run_number }}" }
+          gh release create $releaseTag "windows-artifacts/*" --target "${{ github.sha }}" `
+            --title "Game Passport v$version — Общедоступная версия" `
+            --notes "Облачная Windows-сборка без обязательной активации компьютера. Вход по почте и паролю, личные профили Supabase, дизайн Obsidian + Unbounded и реальные адаптеры сохранены. Проверка доступа использует единую политику в React и Rust. Установщики не подписаны Authenticode: Windows может показать предупреждение о неизвестном издателе. SHA-256 приложены. Перед массовой установкой проверьте на одном Windows-ПК." `
             --prerelease
