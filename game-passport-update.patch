@@ -11,49 +11,6 @@ index f9293d7..7fae415 100644
  VITE_FIELD_TEST_MODE=false
 +# Device access is shared by React and Rust in src/domain/accessPolicy.json.
 +# Public releases require a Supabase account, but no device activation.
-diff --git a/.github/workflows/windows-build.yml b/.github/workflows/windows-build.yml
-index 97d0d7e..2bc79f0 100644
---- a/.github/workflows/windows-build.yml
-+++ b/.github/workflows/windows-build.yml
-@@ -3,7 +3,9 @@ name: Windows build
- on:
-   workflow_dispatch:
-   push:
-+    branches: ["main", "release/**"]
-     tags: ["v*"]
-+  pull_request:
- 
- jobs:
-   build-windows:
-@@ -56,10 +58,9 @@ jobs:
-       - name: TypeScript and production frontend build
-         run: pnpm build
-       - name: Rust formatting
--        shell: pwsh
--        run: |
--          cargo fmt --manifest-path src-tauri/Cargo.toml
--          cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-+      - name: Rust lint
-+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib
-       - name: Windows tests including the real public access guard
-         run: cargo test --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib
-       - name: Build real MSI and NSIS installers
-@@ -83,6 +84,7 @@ jobs:
-           retention-days: 14
-           path: windows-artifacts/*
-       - name: Publish public installer from this exact source commit
-+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
-         shell: pwsh
-         env:
-           GH_TOKEN: ${{ github.token }}
-@@ -91,5 +93,5 @@ jobs:
-           $releaseTag = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF_NAME } else { "public-${{ github.run_number }}" }
-           gh release create $releaseTag "windows-artifacts/*" --target "${{ github.sha }}" `
-             --title "Game Passport v$version — Общедоступная версия" `
--            --notes "Применение и восстановление CS2 больше не закрывают и не перезапускают Steam. Закрытой должна быть только игра. При открытом Steam параметры запуска нужно проверить в свойствах CS2; автоматическое изменение этого поля не заявляется. Инструкции показываются один раз, затем открываются по кнопке. Разрешение CS2 сохраняется отдельно от рабочего стола Windows/NVIDIA, а настройки звука CS2 остаются в игровом снимке. Старый профиль нужно один раз пересохранить на исходном ПК для независимого переноса рабочего стола; без этого его разрешение не меняется. Игровые файлы повторно проверяются после записи. Облачные профили Supabase, дизайн Obsidian + Unbounded и работа без активации ПК сохранены. Установщики не подписаны Authenticode. Перед массовой установкой проверьте на одном Windows-ПК. SHA-256 приложены." `
-+            --notes "Game Passport 0.10.0 исправляет цепочку NVIDIA: рабочий стол применяется первым, затем DRS/scaling/color, после чего значения считываются повторно. Несовпадение теперь является ошибкой и запускает откат. Capture сохраняется в облако только целиком, не смешивает старые и новые данные и не переносит глобальный NVIDIA-профиль. Восстановление связано с конкретным Apply. Steam не закрывается; при открытом Steam параметры запуска остаются безопасной ручной проверкой. Мышь удалена из профиля. Иконка заменена на Obsidian Gold. Старый профиль нужно один раз пересохранить. Установщики не подписаны Authenticode; сначала проверьте на одном Windows-ПК. SHA-256 приложены." `
-             --prerelease
 diff --git a/README.md b/README.md
 index c998d18..521ee27 100644
 --- a/README.md
