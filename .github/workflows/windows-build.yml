@@ -25,10 +25,12 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path "src/domain/accessPolicy.json")) {
-            if (-not (Test-Path "game-passport-update.patch")) { throw "Release source is missing." }
-            git apply --check --whitespace=nowarn "game-passport-update.patch"
+            $patchParts = Get-ChildItem "fastplay-v0.11.0.patch.part-*" | Sort-Object Name
+            if ($patchParts.Count -eq 0) { throw "FastPlay release source is missing." }
+            Get-Content $patchParts.FullName -AsByteStream | Set-Content "fastplay-v0.11.0.patch" -AsByteStream
+            git apply --check --whitespace=nowarn "fastplay-v0.11.0.patch"
             if ($LASTEXITCODE -ne 0) { throw "Release patch validation failed." }
-            git apply --whitespace=nowarn "game-passport-update.patch"
+            git apply --whitespace=nowarn "fastplay-v0.11.0.patch"
             if ($LASTEXITCODE -ne 0) { throw "Release patch application failed." }
           }
       - name: Validate public cloud distribution
@@ -79,7 +81,7 @@ jobs:
           Get-ChildItem "windows-artifacts" -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Set-Content "windows-artifacts/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: game-passport-windows-public-${{ github.run_number }}
+          name: fastplay-windows-public-${{ github.run_number }}
           if-no-files-found: error
           retention-days: 14
           path: windows-artifacts/*
@@ -92,6 +94,6 @@ jobs:
           $version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
           $releaseTag = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF_NAME } else { "public-${{ github.run_number }}" }
           gh release create $releaseTag "windows-artifacts/*" --target "${{ github.sha }}" `
-            --title "Game Passport v$version — Общедоступная версия" `
-            --notes "Game Passport 0.10.0 исправляет цепочку NVIDIA: рабочий стол применяется первым, затем DRS/scaling/color, после чего значения считываются повторно. Несовпадение теперь является ошибкой и запускает откат. Capture сохраняется в облако только целиком, не смешивает старые и новые данные и не переносит глобальный NVIDIA-профиль. Восстановление связано с конкретным Apply. Steam не закрывается; при открытом Steam параметры запуска остаются безопасной ручной проверкой. Мышь удалена из профиля. Иконка заменена на Obsidian Gold. Старый профиль нужно один раз пересохранить. Установщики не подписаны Authenticode; сначала проверьте на одном Windows-ПК. SHA-256 приложены." `
+            --title "FastPlay v$version — CS2, PUBG и VALORANT" `
+            --notes "FastPlay 0.11.0 — новая общедоступная версия приложения. Название, интерфейс и иконка обновлены. CS2 сохранена без изменения рабочего потока. PUBG подключена в основной интерфейс. Добавлен безопасный адаптер VALORANT: поиск актуального локального профиля, перенос GameUserSettings.ini и RiotUserSettings.ini, блокировка при запущенной игре, резервная копия, повторная проверка и автоматический откат. Riot-логины, токены, Vanguard и аппаратные идентификаторы не читаются и не сохраняются. Экран, игровые настройки и NVIDIA остаются независимыми. Установщики не подписаны Authenticode; сначала проверьте на одном Windows-ПК. SHA-256 приложены." `
             --prerelease
