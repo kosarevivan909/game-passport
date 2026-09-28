@@ -33,6 +33,18 @@ jobs:
             git apply --whitespace=nowarn "fastplay-v0.11.0.patch"
             if ($LASTEXITCODE -ne 0) { throw "Release patch application failed." }
           }
+      - name: Apply September game compatibility update
+        shell: pwsh
+        run: |
+          $version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
+          if ($version -eq "0.11.0") {
+            git apply --check --whitespace=nowarn "fastplay-v0.11.1.patch"
+            if ($LASTEXITCODE -ne 0) { throw "September patch validation failed." }
+            git apply --whitespace=nowarn "fastplay-v0.11.1.patch"
+            if ($LASTEXITCODE -ne 0) { throw "September patch application failed." }
+          }
+          $version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
+          if ($version -ne "0.11.1") { throw "Expected FastPlay 0.11.1 source." }
       - name: Validate public cloud distribution
         shell: pwsh
         run: |
@@ -95,5 +107,5 @@ jobs:
           $releaseTag = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF_NAME } else { "public-${{ github.run_number }}" }
           gh release create $releaseTag "windows-artifacts/*" --target "${{ github.sha }}" `
             --title "FastPlay v$version — CS2, PUBG и VALORANT" `
-            --notes "FastPlay 0.11.0 — новая общедоступная версия приложения. Название, интерфейс и иконка обновлены. CS2 сохранена без изменения рабочего потока. PUBG подключена в основной интерфейс. Добавлен безопасный адаптер VALORANT: поиск актуального локального профиля, перенос GameUserSettings.ini и RiotUserSettings.ini, блокировка при запущенной игре, резервная копия, повторная проверка и автоматический откат. Riot-логины, токены, Vanguard и аппаратные идентификаторы не читаются и не сохраняются. Экран, игровые настройки и NVIDIA остаются независимыми. Установщики не подписаны Authenticode; сначала проверьте на одном Windows-ПК. SHA-256 приложены." `
+            --notes "FastPlay 0.11.1 — совместимость с сентябрьскими обновлениями игр. CS2: проверка нового формата прицела и исходной высоты экрана до применения; старые неполные снимки не перезаписывают настройки. Один раз заново сохраните профиль после настройки прицела в обновлённой CS2. CFG и параметры запуска, способные менять прицел, дают Warning. PUBG/VALORANT: исправлено чтение UTF-8 BOM, сохранение новых безопасных параметров покрыто тестами; исправлена классификация графики VALORANT и DLSS/FSR в PUBG. Steam не закрывается, NVIDIA и разрешение игры независимы. Проверки файлов и CI не заменяют тест внутри игр: сначала проверьте на одном Windows-ПК. Установщики не подписаны Authenticode. SHA-256 приложены." `
             --prerelease
