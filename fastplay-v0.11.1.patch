@@ -1,0 +1,817 @@
+diff --git a/README.md b/README.md
+index 69b50c4..01f6339 100644
+--- a/README.md
++++ b/README.md
+@@ -1,10 +1,10 @@
+-# FastPlay v0.11.0
++# FastPlay v0.11.1
+ 
+ Windows-приложение на Tauri 2, React, TypeScript, Rust и Supabase для переноса профилей CS2, PUBG и VALORANT между компьютерами.
+ 
+ ## Установка
+ 
+-1. Скачайте `FastPlay_0.11.0_x64-setup.exe` из GitHub Release.
++1. Скачайте `FastPlay_0.11.1_x64-setup.exe` из GitHub Release.
+ 2. Запустите установщик обычным пользователем Windows.
+ 3. Войдите в FastPlay. Для CS2 войдите также в Steam; для VALORANT достаточно один раз запустить игру на этом ПК, чтобы Riot создал локальные файлы.
+ 4. Перед сохранением или применением полностью закройте выбранную игру. Steam и Riot Client можно оставить открытыми.
+diff --git a/docs/GAME_UPDATES_2026_09.md b/docs/GAME_UPDATES_2026_09.md
+new file mode 100644
+index 0000000..9055fc1
+--- /dev/null
++++ b/docs/GAME_UPDATES_2026_09.md
+@@ -0,0 +1,37 @@
++# FastPlay 0.11.1 — совместимость с сентябрьскими обновлениями
++
++Исследование: 27–28 сентября 2026. Проверка файлов не является проверкой результата после запуска игры.
++
++## CS2
++
++Valve 22–23 сентября изменила формат прицела: размеры в пикселях, автоматический масштаб при смене разрешения, новые стили, половинная обводка. Источник: https://steamcommunity.com/app/730/allnews/ .
++
++Имена проверены по поставляемым Valve данным игры в зеркале GameTracking-CS2 (дерево `3fc98e763328f7d1627405b389d1b6b69c5b0e38`):
++
++- https://github.com/SteamTracking/GameTracking-CS2/blob/3fc98e763328f7d1627405b389d1b6b69c5b0e38/DumpSource2/convars.txt
++- https://github.com/SteamTracking/GameTracking-CS2/blob/3fc98e763328f7d1627405b389d1b6b69c5b0e38/game/csgo/pak01_dir/panorama/layout/settings/settings_crosshair.xml
++
++Новый связанный набор: `cl_crosshair_length`, `cl_crosshair_thickness`, `cl_crosshair_gap`, `cl_crosshair_screen_height`. Последний хранит высоту, при которой пользователь настроил размеры. Его нельзя подменять высотой рабочего стола/NVIDIA. Дополнительно сохраняются `cl_crosshaircolor_a`, новые значения `cl_crosshairstyle`, `cl_crosshair_drawoutline`, `cl_crosshair_dynamic_spread_limit`, параметры прицелов оружия/гранат и будущие ключи — целиком в исходном VCFG, не посредством списка разрешённых конваров.
++
++Раньше приложение уже копировало весь `cs2_user_convars_0_slot0.vcfg`, поэтому утверждать, что каждый новый ключ терялся при копировании, неверно. Уязвимость: не было проверки старого снимка без нового набора и предупреждения о cfg, способных повторно изменить прицел. Это возможные причины жалобы, не доказанный диагноз конкретного ПК без его файлов/логов.
++
++Теперь неполный/старый прицел отклоняется до применения профиля (в том числе до дисплея/NVIDIA), без угадывания коэффициентов миграции. Capture тоже не заменяет хороший облачный профиль неполным снимком. Поддерживаются ключи `$0`, комментарии и UTF-8 BOM. Скрипты не исполняются и не переписываются. Наличие команд прицела в сохранённых cfg/параметрах запуска даёт Warning; наличие упоминаний — консервативный сигнал риска, не доказательство конфликта.
++
++Что сделать пользователю: на исходном ПК обновить CS2, выбрать нужный прицел, закрыть игру штатно, нажать «Сохранить текущие настройки». Применять новый снимок на другом ПК можно без предварительного запуска CS2, если игра установлена и Steam-пользователь определяется.
++
++## PUBG
++
++Последний проверенный патч — 43.1: https://pubg.com/en/news/11057 . В числе изменений — новые графические возможности масштабирования и управление. Конкретные недокументированные имена INI-ключей не выдумываются. Сохраняются неизвестные безопасные ключи в поддерживаемых игровых секциях `GameUserSettings.ini`, `Input.ini`, `Scalability.ini`; добавлено распознавание DLSS/FSR/upscaling в отчёте. Исправлен BOM при чтении и слиянии, тестами покрыт порядок массивов новых действий и сохранение звука. Доступность графической функции определяется игрой и оборудованием, не FastPlay.
++
++## VALORANT
++
++Последний проверенный патч — 13.06: https://playvalorant.com/en-us/news/game-updates/valorant-patch-notes-13-06/ . Официальная заметка не документирует миграцию схемы локальных INI. Нет оснований придумывать новые пути. Сохраняются безопасные неизвестные ключи в разрешённых секциях `WindowsClient/GameUserSettings.ini` и `Windows/RiotUserSettings.ini`. Исправлен BOM. Путь Windows больше не считается признаком сохранённой графики. Тесты используют явно синтетические будущие ключи, а не неподтверждённые образцы файлов Riot.
++
++## Ограничения и ручная приёмка
++
++- Steam/Riot Cloud, серверные настройки и выполнение сторонних cfg после запуска могут изменить локальные файлы; проверки записи не гарантируют результат будущей игровой сессии.
++- Отсутствующие в локальном конфиге параметры, облачные профили прицела Riot, новые неизвестные файлы/секции, аппаратные/авторизационные данные не обещаются к переносу.
++- Не отключаются Steam, Steam Cloud, Vanguard или античит. Не меняются NVIDIA и разрешение рабочего стола на основании параметров игры.
++- На Windows нужны тесты: сохранить современный прицел (нулевой gap, полупрозрачность, половинная обводка, стили 7/8), перенести 1280×960 на другой рабочий стол, запустить/закрыть/повторно запустить CS2; проверить отсутствие сброса. Отдельно — старый профиль (остановка до записи), cfg-переопределение (Warning), восстановление резервной копии.
++- PUBG: новые бинды, звук, поддерживаемые масштабировщики, повторный запуск. VALORANT: прицел/звук/видео на том же и другом Riot-пользователе. Сравнить результат в игре, а не только сообщение FastPlay.
++- Этот релиз — совместимость и защита от некорректного применения, а не обещание переноса абсолютно всех серверных и аппаратных настроек.
+diff --git a/package.json b/package.json
+index c185f0e..1da4844 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "game-passport",
+   "private": true,
+-  "version": "0.11.0",
++  "version": "0.11.1",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
+index da49544..2c45540 100644
+--- a/src-tauri/Cargo.lock
++++ b/src-tauri/Cargo.lock
+@@ -998,7 +998,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "game-passport"
+-version = "0.11.0"
++version = "0.11.1"
+ dependencies = [
+  "base64 0.22.1",
+  "cc",
+diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
+index ff733da..0edefa7 100644
+--- a/src-tauri/Cargo.toml
++++ b/src-tauri/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "game-passport"
+-version = "0.11.0"
++version = "0.11.1"
+ description = "Portable gaming profiles for Windows PCs"
+ authors = ["FastPlay"]
+ license = "Proprietary"
+diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
+index 6eafd9a..f92d4ad 100644
+--- a/src-tauri/src/cs2.rs
++++ b/src-tauri/src/cs2.rs
+@@ -1,5 +1,77 @@
+ use serde::{Deserialize, Serialize};
+ 
++fn inspect_crosshair(payload: &Cs2Payload) -> Result<Vec<String>, String> {
++    use base64::{engine::general_purpose::STANDARD, Engine};
++    use sha2::{Digest, Sha256};
++    if payload.files.len() > 32
++        || payload
++            .files
++            .iter()
++            .any(|f| f.size > 512 * 1024 || f.content_base64.len() > 700_000)
++    {
++        return Err("Снимок CS2 превышает безопасный размер.".into());
++    }
++    let mut convars = None;
++    let mut overrides = Vec::new();
++    for file in &payload.files {
++        let bytes = STANDARD
++            .decode(&file.content_base64)
++            .map_err(|_| "Повреждён снимок CS2.")?;
++        if bytes.len() as u64 != file.size
++            || format!("{:x}", Sha256::digest(&bytes)) != file.sha256.to_ascii_lowercase()
++        {
++            return Err("Снимок CS2 не прошёл проверку целостности.".into());
++        }
++        if file.scope == "userdata"
++            && file
++                .relative_path
++                .eq_ignore_ascii_case("cs2_user_convars_0_slot0.vcfg")
++        {
++            if convars.is_some() {
++                return Err("В снимке CS2 повторяется файл пользовательских параметров.".into());
++            }
++            convars = Some(crate::cs2_crosshair::crosshair_values(&bytes)?);
++        }
++        if file.relative_path.to_ascii_lowercase().ends_with(".cfg")
++            && crate::cs2_crosshair::script_may_override(&String::from_utf8_lossy(&bytes))
++        {
++            overrides.push(format!("{}/{}", file.scope, file.relative_path));
++        }
++    }
++    let values = convars.ok_or("Нет файла пользовательских параметров CS2.")?;
++    crate::cs2_crosshair::validate(&values)?;
++    let mut warnings = Vec::new();
++    if !overrides.is_empty() {
++        warnings.push(format!("CFG содержит команды прицела: {}. При выполнении cfg или привязанных команд они могут заменить сохранённый прицел. FastPlay сохраняет эти скрипты без изменения; удалите устаревшие команды или обновите их перед повторным сохранением.", overrides.join(", ")));
++    }
++    if payload
++        .launch_options
++        .as_deref()
++        .is_some_and(crate::cs2_crosshair::script_may_override)
++    {
++        warnings.push("Параметры запуска Steam содержат команды прицела и могут переопределить сохранённые значения.".into());
++    }
++    Ok(warnings)
++}
++
++/// Read-only validation runs before any display/GPU adapter is allowed to apply.
++pub fn check_snapshot(payload: &Cs2Payload) -> Cs2CommandResponse {
++    let (state, message, details) = match inspect_crosshair(payload) {
++        Ok(warnings) if warnings.is_empty() => ("success", "Новый формат прицела CS2 проверен.", warnings),
++        Ok(warnings) => ("warning", "Прицел сохранён, но CFG или параметры запуска могут его изменить.", warnings),
++        Err(error) => ("error", "Нельзя безопасно применить прицел из этого профиля. Пересохраните профиль после обновления CS2.", vec![error]),
++    };
++    Cs2CommandResponse {
++        state: state.into(),
++        message: message.into(),
++        details,
++        retryable: false,
++        payload: None,
++        manual_launch_options: None,
++        backup_token: None,
++    }
++}
++
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+ #[serde(rename_all = "camelCase")]
+ pub struct Cs2ConfigFile {
+@@ -324,11 +396,30 @@ mod windows {
+             launch_options: launch_options.clone(),
+             launch_options_captured,
+         };
++        let crosshair_warnings = super::inspect_crosshair(&payload).map_err(|error| {
++            UserFacingError::new(
++                "Настройки не сохранены: обновите CS2, настройте прицел и полностью закройте игру.",
++                false,
++            )
++            .detail(error)
++        })?;
++        let state = if crosshair_warnings.is_empty() {
++            state
++        } else {
++            "warning"
++        };
++        let message = if crosshair_warnings.is_empty() {
++            message
++        } else {
++            "Настройки CS2 сохранены; CFG или параметры запуска могут изменять прицел.".into()
++        };
+         let retryable = !launch_options_captured;
+         let mut summary = vec![
++            "Сохранён новый формат прицела целиком, включая размеры в пикселях и исходную высоту экрана. FastPlay не пересчитывает прицел под разрешение рабочего стола.".into(),
+             "Сохранены чувствительность, игровые параметры и звук из cs2_user_convars_0_slot0.vcfg.".into(),
+             "Сохранены привязки клавиш из cs2_user_keys_0_slot0.vcfg.".into(),
+         ];
++        summary.extend(crosshair_warnings);
+         if video_captured {
+             summary.push(
+                 "Сохранены переносимые параметры видео и разрешения из cs2_video.txt.".into(),
+@@ -432,6 +523,8 @@ mod windows {
+         }
+ 
+         let mut decoded = decode_and_resolve(&payload, context)?;
++        let crosshair_warnings = super::inspect_crosshair(&payload)
++            .map_err(|error| UserFacingError::new("Профиль CS2 требует повторного сохранения после обновления прицела. Файлы не изменены.", false).detail(error))?;
+         let requested_launch_options = saved_launch_options(&payload)?;
+         let mut manual_launch_options = None;
+         let mut launch_options_staged = false;
+@@ -542,6 +635,8 @@ mod windows {
+             format!("Локальная резервная копия: {}", backup_root.display()),
+             format!("Записано и проверено файлов: {}.", committed.len()),
+         ];
++        let crosshair_risk = !crosshair_warnings.is_empty();
++        details.extend(crosshair_warnings);
+         details.push("Game Passport не закрывал и не перезапускал Steam.".into());
+         if launch_options_staged && manual_launch_options.is_none() {
+             details
+@@ -560,13 +655,15 @@ mod windows {
+             details.push("Разрешение и переносимые параметры видео записаны. После запуска CS2 может заменить значения, которые не поддерживаются этим компьютером.".into());
+         }
+         Ok(Cs2CommandResponse {
+-            state: if manual_launch_options.is_some() || verification_failed {
++            state: if manual_launch_options.is_some() || verification_failed || crosshair_risk {
+                 "warning".into()
+             } else {
+                 "success".into()
+             },
+             message: if verification_failed {
+                 "Файлы CS2 записаны, но повторная проверка не пройдена. Steam не закрывался.".into()
++            } else if crosshair_risk {
++                "Файлы CS2 применены; CFG или параметры запуска могут изменить прицел при запуске игры.".into()
+             } else if manual_launch_options.is_some() {
+                 "Файлы CS2 применены. Steam не закрывался; параметры запуска требуют проверки вручную.".into()
+             } else {
+@@ -2046,7 +2143,7 @@ mod windows {
+                 fs::write(&context.localconfig_vdf, "\"Software\"\n{\n\"Valve\"\n{\n\"Steam\"\n{\n\"KeepMe\" \"unchanged\"\n\"apps\"\n{\n\"730\"\n{\n\"LaunchOptions\" \"-windowed\"\n}\n}\n}\n}\n}\n").unwrap();
+                 fs::write(context.userdata_cfg.join("cs2_video.txt"), b"\"video.cfg\"\n{\n\"VendorID\" \"4318\"\n\"DeviceID\" \"1234\"\n\"setting.defaultres\" \"1920\"\n}\n").unwrap();
+                 let files = [
+-                    ("userdata", REQUIRED_CORE[0], "\"sensitivity\" \"1.25\"\n"),
++                    ("userdata", REQUIRED_CORE[0], "\"config\" { \"convars\" { \"sensitivity\" \"1.25\" \"cl_crosshair_length\" \"8\" \"cl_crosshair_thickness\" \"2\" \"cl_crosshair_gap\" \"0\" \"cl_crosshair_screen_height\" \"960\" } }\n"),
+                     ("userdata", REQUIRED_CORE[1], "\"SPACE\" \"+jump\"\n"),
+                     ("userdata", REQUIRED_CORE[2], "\"video.cfg\"\n{\n\"setting.fullscreen\" \"1\"\n\"setting.coop_fullscreen\" \"0\"\n\"setting.defaultres\" \"1280\"\n\"setting.defaultresheight\" \"960\"\n\"setting.videocfg_shadow_quality\" \"2\"\n}\n"),
+                     ("install", "autoexec.cfg", "sensitivity 1.25\n"),
+@@ -2109,8 +2206,10 @@ mod windows {
+             assert_eq!(fs::read(&fixture.context.localconfig_vdf).unwrap(), before);
+             assert!(!fixture.root.join("backups/steam").exists());
+             assert_eq!(
+-                fs::read_to_string(fixture.context.userdata_cfg.join(REQUIRED_CORE[0])).unwrap(),
+-                "\"sensitivity\" \"1.25\"\n"
++                fs::read(fixture.context.userdata_cfg.join(REQUIRED_CORE[0])).unwrap(),
++                BASE64
++                    .decode(&fixture.payload.files[0].content_base64)
++                    .unwrap()
+             );
+             let video = video_key_values(
+                 &fs::read(fixture.context.userdata_cfg.join(REQUIRED_CORE[2])).unwrap(),
+@@ -2146,7 +2245,7 @@ mod windows {
+             let mut fixture = ApplyFixture::new();
+             let source = fixture.root.join("source-cfg");
+             fs::create_dir_all(&source).unwrap();
+-            let user_audio = "\"convars\"\n{\n\"volume\" \"0.35\"\n\"snd_voipvolume\" \"0.6\"\n\"snd_menumusic_volume\" \"0.05\"\n\"voice_modenable\" \"1\"\n}\n";
++            let user_audio = "\"convars\"\n{\n\"volume\" \"0.35\"\n\"snd_voipvolume\" \"0.6\"\n\"snd_menumusic_volume\" \"0.05\"\n\"voice_modenable\" \"1\"\n\"cl_crosshair_length\" \"8\"\n\"cl_crosshair_thickness\" \"2\"\n\"cl_crosshair_gap\" \"0\"\n\"cl_crosshair_screen_height\" \"960\"\n}\n";
+             let machine_audio = "\"convars\"\n{\n\"snd_headphone_eq\" \"2\"\n\"snd_spatialize_lerp\" \"0.5\"\n\"sound_device_override\" \"source-pc-device\"\n\"audio_device\" \"source-pc-output\"\n}\n";
+             let cfg_audio = "snd_roundstart_volume 0.15\nvoice_modenable 1\n";
+             let mut captured = Vec::new();
+@@ -2265,6 +2364,31 @@ mod windows {
+             ));
+         }
+ 
++        #[test]
++        fn legacy_crosshair_cannot_overwrite_any_game_file() {
++            let mut fixture = ApplyFixture::new();
++            let old = b"\"convars\" { \"cl_crosshairsize\" \"3\" }";
++            fixture.payload.files[0].content_base64 = BASE64.encode(old);
++            fixture.payload.files[0].size = old.len() as u64;
++            fixture.payload.files[0].sha256 = format!("{:x}", Sha256::digest(old));
++            fixture.payload.total_bytes = fixture.payload.files.iter().map(|f| f.size).sum();
++            let before = fs::read(fixture.context.userdata_cfg.join("cs2_video.txt")).unwrap();
++            let result = apply_with_context(
++                fixture.payload.clone(),
++                &fixture.context,
++                &fixture.root.join("backups"),
++                &|| false,
++                &|| Ok(()),
++                Duration::ZERO,
++            );
++            assert!(result.is_err());
++            assert_eq!(
++                fs::read(fixture.context.userdata_cfg.join("cs2_video.txt")).unwrap(),
++                before
++            );
++            assert!(!fixture.root.join("backups").exists());
++        }
++
+         #[test]
+         fn invalid_launch_options_are_rejected_before_any_write() {
+             let mut fixture = ApplyFixture::new();
+@@ -2573,6 +2697,41 @@ pub fn restore(backup_token: Option<String>) -> Cs2CommandResponse {
+ mod tests {
+     use super::*;
+ 
++    fn snapshot(text: &str) -> Cs2Payload {
++        use base64::{engine::general_purpose::STANDARD, Engine};
++        use sha2::{Digest, Sha256};
++        Cs2Payload {
++            schema_version: 2,
++            captured_at: "test".into(),
++            files: vec![Cs2ConfigFile {
++                scope: "userdata".into(),
++                relative_path: "cs2_user_convars_0_slot0.vcfg".into(),
++                content_base64: STANDARD.encode(text),
++                sha256: format!("{:x}", Sha256::digest(text.as_bytes())),
++                size: text.len() as u64,
++            }],
++            total_bytes: text.len() as u64,
++            core_files_found: vec![],
++            optional_files_missing: vec![],
++            launch_options: None,
++            launch_options_captured: true,
++        }
++    }
++
++    #[test]
++    fn preflight_rejects_legacy_and_corrupt_profiles() {
++        let legacy = snapshot("\"config\" { \"convars\" { \"cl_crosshairsize\" \"3\" } }");
++        assert_eq!(check_snapshot(&legacy).state, "error");
++        let mut modern = snapshot("\"config\" { \"convars\" { \"cl_crosshair_length\" \"8\" \"cl_crosshair_thickness\" \"2\" \"cl_crosshair_gap\" \"0\" \"cl_crosshair_screen_height\" \"960\" } }");
++        let original = modern.files[0].content_base64.clone();
++        assert_eq!(check_snapshot(&modern).state, "success");
++        assert_eq!(modern.files[0].content_base64, original);
++        modern.launch_options = Some("+cl_crosshair_length 3".into());
++        assert_eq!(check_snapshot(&modern).state, "warning");
++        modern.files[0].sha256 = "invalid".into();
++        assert_eq!(check_snapshot(&modern).state, "error");
++    }
++
+     #[test]
+     fn payload_uses_camel_case_json_fields() {
+         let payload = Cs2Payload {
+diff --git a/src-tauri/src/cs2_crosshair.rs b/src-tauri/src/cs2_crosshair.rs
+new file mode 100644
+index 0000000..cd9a702
+--- /dev/null
++++ b/src-tauri/src/cs2_crosshair.rs
+@@ -0,0 +1,217 @@
++//! Crosshair compatibility checks. The actual VCFG remains byte-for-byte intact.
++//! Valve's September 2026 format couples pixel sizes with their authored height.
++use std::collections::BTreeMap;
++
++const PIXEL_KEYS: [&str; 4] = [
++    "cl_crosshair_length",
++    "cl_crosshair_thickness",
++    "cl_crosshair_gap",
++    "cl_crosshair_screen_height",
++];
++
++#[derive(Debug, PartialEq)]
++enum Token {
++    Word(String),
++    Open,
++    Close,
++}
++
++// KV1 lexer: comments and quoted bind/alias contents must not become convars.
++fn tokens(text: &str) -> Result<Vec<Token>, String> {
++    let mut chars = text.trim_start_matches('\u{feff}').chars().peekable();
++    let mut result = Vec::new();
++    while let Some(c) = chars.next() {
++        match c {
++            c if c.is_whitespace() => {}
++            '/' if chars.peek() == Some(&'/') => {
++                for c in chars.by_ref() {
++                    if c == '\n' {
++                        break;
++                    }
++                }
++            }
++            '{' => result.push(Token::Open),
++            '}' => result.push(Token::Close),
++            '"' => {
++                let mut value = String::new();
++                let mut closed = false;
++                while let Some(c) = chars.next() {
++                    if c == '"' {
++                        closed = true;
++                        break;
++                    }
++                    if c == '\\' {
++                        value.push(
++                            chars
++                                .next()
++                                .ok_or("Незавершённая escape-последовательность VCFG.")?,
++                        );
++                    } else {
++                        value.push(c);
++                    }
++                }
++                if !closed {
++                    return Err("Незавершённая строка VCFG.".into());
++                }
++                result.push(Token::Word(value));
++            }
++            _ => {
++                let mut value = String::from(c);
++                while chars
++                    .peek()
++                    .is_some_and(|c| !c.is_whitespace() && !matches!(c, '{' | '}' | '"'))
++                {
++                    value.push(chars.next().unwrap());
++                }
++                result.push(Token::Word(value));
++            }
++        }
++    }
++    Ok(result)
++}
++
++pub fn crosshair_values(bytes: &[u8]) -> Result<BTreeMap<String, String>, String> {
++    let text = std::str::from_utf8(bytes).map_err(|_| "VCFG CS2 не является UTF-8.")?;
++    let tokens = tokens(text)?;
++    let mut scope: Vec<String> = Vec::new();
++    let mut result = BTreeMap::new();
++    let mut i = 0;
++    while i < tokens.len() {
++        match (&tokens[i], tokens.get(i + 1)) {
++            (Token::Word(key), Some(Token::Open)) => {
++                scope.push(key.to_ascii_lowercase());
++                i += 2;
++            }
++            (Token::Word(key), Some(Token::Word(value))) => {
++                let key = key.to_ascii_lowercase();
++                // Source 2 can use $0 for the primary local player; never mix $1.
++                let key = key.strip_suffix("$0").unwrap_or(&key);
++                if scope.last().is_some_and(|s| s == "convars")
++                    && !key.contains('$')
++                    && is_crosshair_key(key)
++                    && result.insert(key.into(), value.clone()).is_some()
++                {
++                    return Err(format!("Повторяющийся параметр прицела: {key}."));
++                }
++                i += 2;
++            }
++            (Token::Close, _) if !scope.is_empty() => {
++                scope.pop();
++                i += 1;
++            }
++            _ => return Err("Не удалось разобрать структуру VCFG CS2.".into()),
++        }
++    }
++    if !scope.is_empty() {
++        return Err("Незавершённый блок VCFG CS2.".into());
++    }
++    Ok(result)
++}
++
++fn is_crosshair_key(key: &str) -> bool {
++    key == "crosshair"
++        || key.starts_with("cl_crosshair")
++        || key.starts_with("cl_grenadecrosshair")
++        || key.starts_with("cl_ironsight_")
++        || key.starts_with("cl_sniper_")
++}
++
++pub fn validate(values: &BTreeMap<String, String>) -> Result<(), String> {
++    let missing: Vec<_> = PIXEL_KEYS
++        .iter()
++        .filter(|key| !values.contains_key(**key))
++        .copied()
++        .collect();
++    if !missing.is_empty() {
++        return Err(format!("В профиле нет полного нового формата прицела CS2: {}. На исходном ПК обновите CS2, настройте прицел, закройте игру и заново сохраните профиль в FastPlay. Старые размеры нельзя безопасно пересчитать автоматически.", missing.join(", ")));
++    }
++    for key in PIXEL_KEYS {
++        let number = values[key].parse::<f64>().ok().filter(|v| v.is_finite());
++        let minimum = if key == "cl_crosshair_screen_height" {
++            240.0
++        } else {
++            0.0
++        };
++        if number.map_or(true, |v| v < minimum) {
++            return Err(format!("Некорректный параметр прицела {key}. Заново сохраните настройки после закрытия CS2."));
++        }
++    }
++    Ok(())
++}
++
++/// Conservative diagnostics only: scripts are never executed or rewritten.
++pub fn script_may_override(text: &str) -> bool {
++    text.lines().any(|line| {
++        let code = line
++            .split("//")
++            .next()
++            .unwrap_or_default()
++            .to_ascii_lowercase();
++        code.contains("crosshair") || code.contains("cl_ironsight_") || code.contains("cl_sniper_")
++    })
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    pub const MODERN: &str = r#""config" { "convars" {
++        "cl_crosshair_length$0" "8" "cl_crosshair_thickness$0" "2"
++        "cl_crosshair_gap$0" "0" "cl_crosshair_screen_height$0" "960"
++        "cl_crosshairstyle$0" "8" "cl_crosshair_drawoutline$0" "2"
++        "cl_crosshaircolor_a$0" "127" "cl_crosshair_dynamic_spread_limit$0" "64"
++        "cl_crosshair_future_option$0" "42"
++    } }"#;
++
++    #[test]
++    fn retains_new_styles_opacity_outline_and_authored_resolution() {
++        let values = crosshair_values(MODERN.as_bytes()).unwrap();
++        validate(&values).unwrap();
++        assert_eq!(values["cl_crosshair_screen_height"], "960");
++        assert_eq!(values["cl_crosshairstyle"], "8");
++        assert_eq!(values["cl_crosshair_drawoutline"], "2");
++        assert_eq!(values["cl_crosshaircolor_a"], "127");
++        assert_eq!(values["cl_crosshair_future_option"], "42");
++    }
++    #[test]
++    fn old_profiles_and_missing_scale_are_not_silently_migrated() {
++        let old = br#""config" { "convars" { "cl_crosshairsize" "3.9" } }"#;
++        assert!(validate(&crosshair_values(old).unwrap()).is_err());
++        let mut values = crosshair_values(MODERN.as_bytes()).unwrap();
++        values.remove("cl_crosshair_screen_height");
++        assert!(validate(&values).is_err());
++    }
++    #[test]
++    fn rejects_invalid_scale_but_accepts_zero_gap() {
++        for value in ["NaN", "inf", "0", "-1"] {
++            let mut values = crosshair_values(MODERN.as_bytes()).unwrap();
++            values.insert("cl_crosshair_screen_height".into(), value.into());
++            assert!(validate(&values).is_err());
++        }
++    }
++    #[test]
++    fn ignores_comments_bind_strings_and_other_player() {
++        let text = format!("\u{feff}// \"cl_crosshair_gap\" \"99\"\n{MODERN}\n\"bindings\" {{ \"A\" \"cl_crosshair_gap 99\" }}\n\"config\" {{ \"convars\" {{ \"cl_crosshair_gap$1\" \"88\" }} }}");
++        let values = crosshair_values(text.as_bytes()).unwrap();
++        assert_eq!(values["cl_crosshair_gap"], "0");
++    }
++    #[test]
++    fn rejects_malformed_or_ambiguous_input() {
++        for text in [
++            "\"config\" {",
++            "\"config",
++            "}",
++            "\"config\" { \"convars\" { \"crosshair\" \"1\" \"crosshair$0\" \"0\" } }",
++        ] {
++            assert!(crosshair_values(text.as_bytes()).is_err());
++        }
++    }
++    #[test]
++    fn finds_cfg_and_launch_overrides_without_executing_them() {
++        assert!(script_may_override("alias aim \"cl_crosshair_length 3\""));
++        assert!(script_may_override("+cl_crosshairstyle 4"));
++        assert!(!script_may_override(
++            "// cl_crosshair_length 3\nsensitivity 1.2"
++        ));
++    }
++}
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 3923f96..2e661e8 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -2,6 +2,7 @@ use serde::Serialize;
+ 
+ mod apply_lock;
+ mod cs2;
++mod cs2_crosshair;
+ mod display;
+ mod license;
+ mod mouse;
+@@ -30,6 +31,11 @@ fn get_platform_info() -> PlatformInfo {
+     }
+ }
+ 
++#[tauri::command]
++fn check_cs2_snapshot(payload: cs2::Cs2Payload) -> cs2::Cs2CommandResponse {
++    cs2::check_snapshot(&payload)
++}
++
+ #[tauri::command]
+ fn capture_cs2_settings() -> cs2::Cs2CommandResponse {
+     if let Err(message) = license::require_active() {
+@@ -362,6 +368,7 @@ pub fn run() {
+         .invoke_handler(tauri::generate_handler![
+             get_platform_info,
+             check_cs2_closed,
++            check_cs2_snapshot,
+             capture_cs2_settings,
+             apply_cs2_settings,
+             restore_cs2_settings,
+diff --git a/src-tauri/src/pubg.rs b/src-tauri/src/pubg.rs
+index efd5d3e..8bbfe01 100644
+--- a/src-tauri/src/pubg.rs
++++ b/src-tauri/src/pubg.rs
+@@ -325,6 +325,9 @@ fn categories_for(file: &str, section: &str, key: &str, value: &str) -> Vec<Stri
+             "fps",
+             "directx",
+             "viewdistance",
++            "dlss",
++            "fsr",
++            "upscal",
+             "sg.",
+         ]
+         .iter()
+@@ -401,7 +404,7 @@ pub fn parse_portable_ini(file: &str, text: &str) -> Result<(Vec<PubgIniEntry>,
+     let mut section = String::new();
+     let mut entries = Vec::new();
+     let mut excluded = 0;
+-    for (index, raw) in text.lines().enumerate() {
++    for (index, raw) in text.trim_start_matches('\u{feff}').lines().enumerate() {
+         if raw.len() > MAX_VALUE_BYTES {
+             return Err(format!(
+                 "{file} line {} exceeds the safe size limit.",
+@@ -585,7 +588,7 @@ pub fn merge_ini(current: &str, saved: &[PubgIniEntry]) -> Result<String, String
+         .collect::<BTreeSet<_>>();
+     let mut section = String::new();
+     let mut output = Vec::new();
+-    for raw in current.lines() {
++    for raw in current.trim_start_matches('\u{feff}').lines() {
+         let line = raw.trim();
+         if line.starts_with('[') && line.ends_with(']') {
+             section = line[1..line.len() - 1].trim().to_ascii_lowercase();
+@@ -1391,6 +1394,36 @@ pub use windows::{apply, capture, diagnostics, preflight, restore};
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[test]
++    fn bom_unknown_settings_and_upscalers_survive_roundtrip() {
++        // Synthetic forward-compatibility fixture, not a claim about PUBG key names.
++        let text = "\u{feff}[/Script/TslGame.TslGameUserSettings]\nDLSSMode=2\nFSRMode=1\nFutureGameplaySetting=9\nMusicVolume=0.4\n";
++        let (saved, excluded) = parse_portable_ini("GameUserSettings.ini", text).unwrap();
++        assert_eq!(excluded, 0);
++        assert_eq!(saved.len(), 4);
++        assert!(saved[0].categories.contains(&"graphics".into()));
++        assert!(saved[1].categories.contains(&"graphics".into()));
++        let merged = merge_ini(text, &saved).unwrap();
++        assert_eq!(merged.matches("DLSSMode=").count(), 1);
++        assert_eq!(
++            parse_portable_ini("GameUserSettings.ini", &merged)
++                .unwrap()
++                .0,
++            saved
++        );
++    }
++    #[test]
++    fn new_input_actions_preserve_array_operator_order() {
++        let text = "\u{feff}[/Script/Engine.InputSettings]\n!ActionMappings=ClearArray\n+ActionMappings=(ActionName=\"Kick\",Key=V)\n+ActionMappings=(ActionName=\"Carry\",Key=H)\n";
++        let (saved, _) = parse_portable_ini("Input.ini", text).unwrap();
++        let merged = merge_ini(
++            "[/Script/Engine.InputSettings]\n+ActionMappings=(ActionName=\"Old\",Key=J)\n",
++            &saved,
++        )
++        .unwrap();
++        assert_eq!(parse_portable_ini("Input.ini", &merged).unwrap().0, saved);
++        assert!(!merged.contains("Old"));
++    }
+     fn fixture() -> &'static str {
+         "[/Script/TslGame.TslGameUserSettings]\nResolutionSizeX=1728\nResolutionSizeY=1080\nFullscreenMode=0\nTslPersistantData=(MouseSensitiveList=(General=50.0),CustomInputSettings=((ActionName=\"Jump\",Key=SpaceBar)),MasterSoundVolume=80)\nAudioOutputDeviceId=secret-device\n[/Script/Engine.GameUserSettings]\nbUseVSync=False\n[ScalabilityGroups]\nsg.ShadowQuality=1\n"
+     }
+diff --git a/src-tauri/src/valorant.rs b/src-tauri/src/valorant.rs
+index 98db0f3..52fa51e 100644
+--- a/src-tauri/src/valorant.rs
++++ b/src-tauri/src/valorant.rs
+@@ -188,7 +188,8 @@ fn forbidden_entry(section: &str, key: &str, value: &str) -> bool {
+ }
+ 
+ fn categories_for(file: &str, section: &str, key: &str, value: &str) -> Vec<String> {
+-    let text = format!("{file} {section} {key} {value}").to_ascii_lowercase();
++    // WindowsClient/Windows in the path is not a window-mode setting.
++    let text = format!("{section} {key} {value}").to_ascii_lowercase();
+     let mut result = BTreeSet::new();
+     let mut add = |name: &str, needles: &[&str]| {
+         if needles.iter().any(|needle| text.contains(needle)) {
+@@ -290,7 +291,7 @@ pub fn parse_portable_ini(
+     let mut section = String::new();
+     let mut entries = vec![];
+     let mut excluded = 0;
+-    for (index, raw) in text.lines().enumerate() {
++    for (index, raw) in text.trim_start_matches('\u{feff}').lines().enumerate() {
+         if raw.len() > MAX_VALUE_BYTES {
+             return Err(format!(
+                 "{file} line {} exceeds the safe size limit.",
+@@ -470,7 +471,7 @@ pub fn merge_ini(current: &str, saved: &[ValorantIniEntry]) -> Result<String, St
+         .collect::<BTreeSet<_>>();
+     let mut section = String::new();
+     let mut output = vec![];
+-    for raw in current.lines() {
++    for raw in current.trim_start_matches('\u{feff}').lines() {
+         let line = raw.trim();
+         if line.starts_with('[') && line.ends_with(']') {
+             section = line[1..line.len() - 1].trim().to_ascii_lowercase();
+@@ -1254,6 +1255,31 @@ pub use windows::{apply, capture, diagnostics, preflight, restore};
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn windows_path_does_not_falsely_report_graphics_saved() {
++        let (entries, _) = parse_portable_ini(
++            RIOT_FILE,
++            "[Settings]\nCrosshairFutureSetting=1\nVoiceVolume=0.5\n",
++        )
++        .unwrap();
++        assert!(entries
++            .iter()
++            .all(|entry| !entry.categories.contains(&"graphics".into())));
++        assert!(entries[0].categories.contains(&"crosshair".into()));
++        assert!(entries[1].categories.contains(&"audio".into()));
++    }
++    #[test]
++    fn bom_and_future_safe_settings_survive_roundtrip() {
++        // Deliberately synthetic new keys: no fixed allowlist of individual settings.
++        let text =
++            "\u{feff}[Settings]\nFutureScopeSetting=2\nFutureCrosshairSetting=4\nMusicVolume=0.2\n";
++        let (saved, excluded) = parse_portable_ini(RIOT_FILE, text).unwrap();
++        assert_eq!(excluded, 0);
++        let merged = merge_ini(text, &saved).unwrap();
++        assert_eq!(merged.matches("FutureScopeSetting=").count(), 1);
++        assert_eq!(parse_portable_ini(RIOT_FILE, &merged).unwrap().0, saved);
++    }
++
+     #[test]
+     fn parses_portable_settings_and_rejects_secrets() {
+         let text = "[/Script/ShooterGame.ShooterGameUserSettings]\nResolutionSizeX=1920\nResolutionSizeY=1080\nFullscreenMode=0\nAuthToken=secret\n";
+diff --git a/src-tauri/tauri.conf.json b/src-tauri/tauri.conf.json
+index c5b9efb..efed7b2 100644
+--- a/src-tauri/tauri.conf.json
++++ b/src-tauri/tauri.conf.json
+@@ -1,7 +1,7 @@
+ {
+   "$schema": "https://schema.tauri.app/config/2",
+   "productName": "FastPlay",
+-  "version": "0.11.0",
++  "version": "0.11.1",
+   "identifier": "app.gamepassport.desktop",
+   "build": {
+     "beforeDevCommand": "pnpm dev",
+diff --git a/src/adapters/Cs2PreflightAdapter.ts b/src/adapters/Cs2PreflightAdapter.ts
+index cbfbae8..239d302 100644
+--- a/src/adapters/Cs2PreflightAdapter.ts
++++ b/src/adapters/Cs2PreflightAdapter.ts
+@@ -1,5 +1,6 @@
+ import { invoke } from "@tauri-apps/api/core";
+ import type { Cs2CommandResponse } from "../domain/cs2";
++import { getCs2Payload } from "../domain/cs2";
+ import type { AdapterResult, GameProfile } from "../domain/types";
+ import type { SettingsAdapter } from "../ports/SettingsAdapter";
+ import { isTauriDesktop } from "../services/platform";
+@@ -15,9 +16,16 @@ export class Cs2PreflightAdapter implements SettingsAdapter {
+     return { adapterId: this.id, label: this.label, state: "unsupported", message: "Preflight is apply-only." };
+   }
+ 
+-  async apply(): Promise<AdapterResult> {
++  async apply(profile?: GameProfile): Promise<AdapterResult> {
+     if (!isTauriDesktop()) return { adapterId: this.id, label: this.label, state: "unsupported", message: "CS2 preflight requires Windows desktop." };
+     try {
++      if (profile) {
++        const payload = getCs2Payload(profile.settings);
++        if (payload) {
++          const snapshot = await invoke<Cs2CommandResponse>("check_cs2_snapshot", { payload });
++          if (snapshot.state === "error") return { adapterId: this.id, label: this.label, state: snapshot.state, message: snapshot.message, details: snapshot.details, retryable: false };
++        }
++      }
+       const response = await invoke<Cs2CommandResponse>("check_cs2_closed");
+       return { adapterId: this.id, label: this.label, state: response.state, message: response.message, details: response.details, retryable: response.retryable };
+     } catch (error) {
+diff --git a/src/test/Cs2Preflight.test.ts b/src/test/Cs2Preflight.test.ts
+new file mode 100644
+index 0000000..e2e1daa
+--- /dev/null
++++ b/src/test/Cs2Preflight.test.ts
+@@ -0,0 +1,30 @@
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import { invoke } from "@tauri-apps/api/core";
++import { Cs2PreflightAdapter } from "../adapters/Cs2PreflightAdapter";
++import type { GameProfile } from "../domain/types";
++
++vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
++vi.mock("../services/platform", () => ({ isTauriDesktop: () => true }));
++
++describe("CS2 snapshot compatibility preflight", () => {
++  const profile = { game: "cs2", settings: { adapters: { "game.cs2": { schemaVersion: 2, files: [] } } } } as unknown as GameProfile;
++  beforeEach(() => vi.resetAllMocks());
++  it("stops before machine checks when the saved crosshair is outdated", async () => {
++    vi.mocked(invoke).mockResolvedValue({ state: "error", message: "Пересохраните профиль", details: [], retryable: false });
++    const result = await new Cs2PreflightAdapter().apply(profile);
++    expect(result.state).toBe("error");
++    expect(invoke).toHaveBeenCalledTimes(1);
++    expect(invoke).toHaveBeenCalledWith("check_cs2_snapshot", { payload: (profile.settings.adapters as Record<string, unknown>)["game.cs2"] });
++  });
++  it("checks the environment after snapshot validation", async () => {
++    vi.mocked(invoke).mockResolvedValue({ state: "success", message: "OK", details: [], retryable: false });
++    expect((await new Cs2PreflightAdapter().apply(profile)).state).toBe("success");
++    expect(invoke).toHaveBeenNthCalledWith(2, "check_cs2_closed");
++  });
++  it("does not block backup restoration with snapshot migration checks", async () => {
++    vi.mocked(invoke).mockResolvedValue({ state: "success", message: "OK", details: [], retryable: false });
++    await new Cs2PreflightAdapter().restore();
++    expect(invoke).toHaveBeenCalledTimes(1);
++    expect(invoke).toHaveBeenCalledWith("check_cs2_closed");
++  });
++});
