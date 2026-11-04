@@ -134,11 +134,11 @@ jobs:
         run: |
           $version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
           $releaseTag = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF_NAME } else { "public-${{ github.run_number }}" }
-          $channelArgs = if ($env:PUBLISH_STABLE -eq "true") { @("--latest") } else { @("--prerelease") }
+          $channelArg = if ($env:PUBLISH_STABLE -eq "true") { "--latest" } else { "--prerelease" }
           gh release create $releaseTag "windows-artifacts/*" --target "${{ github.sha }}" `
             --title "FastPlay v$version — CS2, PUBG и VALORANT" `
             --notes "FastPlay ${version}: обновления без ручного удаления, проверка подписи, инструкция по кнопке для CS2/PUBG/VALORANT без всплытия при входе. Совместимость проверена по обновлениям игр на 5 ноября 2026: исправлено отклонение отрицательного зазора прицела CS2. Новые параметры поддерживаемых конфигураций сохраняются без подмены разрешения NVIDIA игровым. Установите эту версию поверх прежней один раз. Проверки сборки не заменяют испытание внутри игр: сначала проверьте один Windows-ПК. Подпись обновлений не является Authenticode-подписью Windows." `
             --draft
           if ($LASTEXITCODE -ne 0) { throw "Release publication failed." }
-          gh release edit $releaseTag --draft=false @channelArgs
+          gh release edit $releaseTag --draft=false $channelArg
           if ($LASTEXITCODE -ne 0) { throw "Release activation failed; draft retained." }
