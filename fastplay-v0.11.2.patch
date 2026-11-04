@@ -1,0 +1,1854 @@
+diff --git a/package.json b/package.json
+index 1da4844..f6651e2 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "game-passport",
+   "private": true,
+-  "version": "0.11.1",
++  "version": "0.11.2",
+   "type": "module",
+   "scripts": {
+     "dev": "vite",
+@@ -16,6 +16,7 @@
+   "dependencies": {
+     "@supabase/supabase-js": "^2.55.0",
+     "@tauri-apps/api": "^2.8.0",
++    "@tauri-apps/plugin-updater": "^2.10.0",
+     "lucide-react": "^0.468.0",
+     "react": "^18.3.1",
+     "react-dom": "^18.3.1"
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 0e7d011..1a891ea 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -14,6 +14,9 @@ importers:
+       '@tauri-apps/api':
+         specifier: ^2.8.0
+         version: 2.11.1
++      '@tauri-apps/plugin-updater':
++        specifier: ^2.10.0
++        version: 2.10.0
+       lucide-react:
+         specifier: ^0.468.0
+         version: 0.468.0(react@18.3.1)
+@@ -671,6 +674,9 @@ packages:
+   '@tauri-apps/api@2.11.1':
+     resolution: {integrity: sha512-M2FPuYND2m+wh5hfW9ZpSdxMPdEJovPBWwoHJmwUpysTYNHaOkVFN419m/K0LIgjb/7KU2vBgsUepJWugQCvAA==}
+ 
++  '@tauri-apps/api@2.12.4':
++    resolution: {integrity: sha512-pVmfis+4zT8H0Qhp3xPZx9Ju7kpzvA6rr/PSJPyuwfvucTQ8sVt61NYU9KMkK703UFlYadFmjKA4HhybOtN0gg==}
++
+   '@tauri-apps/cli-darwin-arm64@2.11.4':
+     resolution: {integrity: sha512-1ryOF3ZhpZ/nemHV5zVwBQBz9jDGKmKPvWPADOhc83ig0P4bMc2iER4NbC6r9sjeIZ6RVQ4g3RZIYvezhcl4TQ==}
+     engines: {node: '>= 10'}
+@@ -747,6 +753,9 @@ packages:
+     engines: {node: '>= 10'}
+     hasBin: true
+ 
++  '@tauri-apps/plugin-updater@2.10.0':
++    resolution: {integrity: sha512-ljN8jPlnT0aSn8ecYhuBib84alxfMx6Hc8vJSKMJyzGbTPFZAC44T2I1QNFZssgWKrAlofvJqCC6Rr472JWfkQ==}
++
+   '@testing-library/dom@10.4.1':
+     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
+     engines: {node: '>=18'}
+@@ -1865,6 +1874,8 @@ snapshots:
+ 
+   '@tauri-apps/api@2.11.1': {}
+ 
++  '@tauri-apps/api@2.12.4': {}
++
+   '@tauri-apps/cli-darwin-arm64@2.11.4':
+     optional: true
+ 
+@@ -1912,6 +1923,10 @@ snapshots:
+       '@tauri-apps/cli-win32-ia32-msvc': 2.11.4
+       '@tauri-apps/cli-win32-x64-msvc': 2.11.4
+ 
++  '@tauri-apps/plugin-updater@2.10.0':
++    dependencies:
++      '@tauri-apps/api': 2.12.4
++
+   '@testing-library/dom@10.4.1':
+     dependencies:
+       '@babel/code-frame': 7.29.7
+diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
+index 2c45540..febf880 100644
+--- a/src-tauri/Cargo.lock
++++ b/src-tauri/Cargo.lock
+@@ -315,6 +315,12 @@ dependencies = [
+  "target-lexicon",
+ ]
+ 
++[[package]]
++name = "cfg-if"
++version = "0.1.10"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
++
+ [[package]]
+ name = "cfg-if"
+ version = "1.0.4"
+@@ -414,7 +420,7 @@ version = "1.5.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+ ]
+ 
+ [[package]]
+@@ -826,6 +832,16 @@ dependencies = [
+  "typeid",
+ ]
+ 
++[[package]]
++name = "errno"
++version = "0.3.14"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
++dependencies = [
++ "libc",
++ "windows-sys 0.61.2",
++]
++
+ [[package]]
+ name = "fastrand"
+ version = "2.5.0"
+@@ -861,6 +877,17 @@ dependencies = [
+  "rustc_version",
+ ]
+ 
++[[package]]
++name = "filetime"
++version = "0.1.15"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "714653f3e34871534de23771ac7b26e999651a0a228f47beb324dfdf1dd4b10f"
++dependencies = [
++ "cfg-if 0.1.10",
++ "libc",
++ "redox_syscall 0.1.57",
++]
++
+ [[package]]
+ name = "find-msvc-tools"
+ version = "0.1.10"
+@@ -927,24 +954,24 @@ dependencies = [
+ 
+ [[package]]
+ name = "futures-channel"
+-version = "0.3.33"
++version = "0.3.32"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "262590f4fe6afeb0bc83be1daa64e52657fe185690a958af7f3ad0e92085c5ae"
++checksum = "07bbe89c50d7a535e539b8c17bc0b49bdb77747034daa8087407d655f3f7cc1d"
+ dependencies = [
+  "futures-core",
+ ]
+ 
+ [[package]]
+ name = "futures-core"
+-version = "0.3.33"
++version = "0.3.32"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2cd50c473c80f6d7c3670a752354b8e569b1a7cbfdc0419ec88e5edad85e0dc7"
++checksum = "7e3450815272ef58cec6d564423f6e755e25379b217b0bc688e295ba24df6b1d"
+ 
+ [[package]]
+ name = "futures-executor"
+-version = "0.3.33"
++version = "0.3.32"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "6754879cc9f2c66f88c6e5c35344bb0bdb0708b0352b1201815667c7eabc7458"
++checksum = "baf29c38818342a3b26b5b923639e7b1f4a61fc5e76102d4b1981c6dc7a7579d"
+ dependencies = [
+  "futures-core",
+  "futures-task",
+@@ -953,15 +980,15 @@ dependencies = [
+ 
+ [[package]]
+ name = "futures-io"
+-version = "0.3.33"
++version = "0.3.32"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "4577ecaa3c4f96589d473f679a71b596316f6641bc350038b962a5daf0085d7a"
++checksum = "cecba35d7ad927e23624b22ad55235f2239cfa44fd10428eecbeba6d6a717718"
+ 
+ [[package]]
+ name = "futures-macro"
+-version = "0.3.33"
++version = "0.3.32"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2d6d3cde68c518367be28956066ddfef33813991b77a55005a69dae04bf3b10b"
++checksum = "e835b70203e41293343137df5c0664546da5745f82ec9b84d40be8336958447b"
+ dependencies = [
+  "proc-macro2",
+  "quote",
+@@ -970,21 +997,21 @@ dependencies = [
+ 
+ [[package]]
+ name = "futures-sink"
+-version = "0.3.33"
++version = "0.3.32"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e34418ac499d6305c2fb5ad0ed2f6ac998c5f8ca209b4510f7f94242c647e307"
++checksum = "c39754e157331b013978ec91992bde1ac089843443c49cbc7f46150b0fad0893"
+ 
+ [[package]]
+ name = "futures-task"
+-version = "0.3.33"
++version = "0.3.32"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b231ed28831efb4a61a08580c4bc233ec56bc009f4cd8f52da2c3cb97df0c109"
++checksum = "037711b3d59c33004d3856fbdc83b99d4ff37a24768fa1be9ce3538a1cde4393"
+ 
+ [[package]]
+ name = "futures-util"
+-version = "0.3.33"
++version = "0.3.32"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "a77a90a256fce34da66415271e30f94ee91c57b04b8a2c042d9cf3220179deaa"
++checksum = "389ca41296e6190b48053de0321d02a77f32f8a5d2461dd38762c0593805c6d6"
+ dependencies = [
+  "futures-core",
+  "futures-io",
+@@ -998,7 +1025,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "game-passport"
+-version = "0.11.1"
++version = "0.11.2"
+ dependencies = [
+  "base64 0.22.1",
+  "cc",
+@@ -1010,6 +1037,7 @@ dependencies = [
+  "sha2",
+  "tauri",
+  "tauri-build",
++ "tauri-plugin-updater",
+  "windows-sys 0.59.0",
+  "winreg",
+ ]
+@@ -1130,7 +1158,7 @@ version = "0.2.17"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "libc",
+  "wasi",
+ ]
+@@ -1141,7 +1169,7 @@ version = "0.3.4"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "libc",
+  "r-efi 5.3.0",
+  "wasip2",
+@@ -1153,7 +1181,7 @@ version = "0.4.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "libc",
+  "r-efi 6.0.0",
+ ]
+@@ -1354,7 +1382,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "c78dadfc12f865bc3fcac3897e64533b930737ceb9ef245c8277de98d0b010e9"
+ dependencies = [
+  "cc",
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "libc",
+  "pkg-config",
+  "windows-sys 0.61.2",
+@@ -1391,9 +1419,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "http-body"
+-version = "1.1.0"
++version = "1.0.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ca2a8f2913ee65f60facd6a5905613afaa448497a0230cc41ce022d93290bc2c"
++checksum = "1efedce1fb8e6913f23e0c92de8e62cd5b772a67e7b3946df930a62566c93184"
+ dependencies = [
+  "bytes",
+  "http",
+@@ -1401,9 +1429,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "http-body-util"
+-version = "0.1.4"
++version = "0.1.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e9f41fd6a08e4d4ec69df65976da761afd5ad5e58a9d4acb46bd1c953a9e3ff2"
++checksum = "b021d93e26becf5dc7e1b75b1bed1fd93124b374ceb73f43d4d4eafec896a64a"
+ dependencies = [
+  "bytes",
+  "futures-core",
+@@ -1420,9 +1448,9 @@ checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
+ 
+ [[package]]
+ name = "hyper"
+-version = "1.11.0"
++version = "1.9.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d22053281f852e11534f5198498373cbb59295120a20771d90f7ed1897490a72"
++checksum = "6299f016b246a94207e63da54dbe807655bf9e00044f73ded42c3ac5305fbcca"
+ dependencies = [
+  "atomic-waker",
+  "bytes",
+@@ -1438,6 +1466,21 @@ dependencies = [
+  "want",
+ ]
+ 
++[[package]]
++name = "hyper-rustls"
++version = "0.27.9"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "33ca68d021ef39cf6463ab54c1d0f5daf03377b70561305bb89a8f83aab66e0f"
++dependencies = [
++ "http",
++ "hyper",
++ "hyper-util",
++ "rustls",
++ "tokio",
++ "tokio-rustls",
++ "tower-service",
++]
++
+ [[package]]
+ name = "hyper-util"
+ version = "0.1.20"
+@@ -1638,9 +1681,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "ipnet"
+-version = "2.12.1"
++version = "2.12.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "6a756c3fac73139e83f14c2d742155dd2b78d3ee56597b419a0579b7bdd6dd78"
++checksum = "d98f6fed1fde3f8c21bc40a1abb88dd75e67924f9cffc3ef95607bad8017f8e2"
+ 
+ [[package]]
+ name = "itoa"
+@@ -1731,7 +1774,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "1a87aa2bb7d2af34197c04845522473242e1aa17c12f4935d5856491a7fb8c97"
+ dependencies = [
+  "cesu8",
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "combine",
+  "jni-sys 0.3.1",
+  "log",
+@@ -1740,6 +1783,36 @@ dependencies = [
+  "windows-sys 0.45.0",
+ ]
+ 
++[[package]]
++name = "jni"
++version = "0.22.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "5efd9a482cf3a427f00d6b35f14332adc7902ce91efb778580e180ff90fa3498"
++dependencies = [
++ "cfg-if 1.0.4",
++ "combine",
++ "jni-macros",
++ "jni-sys 0.4.1",
++ "log",
++ "simd_cesu8",
++ "thiserror 2.0.20",
++ "walkdir",
++ "windows-link 0.2.1",
++]
++
++[[package]]
++name = "jni-macros"
++version = "0.22.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3"
++dependencies = [
++ "proc-macro2",
++ "quote",
++ "rustc_version",
++ "simd_cesu8",
++ "syn 2.0.119",
++]
++
+ [[package]]
+ name = "jni-sys"
+ version = "0.3.1"
+@@ -1774,7 +1847,7 @@ version = "0.3.104"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "0e0c1080212aad755ea003d18543e8768dd432c48819efd73a7bf1e39b7a5a3a"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "futures-util",
+  "wasm-bindgen",
+ ]
+@@ -1857,7 +1930,7 @@ version = "0.7.4"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "winapi",
+ ]
+ 
+@@ -1870,6 +1943,12 @@ dependencies = [
+  "libc",
+ ]
+ 
++[[package]]
++name = "linux-raw-sys"
++version = "0.12.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
++
+ [[package]]
+ name = "litemap"
+ version = "0.8.2"
+@@ -1923,6 +2002,12 @@ version = "0.3.17"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+ 
++[[package]]
++name = "minisign-verify"
++version = "0.2.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "22f9645cb765ea72b8111f36c522475d2daa0d22c957a9826437e97534bc4e9e"
++
+ [[package]]
+ name = "miniz_oxide"
+ version = "0.8.9"
+@@ -2155,6 +2240,7 @@ checksum = "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272"
+ dependencies = [
+  "bitflags 2.13.1",
+  "block2",
++ "libc",
+  "objc2",
+  "objc2-core-foundation",
+ ]
+@@ -2170,6 +2256,18 @@ dependencies = [
+  "objc2-core-foundation",
+ ]
+ 
++[[package]]
++name = "objc2-osa-kit"
++version = "0.3.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f112d1746737b0da274ef79a23aac283376f335f4095a083a267a082f21db0c0"
++dependencies = [
++ "bitflags 2.13.1",
++ "objc2",
++ "objc2-app-kit",
++ "objc2-foundation",
++]
++
+ [[package]]
+ name = "objc2-quartz-core"
+ version = "0.3.2"
+@@ -2233,12 +2331,32 @@ version = "1.21.4"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+ 
++[[package]]
++name = "openssl-probe"
++version = "0.2.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
++
+ [[package]]
+ name = "option-ext"
+ version = "0.2.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
+ 
++[[package]]
++name = "osakit"
++version = "0.3.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "732c71caeaa72c065bb69d7ea08717bd3f4863a4f451402fc9513e29dbd5261b"
++dependencies = [
++ "objc2",
++ "objc2-foundation",
++ "objc2-osa-kit",
++ "serde",
++ "serde_json",
++ "thiserror 2.0.20",
++]
++
+ [[package]]
+ name = "p256"
+ version = "0.13.2"
+@@ -2292,9 +2410,9 @@ version = "0.9.12"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "libc",
+- "redox_syscall",
++ "redox_syscall 0.5.18",
+  "smallvec",
+  "windows-link 0.2.1",
+ ]
+@@ -2580,6 +2698,12 @@ version = "0.6.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
+ 
++[[package]]
++name = "redox_syscall"
++version = "0.1.57"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
++
+ [[package]]
+ name = "redox_syscall"
+ version = "0.5.18"
+@@ -2651,9 +2775,9 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+ 
+ [[package]]
+ name = "reqwest"
+-version = "0.13.4"
++version = "0.13.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "219c5811de6525e5416c7d5d53bb656d3afdbc6c5af816e0802bcfa42dbdc1c3"
++checksum = "62e0021ea2c22aed41653bc7e1419abb2c97e038ff2c33d0e1309e49a97deec0"
+ dependencies = [
+  "base64 0.22.1",
+  "bytes",
+@@ -2663,15 +2787,20 @@ dependencies = [
+  "http-body",
+  "http-body-util",
+  "hyper",
++ "hyper-rustls",
+  "hyper-util",
+  "js-sys",
+  "log",
+  "percent-encoding",
+  "pin-project-lite",
++ "rustls",
++ "rustls-pki-types",
++ "rustls-platform-verifier",
+  "serde",
+  "serde_json",
+  "sync_wrapper",
+  "tokio",
++ "tokio-rustls",
+  "tokio-util",
+  "tower",
+  "tower-http",
+@@ -2693,6 +2822,20 @@ dependencies = [
+  "subtle",
+ ]
+ 
++[[package]]
++name = "ring"
++version = "0.17.14"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
++dependencies = [
++ "cc",
++ "cfg-if 1.0.4",
++ "getrandom 0.2.17",
++ "libc",
++ "untrusted",
++ "windows-sys 0.52.0",
++]
++
+ [[package]]
+ name = "rustc-hash"
+ version = "2.1.3"
+@@ -2708,11 +2851,97 @@ dependencies = [
+  "semver",
+ ]
+ 
++[[package]]
++name = "rustix"
++version = "1.1.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190"
++dependencies = [
++ "bitflags 2.13.1",
++ "errno",
++ "libc",
++ "linux-raw-sys",
++ "windows-sys 0.61.2",
++]
++
++[[package]]
++name = "rustls"
++version = "0.23.40"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b"
++dependencies = [
++ "once_cell",
++ "ring",
++ "rustls-pki-types",
++ "rustls-webpki",
++ "subtle",
++ "zeroize",
++]
++
++[[package]]
++name = "rustls-native-certs"
++version = "0.8.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "dab5152771c58876a2146916e53e35057e1a4dfa2b9df0f0305b07f611fdea4d"
++dependencies = [
++ "openssl-probe",
++ "rustls-pki-types",
++ "schannel",
++ "security-framework",
++]
++
++[[package]]
++name = "rustls-pki-types"
++version = "1.14.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "30a7197ae7eb376e574fe940d068c30fe0462554a3ddbe4eca7838e049c937a9"
++dependencies = [
++ "zeroize",
++]
++
++[[package]]
++name = "rustls-platform-verifier"
++version = "0.7.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "26d1e2536ce4f35f4846aa13bff16bd0ff40157cdb14cc056c7b14ba41233ba0"
++dependencies = [
++ "core-foundation",
++ "core-foundation-sys",
++ "jni 0.22.4",
++ "log",
++ "once_cell",
++ "rustls",
++ "rustls-native-certs",
++ "rustls-platform-verifier-android",
++ "rustls-webpki",
++ "security-framework",
++ "security-framework-sys",
++ "webpki-root-certs",
++ "windows-sys 0.61.2",
++]
++
++[[package]]
++name = "rustls-platform-verifier-android"
++version = "0.1.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f87165f0995f63a9fbeea62b64d10b4d9d8e78ec6d7d51fb2125fda7bb36788f"
++
++[[package]]
++name = "rustls-webpki"
++version = "0.103.13"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e"
++dependencies = [
++ "ring",
++ "rustls-pki-types",
++ "untrusted",
++]
++
+ [[package]]
+ name = "rustversion"
+-version = "1.0.23"
++version = "1.0.22"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
++checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
+ 
+ [[package]]
+ name = "same-file"
+@@ -2723,6 +2952,15 @@ dependencies = [
+  "winapi-util",
+ ]
+ 
++[[package]]
++name = "schannel"
++version = "0.1.29"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "91c1b7e4904c873ef0710c1f407dde2e6287de2bebc1bbbf7d430bb7cbffd939"
++dependencies = [
++ "windows-sys 0.61.2",
++]
++
+ [[package]]
+ name = "schemars"
+ version = "0.8.22"
+@@ -2794,6 +3032,29 @@ dependencies = [
+  "zeroize",
+ ]
+ 
++[[package]]
++name = "security-framework"
++version = "3.7.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "b7f4bc775c73d9a02cde8bf7b2ec4c9d12743edf609006c7facc23998404cd1d"
++dependencies = [
++ "bitflags 2.13.1",
++ "core-foundation",
++ "core-foundation-sys",
++ "libc",
++ "security-framework-sys",
++]
++
++[[package]]
++name = "security-framework-sys"
++version = "2.17.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "6ce2691df843ecc5d231c0b14ece2acc3efb62c0a398c7e1d875f3983ce020e3"
++dependencies = [
++ "core-foundation-sys",
++ "libc",
++]
++
+ [[package]]
+ name = "selectors"
+ version = "0.36.1"
+@@ -2988,7 +3249,7 @@ version = "0.10.9"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "cpufeatures",
+  "digest",
+ ]
+@@ -3015,6 +3276,22 @@ version = "0.3.10"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea"
+ 
++[[package]]
++name = "simd_cesu8"
++version = "1.2.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "11031e251abf8611c80f460e19dbdeb54a66db918e49c65a7065b46ac7aec520"
++dependencies = [
++ "rustc_version",
++ "simdutf8",
++]
++
++[[package]]
++name = "simdutf8"
++version = "0.1.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
++
+ [[package]]
+ name = "siphasher"
+ version = "1.0.3"
+@@ -3058,7 +3335,7 @@ dependencies = [
+  "objc2-foundation",
+  "objc2-quartz-core",
+  "raw-window-handle",
+- "redox_syscall",
++ "redox_syscall 0.5.18",
+  "tracing",
+  "wasm-bindgen",
+  "web-sys",
+@@ -3237,7 +3514,7 @@ dependencies = [
+  "gdkwayland-sys",
+  "gdkx11-sys",
+  "gtk",
+- "jni",
++ "jni 0.21.1",
+  "libc",
+  "log",
+  "ndk",
+@@ -3270,6 +3547,16 @@ dependencies = [
+  "syn 2.0.119",
+ ]
+ 
++[[package]]
++name = "tar"
++version = "0.4.6"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "59a5014d9493d6c2799dff5da5d780c2f159bf368c54f115dbc421d02f1d5496"
++dependencies = [
++ "filetime",
++ "libc",
++]
++
+ [[package]]
+ name = "target-lexicon"
+ version = "0.12.16"
+@@ -3293,7 +3580,7 @@ dependencies = [
+  "gtk",
+  "heck 0.5.0",
+  "http",
+- "jni",
++ "jni 0.21.1",
+  "libc",
+  "log",
+  "mime",
+@@ -3389,6 +3676,54 @@ dependencies = [
+  "tauri-utils",
+ ]
+ 
++[[package]]
++name = "tauri-plugin"
++version = "2.6.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "74be5dd4bed9afbd145e5716b5fa2ec28cbc29c34ffa61c258c9273d896c8020"
++dependencies = [
++ "anyhow",
++ "glob",
++ "plist",
++ "schemars 0.8.22",
++ "serde",
++ "serde_json",
++ "tauri-utils",
++ "walkdir",
++]
++
++[[package]]
++name = "tauri-plugin-updater"
++version = "2.10.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "3fe8e9bebd88fc222938ffdfbdcfa0307081423bd01e3252fc337d8bde81fc61"
++dependencies = [
++ "base64 0.22.1",
++ "dirs",
++ "flate2",
++ "futures-util",
++ "http",
++ "infer",
++ "log",
++ "minisign-verify",
++ "osakit",
++ "percent-encoding",
++ "reqwest",
++ "rustls",
++ "semver",
++ "serde",
++ "serde_json",
++ "tar",
++ "tauri",
++ "tauri-plugin",
++ "tempfile",
++ "thiserror 2.0.20",
++ "time",
++ "tokio",
++ "url",
++ "windows-sys 0.60.2",
++]
++
+ [[package]]
+ name = "tauri-runtime"
+ version = "2.11.3"
+@@ -3399,7 +3734,7 @@ dependencies = [
+  "dpi",
+  "gtk",
+  "http",
+- "jni",
++ "jni 0.21.1",
+  "objc2",
+  "objc2-ui-kit",
+  "objc2-web-kit",
+@@ -3422,7 +3757,7 @@ checksum = "4e6fac707727b7a2f48e4ded90976324267371073edbb415ffb73bb0458d203f"
+ dependencies = [
+  "gtk",
+  "http",
+- "jni",
++ "jni 0.21.1",
+  "log",
+  "objc2",
+  "objc2-app-kit",
+@@ -3489,6 +3824,19 @@ dependencies = [
+  "toml 1.1.4+spec-1.1.0",
+ ]
+ 
++[[package]]
++name = "tempfile"
++version = "3.27.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
++dependencies = [
++ "fastrand",
++ "getrandom 0.4.3",
++ "once_cell",
++ "rustix",
++ "windows-sys 0.61.2",
++]
++
+ [[package]]
+ name = "tendril"
+ version = "0.5.1"
+@@ -3607,11 +3955,21 @@ dependencies = [
+  "windows-sys 0.61.2",
+ ]
+ 
++[[package]]
++name = "tokio-rustls"
++version = "0.26.4"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1729aa945f29d91ba541258c8df89027d5792d85a8841fb65e8bf0f4ede4ef61"
++dependencies = [
++ "rustls",
++ "tokio",
++]
++
+ [[package]]
+ name = "tokio-util"
+-version = "0.7.19"
++version = "0.7.18"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "494815d09bf52b5548659851081238f0ca39ff638363907596da739561c62c52"
++checksum = "9ae9cec805b01e8fc3fd2fe289f89149a9b66dd16786abd8b19cfa7b48cb0098"
+ dependencies = [
+  "bytes",
+  "futures-core",
+@@ -3757,9 +4115,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "tower-http"
+-version = "0.6.11"
++version = "0.6.10"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "4cfcf7e2740e6fc6d4d688b4ef00650406bb94adf4731e43c096c3a19fe40840"
++checksum = "68d6fdd9f81c2819c9a8b0e0cd91660e7746a8e6ea2ba7c6b2b057985f6bcb51"
+ dependencies = [
+  "bitflags 2.13.1",
+  "bytes",
+@@ -3897,6 +4255,12 @@ version = "1.13.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "c6f5d3c3b1bf09027a88a6bc961fc00497d651009560b5463668dc81b0fa87a8"
+ 
++[[package]]
++name = "untrusted"
++version = "0.9.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
++
+ [[package]]
+ name = "url"
+ version = "2.5.8"
+@@ -4012,7 +4376,7 @@ version = "0.2.127"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "1b70935747edd64d89de3efa29d73789b806c15798f8e7dca4d8ac356b50ce70"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "once_cell",
+  "rustversion",
+  "wasm-bindgen-macro",
+@@ -4140,6 +4504,15 @@ dependencies = [
+  "system-deps",
+ ]
+ 
++[[package]]
++name = "webpki-root-certs"
++version = "1.0.9"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "b96554aa2acc8ccdb7e1c9a58a7a68dd5d13bccc69cd124cb09406db612a1c9b"
++dependencies = [
++ "rustls-pki-types",
++]
++
+ [[package]]
+ name = "webview2-com"
+ version = "0.38.2"
+@@ -4370,6 +4743,15 @@ dependencies = [
+  "windows-targets 0.42.2",
+ ]
+ 
++[[package]]
++name = "windows-sys"
++version = "0.52.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
++dependencies = [
++ "windows-targets 0.52.6",
++]
++
+ [[package]]
+ name = "windows-sys"
+ version = "0.59.0"
+@@ -4379,6 +4761,15 @@ dependencies = [
+  "windows-targets 0.52.6",
+ ]
+ 
++[[package]]
++name = "windows-sys"
++version = "0.60.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "f2f500e4d28234f72040990ec9d39e3a6b950f9f22d3dba18416c35882612bcb"
++dependencies = [
++ "windows-targets 0.53.5",
++]
++
+ [[package]]
+ name = "windows-sys"
+ version = "0.61.2"
+@@ -4412,13 +4803,30 @@ dependencies = [
+  "windows_aarch64_gnullvm 0.52.6",
+  "windows_aarch64_msvc 0.52.6",
+  "windows_i686_gnu 0.52.6",
+- "windows_i686_gnullvm",
++ "windows_i686_gnullvm 0.52.6",
+  "windows_i686_msvc 0.52.6",
+  "windows_x86_64_gnu 0.52.6",
+  "windows_x86_64_gnullvm 0.52.6",
+  "windows_x86_64_msvc 0.52.6",
+ ]
+ 
++[[package]]
++name = "windows-targets"
++version = "0.53.5"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "4945f9f551b88e0d65f3db0bc25c33b8acea4d9e41163edf90dcd0b19f9069f3"
++dependencies = [
++ "windows-link 0.2.1",
++ "windows_aarch64_gnullvm 0.53.1",
++ "windows_aarch64_msvc 0.53.1",
++ "windows_i686_gnu 0.53.1",
++ "windows_i686_gnullvm 0.53.1",
++ "windows_i686_msvc 0.53.1",
++ "windows_x86_64_gnu 0.53.1",
++ "windows_x86_64_gnullvm 0.53.1",
++ "windows_x86_64_msvc 0.53.1",
++]
++
+ [[package]]
+ name = "windows-threading"
+ version = "0.1.0"
+@@ -4449,6 +4857,12 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3"
+ 
++[[package]]
++name = "windows_aarch64_gnullvm"
++version = "0.53.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a9d8416fa8b42f5c947f8482c43e7d89e73a173cead56d044f6a56104a6d1b53"
++
+ [[package]]
+ name = "windows_aarch64_msvc"
+ version = "0.42.2"
+@@ -4461,6 +4875,12 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469"
+ 
++[[package]]
++name = "windows_aarch64_msvc"
++version = "0.53.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "b9d782e804c2f632e395708e99a94275910eb9100b2114651e04744e9b125006"
++
+ [[package]]
+ name = "windows_i686_gnu"
+ version = "0.42.2"
+@@ -4473,12 +4893,24 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b"
+ 
++[[package]]
++name = "windows_i686_gnu"
++version = "0.53.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "960e6da069d81e09becb0ca57a65220ddff016ff2d6af6a223cf372a506593a3"
++
+ [[package]]
+ name = "windows_i686_gnullvm"
+ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66"
+ 
++[[package]]
++name = "windows_i686_gnullvm"
++version = "0.53.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "fa7359d10048f68ab8b09fa71c3daccfb0e9b559aed648a8f95469c27057180c"
++
+ [[package]]
+ name = "windows_i686_msvc"
+ version = "0.42.2"
+@@ -4491,6 +4923,12 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66"
+ 
++[[package]]
++name = "windows_i686_msvc"
++version = "0.53.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1e7ac75179f18232fe9c285163565a57ef8d3c89254a30685b57d83a38d326c2"
++
+ [[package]]
+ name = "windows_x86_64_gnu"
+ version = "0.42.2"
+@@ -4503,6 +4941,12 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78"
+ 
++[[package]]
++name = "windows_x86_64_gnu"
++version = "0.53.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "9c3842cdd74a865a8066ab39c8a7a473c0778a3f29370b5fd6b4b9aa7df4a499"
++
+ [[package]]
+ name = "windows_x86_64_gnullvm"
+ version = "0.42.2"
+@@ -4515,6 +4959,12 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d"
+ 
++[[package]]
++name = "windows_x86_64_gnullvm"
++version = "0.53.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "0ffa179e2d07eee8ad8f57493436566c7cc30ac536a3379fdf008f47f6bb7ae1"
++
+ [[package]]
+ name = "windows_x86_64_msvc"
+ version = "0.42.2"
+@@ -4527,6 +4977,12 @@ version = "0.52.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+ 
++[[package]]
++name = "windows_x86_64_msvc"
++version = "0.53.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650"
++
+ [[package]]
+ name = "winnow"
+ version = "0.5.40"
+@@ -4557,7 +5013,7 @@ version = "0.55.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "cb5a765337c50e9ec252c2069be9bf91c7df47afb103b642ba3a53bf8101be97"
+ dependencies = [
+- "cfg-if",
++ "cfg-if 1.0.4",
+  "windows-sys 0.59.0",
+ ]
+ 
+@@ -4591,7 +5047,7 @@ dependencies = [
+  "gtk",
+  "http",
+  "javascriptcore-rs",
+- "jni",
++ "jni 0.21.1",
+  "libc",
+  "ndk",
+  "objc2",
+diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
+index 0edefa7..8401f39 100644
+--- a/src-tauri/Cargo.toml
++++ b/src-tauri/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "game-passport"
+-version = "0.11.1"
++version = "0.11.2"
+ description = "Portable gaming profiles for Windows PCs"
+ authors = ["FastPlay"]
+ license = "Proprietary"
+@@ -24,6 +24,8 @@ serde = { version = "1", features = ["derive"] }
+ serde_json = "1"
+ sha2 = "0.10"
+ tauri = { version = "2", features = [] }
++# This app publishes raw v2 EXE/MSI updater artifacts, not legacy ZIP bundles.
++tauri-plugin-updater = { version = "=2.10.0", default-features = false, features = ["rustls-tls"] }
+ 
+ [target.'cfg(windows)'.dependencies]
+ hidapi = { version = "2.6.3", default-features = false, features = ["windows-native"] }
+diff --git a/src-tauri/capabilities/default.json b/src-tauri/capabilities/default.json
+index 0eb139c..87a7600 100644
+--- a/src-tauri/capabilities/default.json
++++ b/src-tauri/capabilities/default.json
+@@ -3,5 +3,5 @@
+   "identifier": "default",
+   "description": "Minimal permissions for the FastPlay main window",
+   "windows": ["main"],
+-  "permissions": ["core:default"]
++  "permissions": ["core:default", "updater:default"]
+ }
+diff --git a/src-tauri/src/cs2.rs b/src-tauri/src/cs2.rs
+index f92d4ad..35f970d 100644
+--- a/src-tauri/src/cs2.rs
++++ b/src-tauri/src/cs2.rs
+@@ -2732,6 +2732,27 @@ mod tests {
+         assert_eq!(check_snapshot(&modern).state, "error");
+     }
+ 
++    #[test]
++    fn november_crosshair_snapshot_keeps_negative_gap_outline_and_new_style() {
++        let text = r#""config" { "convars" {
++            "cl_crosshair_length$0" "8" "cl_crosshair_thickness$0" "3"
++            "cl_crosshair_gap$0" "-4" "cl_crosshair_screen_height$0" "960"
++            "cl_crosshairstyle$0" "9" "cl_crosshairoutline_r$0" "255"
++            "cl_crosshairoutline_g$0" "80" "cl_crosshairoutline_b$0" "30"
++            "cl_crosshairoutline_a$0" "127"
++            "cl_crosshair_dynamic_splitalpha_innermod$0" "0.37"
++            "volume" "0.35" "snd_voipvolume" "0.6"
++        } }"#;
++        let payload = snapshot(text);
++        let before = serde_json::to_vec(&payload).unwrap();
++        assert_eq!(check_snapshot(&payload).state, "success");
++        assert_eq!(serde_json::to_vec(&payload).unwrap(), before);
++        let values = crate::cs2_crosshair::crosshair_values(text.as_bytes()).unwrap();
++        assert_eq!(values["cl_crosshairstyle"], "9");
++        assert_eq!(values["cl_crosshairoutline_a"], "127");
++        assert_eq!(values["cl_crosshair_dynamic_splitalpha_innermod"], "0.37");
++    }
++
+     #[test]
+     fn payload_uses_camel_case_json_fields() {
+         let payload = Cs2Payload {
+diff --git a/src-tauri/src/cs2_crosshair.rs b/src-tauri/src/cs2_crosshair.rs
+index cd9a702..e9eb04e 100644
+--- a/src-tauri/src/cs2_crosshair.rs
++++ b/src-tauri/src/cs2_crosshair.rs
+@@ -129,6 +129,10 @@ pub fn validate(values: &BTreeMap<String, String>) -> Result<(), String> {
+         let number = values[key].parse::<f64>().ok().filter(|v| v.is_finite());
+         let minimum = if key == "cl_crosshair_screen_height" {
+             240.0
++        } else if key == "cl_crosshair_gap" {
++            // Valve enabled negative gaps for classic dynamic on 2026-09-30.
++            // Keep the saved finite value; do not clamp or rewrite the VCFG.
++            f64::NEG_INFINITY
+         } else {
+             0.0
+         };
+@@ -190,6 +194,26 @@ mod tests {
+         }
+     }
+     #[test]
++    fn accepts_negative_dynamic_gap_without_clamping() {
++        let mut values = crosshair_values(MODERN.as_bytes()).unwrap();
++        values.insert("cl_crosshairstyle".into(), "2".into());
++        values.insert("cl_crosshair_gap".into(), "-3.5".into());
++        validate(&values).unwrap();
++        assert_eq!(values["cl_crosshair_gap"], "-3.5");
++        for key in PIXEL_KEYS {
++            for invalid in ["NaN", "inf", "-inf", "not-a-number"] {
++                let mut invalid_values = values.clone();
++                invalid_values.insert(key.into(), invalid.into());
++                assert!(validate(&invalid_values).is_err());
++            }
++        }
++        for key in ["cl_crosshair_length", "cl_crosshair_thickness"] {
++            let mut invalid_values = values.clone();
++            invalid_values.insert(key.into(), "-1".into());
++            assert!(validate(&invalid_values).is_err());
++        }
++    }
++    #[test]
+     fn ignores_comments_bind_strings_and_other_player() {
+         let text = format!("\u{feff}// \"cl_crosshair_gap\" \"99\"\n{MODERN}\n\"bindings\" {{ \"A\" \"cl_crosshair_gap 99\" }}\n\"config\" {{ \"convars\" {{ \"cl_crosshair_gap$1\" \"88\" }} }}");
+         let values = crosshair_values(text.as_bytes()).unwrap();
+diff --git a/src-tauri/src/lib.rs b/src-tauri/src/lib.rs
+index 2e661e8..89169b5 100644
+--- a/src-tauri/src/lib.rs
++++ b/src-tauri/src/lib.rs
+@@ -357,6 +357,7 @@ fn save_diagnostic_report(contents: String) -> release::FileCommandResponse {
+ #[cfg_attr(mobile, tauri::mobile_entry_point)]
+ pub fn run() {
+     tauri::Builder::default()
++        .plugin(tauri_plugin_updater::Builder::new().build())
+         .manage(apply_lock::ApplyLockManager::default())
+         .on_window_event(|_window, event| {
+             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+diff --git a/src-tauri/src/release.rs b/src-tauri/src/release.rs
+index 0a23903..bbd0f52 100644
+--- a/src-tauri/src/release.rs
++++ b/src-tauri/src/release.rs
+@@ -57,7 +57,7 @@ pub fn preflight() -> ReleasePreflight {
+         valorant_config_available: false,
+         log_directory: None,
+         administrator_required: false,
+-        update_channel: "Manual signed releases (updater not activated)".into(),
++        update_channel: "In-app signed updates — Windows distribution only".into(),
+     }
+ }
+ 
+@@ -145,7 +145,8 @@ mod windows {
+             valorant_config_available: valorant_config,
+             log_directory: log_directory().ok().map(|path| path.display().to_string()),
+             administrator_required: false,
+-            update_channel: "Manual signed releases (updater not activated)".into(),
++            update_channel:
++                "Signed stable releases — automatic checks, user-confirmed installation".into(),
+         }
+     }
+ 
+diff --git a/src-tauri/tauri.conf.json b/src-tauri/tauri.conf.json
+index efed7b2..d99711f 100644
+--- a/src-tauri/tauri.conf.json
++++ b/src-tauri/tauri.conf.json
+@@ -1,7 +1,7 @@
+ {
+   "$schema": "https://schema.tauri.app/config/2",
+   "productName": "FastPlay",
+-  "version": "0.11.1",
++  "version": "0.11.2",
+   "identifier": "app.gamepassport.desktop",
+   "build": {
+     "beforeDevCommand": "pnpm dev",
+@@ -29,6 +29,7 @@
+     }
+   },
+   "bundle": {
++    "createUpdaterArtifacts": true,
+     "active": true,
+     "targets": ["nsis", "msi"],
+     "icon": [
+@@ -54,5 +55,12 @@
+         "uninstallerIcon": "icons/icon.ico"
+       }
+     }
++  },
++  "plugins": {
++    "updater": {
++      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYwRjE0RkVEOTg1QTJCOTIKUldTU0sxcVk3VS94OER0TlJyT3FWdzNZMUhpdjF1Kzh5c3V1OUZtaEpYbnFaNW9VQ3I5b1VCZUkK",
++      "endpoints": ["https://github.com/kosarevivan909/game-passport/releases/latest/download/latest.json"],
++      "windows": { "installMode": "passive" }
++    }
+   }
+ }
+diff --git a/src/components/Dashboard.tsx b/src/components/Dashboard.tsx
+index e165f65..87e43a5 100644
+--- a/src/components/Dashboard.tsx
++++ b/src/components/Dashboard.tsx
+@@ -19,8 +19,8 @@ import type { DeviceLicenseStatus } from "../domain/license";
+ import type { InterruptedApply } from "../domain/applyLock";
+ import { applyLock } from "../services/applyLock";
+ import { Onboarding } from "./Onboarding";
+-import { useOneTimeHelp } from "../services/useOneTimeHelp";
+ import { backupManifests } from "../services/backupManifests";
++import { useAppUpdate } from "../services/useAppUpdate";
+ 
+ interface Props { user: SessionUser; services: Services; license: DeviceLicenseStatus; onSignOut: () => void }
+ 
+@@ -32,10 +32,12 @@ export function Dashboard({ user, services, license, onSignOut }: Props) {
+   const [deleting, setDeleting] = useState<GameProfile | null>(null);
+   const [operation, setOperation] = useState<{ profile: GameProfile; type: "capture" | "apply" | "restore"; returnView: View; recovery?: boolean } | null>(null);
+   const [view, setView] = useState<View>("profiles");
+-  const [onboarding, setOnboarding] = useOneTimeHelp("onboarding", user.id);
++  // Instructions are always available from the sidebar, never forced on startup.
++  const [onboarding, setOnboarding] = useState(false);
+   const [interrupted, setInterrupted] = useState<InterruptedApply>();
+   const [cloudState, setCloudState] = useState<CloudState>(services.mode === "demo" ? "demo" : services.mode === "field-test" ? "field-test" : "checking");
+   const [error, setError] = useState("");
++  const updater = useAppUpdate(Boolean(operation || modal || deleting || interrupted || loading || onboarding));
+   const applyOrchestrator = useMemo(() => new ProfileOrchestrator(applyAdapterRegistry), []);
+   const captureOrchestrator = useMemo(() => new ProfileOrchestrator(captureAdapterRegistry), []);
+   const restoreOrchestrator = useMemo(() => new ProfileOrchestrator(restoreAdapterRegistry), []);
+@@ -99,9 +101,11 @@ export function Dashboard({ user, services, license, onSignOut }: Props) {
+   }
+ 
+   if (operation) return <OperationScreen profile={operation.profile} operation={operation.type} orchestrator={operation.type === "capture" ? captureOrchestrator : operation.type === "restore" ? restoreOrchestrator : applyOrchestrator} onCapture={operation.type === "capture" ? persistCapture : undefined} restoreTokens={operation.type === "restore" ? backupManifests.tokens(operation.profile) : undefined} onComplete={completeOperation} onClose={() => { setView(operation.returnView); setOperation(null); void load(); void refreshCloud(); }} />;
++  if (updater.state === "installing") return <main className="splash" role="status"><div className="passport-loader">FP</div><strong>Обновление FastPlay</strong><span>{updater.message}</span>{updater.percent !== undefined && <progress max={100} value={updater.percent} />}</main>;
+   return <div className="app-shell">
+     <aside className="sidebar">
+       <div className="brand"><span className="brand-mark">FP</span><span>FASTPLAY</span></div>
++      {updater.enabled && <section className="app-update" aria-label="Обновление приложения"><span role="status">{updater.state === "available" ? `Доступна версия ${updater.version}` : updater.state === "checking" ? "Проверяем обновления…" : updater.state === "current" ? "Установлена актуальная версия" : "Обновление FastPlay"}</span>{updater.message && <small role="alert">{updater.message}</small>}<button className="button secondary" disabled={updater.state === "checking" || Boolean(modal || deleting || interrupted || loading)} onClick={() => void (updater.state === "available" ? updater.install() : updater.checkNow())}>{updater.state === "available" ? "Обновить" : "Проверить обновления"}</button></section>}
+       <nav><button className={view === "profiles" ? "active" : ""} onClick={() => setView("profiles")}><Settings2 size={19} /> Мои профили</button><button className={view === "validation" ? "active" : ""} onClick={() => setView("validation")}><ListChecks size={19} /> Проверка FastPlay</button><button className={view === "diagnostics" ? "active" : ""} onClick={() => setView("diagnostics")}><Activity size={19} /> Диагностика</button><button className={view === "setup" ? "active" : ""} onClick={() => setView("setup")}><SlidersHorizontal size={19} /> Первичная настройка</button><button onClick={() => setOnboarding(true)}><HelpCircle size={19} /> Как пользоваться</button></nav>
+       <div className="sidebar-bottom"><div className={`cloud-state ${cloudState}`}>{cloudState === "connected" ? <Cloud size={17} /> : <CloudOff size={17} />}<span><strong>{cloudLabel(cloudState)}</strong><small>{cloudDetail(cloudState)}</small></span></div><div className="account"><span>{user.email.slice(0, 1).toUpperCase()}</span><div><strong>{user.email.split("@")[0]}</strong><small>{user.email}</small></div><button className="icon-button" aria-label="Выйти" onClick={onSignOut}><LogOut size={17} /></button></div></div>
+     </aside>
+diff --git a/src/components/Onboarding.tsx b/src/components/Onboarding.tsx
+index 88c64a7..2cd4d2b 100644
+--- a/src/components/Onboarding.tsx
++++ b/src/components/Onboarding.tsx
+@@ -3,17 +3,23 @@ import { useState } from "react";
+ 
+ interface Props { onComplete: () => void }
+ 
+-const steps = [
+-  { icon: Gamepad2, title: "Настрой компьютер один раз", text: "Запустите игру и выставьте настройки так, как вам удобно." },
+-  { icon: Save, title: "Сохраните свой профиль", text: "Вернитесь в FastPlay и нажмите «Сохранить текущие настройки». Поддерживаемые игровые и системные параметры сохранятся в профиле." },
+-  { icon: MonitorUp, title: "На другом компьютере", text: "Войдите в аккаунт, выберите профиль и нажмите «Настроить этот ПК». FastPlay применит сохранённые настройки." },
+-  { icon: ShieldAlert, title: "Важно", text: "Перед сохранением и применением закройте CS2 или PUBG, если приложение попросит. Не прерывайте применение." },
+-];
++const games = { cs2: "CS2", pubg: "PUBG", valorant: "VALORANT" };
+ 
+ export function Onboarding({ onComplete }: Props) {
+   const [step, setStep] = useState(0);
++  const [game, setGame] = useState<keyof typeof games>("cs2");
++  const name = games[game];
++  const launcher = game === "valorant" ? "Riot Client" : "Steam";
++  const steps = [
++    { icon: Gamepad2, title: "Настрой компьютер один раз", text: `Войдите в FastPlay и в свой ${launcher}. Запустите ${name}, настройте графику, разрешение, прицел, звук и управление. При необходимости отдельно настройте Windows и NVIDIA — настройки экрана игры и NVIDIA независимы.` },
++    { icon: Save, title: "Сохраните свой профиль", text: `Примените изменения в ${name} и полностью закройте игру обычным способом — так она запишет настройки. Дождитесь окончания синхронизации ${launcher}. В FastPlay создайте или выберите профиль ${name} и нажмите «Сохранить текущие настройки». Проверьте результат: предупреждение не означает, что сохранилось абсолютно всё.` },
++    { icon: MonitorUp, title: "На другом компьютере", text: `Убедитесь, что ${name} установлена и обновлена. Войдите в свой ${launcher} и в тот же аккаунт FastPlay. Пока не запускайте ${name}. Выберите сохранённый профиль, нажмите «Настроить этот ПК» и дождитесь завершения. Только после этого запускайте игру.` },
++    { icon: ShieldAlert, title: "Важно", text: game === "valorant"
++      ? "Если FastPlay не видит конфигурацию Riot, следуйте диагностике: на новом ПК может понадобиться один первый запуск игры для создания файлов. Облачные настройки Riot и аппаратно-зависимые возможности могут отличаться. После изменения своих настроек заново сохраните профиль. При ошибке применения сначала разберитесь с ней, а не запускайте игру."
++      : "Steam должен быть открыт и авторизован, сама игра — закрыта. Не прерывайте сохранение или применение. Если приложение не определяет игру или пользователя, следуйте диагностике. После изменения своих настроек заново сохраните профиль. На другом мониторе или видеокарте часть параметров может быть недоступна; проверяйте предупреждения." },
++  ];
+ 
+   const current = steps[step];
+   const Icon = current.icon;
+-  return <div className="onboarding-backdrop"><section className="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><button className="onboarding-close" aria-label="Закрыть инструкцию" onClick={onComplete}><X size={18} /></button><div className="onboarding-progress">{steps.map((_, index) => <i className={index <= step ? "active" : ""} key={index} />)}</div><div className="onboarding-icon"><Icon size={34} /></div><p className="eyebrow">ШАГ {step + 1} ИЗ {steps.length}</p><h2 id="onboarding-title">{current.title}</h2><p>{current.text}</p><button className="button primary wide" onClick={() => step < steps.length - 1 ? setStep(step + 1) : onComplete()}>{step < steps.length - 1 ? <>Далее <ChevronRight size={18} /></> : <><Check size={18} /> Начать</>}</button></section></div>;
++  return <div className="onboarding-backdrop"><section className="onboarding-card" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"><button className="onboarding-close" aria-label="Закрыть инструкцию" onClick={onComplete}><X size={18} /></button><label className="guide-game">Инструкция для игры<select aria-label="Игра для инструкции" value={game} onChange={(event) => { setGame(event.target.value as keyof typeof games); setStep(0); }}>{Object.entries(games).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><div className="onboarding-progress">{steps.map((_, index) => <i className={index <= step ? "active" : ""} key={index} />)}</div><div className="onboarding-icon"><Icon size={34} /></div><p className="eyebrow">ШАГ {step + 1} ИЗ {steps.length}</p><h2 id="onboarding-title">{current.title}</h2><p>{current.text}</p>{step > 0 && <button className="text-button" onClick={() => setStep(step - 1)}>Назад</button>}<button className="button primary wide" onClick={() => step < steps.length - 1 ? setStep(step + 1) : onComplete()}>{step < steps.length - 1 ? <>Далее <ChevronRight size={18} /></> : <><Check size={18} /> Понятно</>}</button></section></div>;
+ }
+diff --git a/src/services/platform.ts b/src/services/platform.ts
+index 086b8f4..ab7d488 100644
+--- a/src/services/platform.ts
++++ b/src/services/platform.ts
+@@ -49,7 +49,7 @@ export async function getReleasePreflight(): Promise<ReleasePreflight> {
+     appVersion: "0.8.0", build: "browser-preview", windowsVersion: navigator.platform || "Browser",
+     windowsSupported: false, steamInstalled: false, steamUserAvailable: false, steamPath: null, cs2Installed: false,
+     pubgConfigAvailable: false, valorantConfigAvailable: false, logDirectory: null, administratorRequired: false,
+-    updateChannel: "Manual signed releases (updater not activated)"
++    updateChannel: "Browser preview — updates require the installed Windows app"
+   };
+   return invoke<ReleasePreflight>("get_release_preflight");
+ }
+diff --git a/src/styles.css b/src/styles.css
+index 74391c1..a66c1f3 100644
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -496,3 +496,10 @@ input:focus { border-color: rgba(209,178,115,.65); box-shadow: 0 0 0 3px rgba(20
+ .game-tabs button { border-radius: 0; }
+ .game-tabs button.active { color: #0c0c0b; background: var(--accent); }
+ .status-pill.implemented { color: var(--accent); background: rgba(209,178,115,.08); }
++/* Update controls share the existing Obsidian palette. */
++.app-update { display: grid; gap: 10px; padding: 12px; border: 1px solid #303030; border-radius: 12px; margin: 12px 0; font-size: 12px; }
++.app-update small { color: #b9b9b9; line-height: 1.5; }
++.app-update .button { font-size: 11px; padding: 10px; }
++.guide-game { display: grid; gap: 8px; margin: 16px 0; text-align: left; font-size: 12px; }
++.guide-game select { width: 100%; padding: 10px; color: #eee; background: #171717; border: 1px solid #383838; border-radius: 8px; }
++.onboarding-card { max-height: calc(100vh - 40px); overflow-y: auto; }
+diff --git a/src/test/Onboarding.test.tsx b/src/test/Onboarding.test.tsx
+index ed53245..6319470 100644
+--- a/src/test/Onboarding.test.tsx
++++ b/src/test/Onboarding.test.tsx
+@@ -12,6 +12,28 @@ function HelpHost({ userId = "u" }: { userId?: string }) {
+ }
+ 
+ describe("Onboarding", () => {
++  it("explains closing CS2 before saving and applying before launching it", () => {
++    render(<Onboarding onComplete={() => undefined} />);
++    expect(screen.getByText(/Войдите в FastPlay и в свой Steam/)).toBeInTheDocument();
++    fireEvent.click(screen.getByRole("button", { name: /Далее/ }));
++    expect(screen.getByText(/полностью закройте игру обычным способом/)).toBeInTheDocument();
++    fireEvent.click(screen.getByRole("button", { name: /Далее/ }));
++    expect(screen.getByText(/Пока не запускайте CS2/)).toBeInTheDocument();
++    expect(screen.getByText(/Только после этого запускайте игру/)).toBeInTheDocument();
++    fireEvent.click(screen.getByRole("button", { name: "Назад" }));
++    expect(screen.getByRole("heading", { name: "Сохраните свой профиль" })).toBeInTheDocument();
++  });
++
++  it("has separate Steam and Riot instructions and resets the step on game change", () => {
++    render(<Onboarding onComplete={() => undefined} />);
++    fireEvent.click(screen.getByRole("button", { name: /Далее/ }));
++    fireEvent.change(screen.getByRole("combobox", { name: "Игра для инструкции" }), { target: { value: "valorant" } });
++    expect(screen.getByRole("heading", { name: "Настрой компьютер один раз" })).toBeInTheDocument();
++    expect(screen.getByText(/Войдите в FastPlay и в свой Riot Client/)).toBeInTheDocument();
++    expect(screen.queryByText(/свой Steam/)).not.toBeInTheDocument();
++    fireEvent.change(screen.getByRole("combobox"), { target: { value: "pubg" } });
++    expect(screen.getByText(/Запустите PUBG/)).toBeInTheDocument();
++  });
+   it("shows all four required first-use steps", () => {
+     render(<Onboarding onComplete={() => undefined} />);
+     expect(screen.getByRole("heading", { name: "Настрой компьютер один раз" })).toBeInTheDocument();
+diff --git a/docs/APP_UPDATES_RU.md b/docs/APP_UPDATES_RU.md
+new file mode 100644
+index 0000000..1391027
+--- /dev/null
++++ b/docs/APP_UPDATES_RU.md
+@@ -0,0 +1,63 @@
++# Обновления FastPlay (0.11.2)
++
++## Как это работает
++
++В установленном приложении после входа автоматически проверяется стабильный канал GitHub:
++через 3 секунды после перехода в свободное состояние и каждые 6 часов.
++В боковой панели есть ручная проверка и кнопка «Обновить».
++Установка начинается только по кнопке, без предварительного удаления приложения.
++На время загрузки интерфейс операций недоступен. Нельзя начать обновление при
++сохранении/применении/восстановлении профиля, открытом редактировании или незавершённом
++crash recovery. Нативный Apply Lock проверяется ещё раз перед скачиванием.
++
++Используется официальный Tauri updater с HTTPS и обязательной подписью пакета.
++При ошибке проверки, скачивания или подписи показывается ошибка, а не успех.
++На Windows updater запускает установщик, закрывает приложение и запрашивает его
++повторный запуск после установки. Запуск установщика не называется успешной установкой.
++
++Идентификатор `app.gamepassport.desktop`, имя executable, схема Supabase и локальные
++ключи хранения не меняются. Код обновления не удаляет профили, сессию, резервные копии
++или игровые настройки. Реальное сохранение данных проверяется smoke-тестом ниже.
++
++Старые версии не имеют updater: один раз нужно установить новую версию поверх старой
++тем же типом установщика и под тем же Windows-пользователем. EXE обновляет EXE,
++MSI обновляет MSI. В latest.json намеренно нет общего `windows-x86_64` fallback:
++неизвестный тип установки не должен молча переключаться на другой тип.
++
++## Подготовка публикации (обязательно)
++
++1. В GitHub Actions secrets репозитория добавить `TAURI_SIGNING_PRIVATE_KEY` —
++   содержимое приватного ключа, соответствующего публичному ключу в tauri.conf.json.
++   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` нужен только для зашифрованного ключа.
++   Приватный ключ не коммитить и не отправлять в чат. Хранить отдельную резервную копию:
++   потеря ключа нарушит цепочку обновлений уже установленных приложений.
++2. Отправить проверенные исходники, Cargo.lock и workflow.
++   Для старой web-upload ветки также нужен delta `fastplay-v0.11.2.patch`, полученный
++   от исходного commit bb86a72, без workflow, .gitattributes, самого delta и посторонних изменений.
++   Workflow и .gitattributes загружаются отдельно, чтобы не конфликтовать при применении delta.
++   Не запускать эту ветку, пока delta не создан и его применение не проверено.
++3. Workflow собирает EXE/MSI и `.sig`, создаёт `latest.json` с URL на точный release tag.
++   Публикация сначала создаёт draft с файлами и лишь затем открывает релиз.
++4. По умолчанию публикуется prerelease, который не получает установленная база.
++   После smoke-тестов опубликовать проверенный релиз как stable/latest. Для ручного
++   запуска workflow есть `publish_stable`; не включать до проверки Windows.
++5. Статический адрес `/releases/latest/download/latest.json` должен быть публичным.
++   Любой последующий stable/latest релиз обязан включать корректный manifest и подписи.
++   Нельзя оставлять последним стабильным релизом старый выпуск без latest.json.
++
++Подпись updater не заменяет Authenticode: предупреждение Windows SmartScreen может остаться.
++
++## Проверка на Windows перед распространением
++
++- EXE 0.11.1 → EXE 0.11.2 поверх установки без удаления; повторить отдельно для MSI.
++- Вход, профили, локальные резервные копии и настройки игры сохранены.
++- Установить 0.11.2, выпустить подписанный тестовый более новый пакет, проверить полный
++  путь check → download → signature → install → relaunch → новая версия.
++- Отмена установки, отсутствие интернета, повреждённая подпись, недостаток места.
++- Открытый профиль/сохранение/применение/восстановление блокируют установку обновления.
++- Несколько Windows-пользователей, EXE per-user и MSI, отсутствие прав администратора.
++- Prerelease не предлагается обычным пользователям; текущая и более старая версия
++  не предлагаются к установке.
++
++Источники: https://v2.tauri.app/plugin/updater/ и официальный исходный код
++https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/updater.
+diff --git a/docs/GAME_UPDATES_2026_11.md b/docs/GAME_UPDATES_2026_11.md
+new file mode 100644
+index 0000000..5913cb6
+--- /dev/null
++++ b/docs/GAME_UPDATES_2026_11.md
+@@ -0,0 +1,59 @@
++# FastPlay 0.11.2 — проверка на 5 ноября 2026
++
++## Подтверждённое исправление CS2
++
++Официальные заметки Valve от 30 сентября сообщают об отрицательном зазоре для
++классического динамического прицела, цвете обводки, Static Quadrant и изменённом
++формате share code. В октябре были исправления гранатного прицела, а 28 октября —
++выбор Hold/Toggle для тихой перезарядки.
++Источник: https://steamcommunity.com/app/730/allnews/
++
++В нашем валидаторе был запрет любого отрицательного `cl_crosshair_gap` — это реальная
++несовместимость после 30 сентября. Исправлено: сохраняется конечное отрицательное
++значение без обнуления и пересчёта. NaN/Infinity и отрицательные длина/толщина
++по-прежнему отклоняются. Старая конфигурация без полного набора пиксельных параметров
++по-прежнему требует пересохранения, а не угадывания миграции.
++
++Поставляемые Valve convars проверены через зеркало данных игры:
++https://raw.githubusercontent.com/SteamTracking/GameTracking-CS2/master/DumpSource2/convars.txt
++На дату проверки: `cl_crosshair_gap` допускает отрицательные значения;
++`cl_crosshairstyle` включает 9; цвет обводки — `cl_crosshairoutline_r/g/b/a`.
++Тест профиля включает эти параметры, дробную динамическую прозрачность и звук.
++Проверяется, что валидация не меняет исходные байты/профиль. Весь поддерживаемый VCFG
++по-прежнему переносится целиком: новый безопасный convar не требует отдельного whitelist.
++Мы не генерируем и не декодируем share code при переносе.
++
++## PUBG
++
++Проверены [43.2](https://pubg.com/en/news/11136?category=patch_notes) и
++[44.1](https://pubg.com/en/news/11338), выпущенный на PC 4 ноября.
++43.2 затрагивает управление и внутренний звуковой движок. Изменения контроллеров 44.1
++отмечены как Console-only с планом PC на декабрь — не считаем их уже вышедшими на Windows.
++Заметки не дают новую схему локальных INI или новые достоверные имена ключей.
++Не меняем пути/ключи наугад. Имеющиеся тесты покрывают новые безопасные неизвестные
++параметры в разрешённых секциях, звук, графику и порядок массивов управления.
++Настройки серверных лобби, косметика, аккаунт и античит не объявляются переносимыми.
++
++## VALORANT
++
++Проверены [13.08](https://playvalorant.com/en-us/news/game-updates/valorant-patch-notes-13-08/)
++и [13.09](https://playvalorant.com/en-us/news/game-updates/valorant-patch-notes-1309/).
++Публичные заметки не описывают миграцию локальной схемы настроек. Новые игровые
++сущности не являются основанием менять пути конфигурации. Существующий перенос
++безопасных параметров поддерживаемых локальных INI оставлен; регрессионные тесты
++проверяют неизвестные ключи, звук, прицел, графику и исключение секретов.
++Настройки, хранящиеся только на серверах Riot, не обещаются к переносу.
++
++## Инструкция и обновления
++
++«Как пользоваться» в боковой панели открывает инструкцию для выбранной игры.
++Она больше не открывается автоматически даже на первом входе.
++Первый раз: вход → настройка игры/Windows/NVIDIA → штатное закрытие игры → сохранение.
++Следующие разы: вход в Steam/Riot и FastPlay → применение при закрытой игре → запуск игры.
++Для ещё не созданных файлов Riot предусмотрено пояснение о возможном первом запуске.
++
++Автообновление: автоматическая проверка стабильного релиза и установка по кнопке;
++без ручного удаления, с обязательной подписью и сохранением типа EXE/MSI.
++Старая 0.11.1 не содержит updater: потребуется однократная установка поверх старой.
++См. APP_UPDATES_RU.md. Тесты и запись файлов не заменяют испытание обновления
++и результата внутри игр на настоящем Windows-ПК.
+diff --git a/scripts/updater-manifest.mjs b/scripts/updater-manifest.mjs
+new file mode 100644
+index 0000000..9872a91
+--- /dev/null
++++ b/scripts/updater-manifest.mjs
+@@ -0,0 +1,31 @@
++import { readFile, writeFile, stat } from 'node:fs/promises';
++import { resolve } from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++export function makeManifest(version, tag, assets) {
++  if (!/^\d+\.\d+\.\d+$/.test(version) || !/^[\w.-]+$/.test(tag)) throw new Error('Invalid release identity');
++  const platforms = {};
++  for (const [kind, asset] of Object.entries(assets)) {
++    if (!['nsis', 'msi'].includes(kind) || !asset.name.includes(version) || !asset.signature?.trim()) throw new Error('Missing or invalid signed installer');
++    const expectedName = kind === 'nsis' ? `FastPlay_${version}_x64-setup.exe` : `FastPlay_${version}_x64_ru-RU.msi`;
++    if (asset.name !== expectedName) throw new Error('Unexpected installer name');
++    platforms[`windows-x86_64-${kind}`] = {
++      signature: asset.signature.trim(),
++      url: `https://github.com/kosarevivan909/game-passport/releases/download/${tag}/${encodeURIComponent(asset.name)}`,
++    };
++  }
++  if (!platforms['windows-x86_64-nsis'] || !platforms['windows-x86_64-msi']) throw new Error('Both installer types required');
++  return { version, notes: 'Обновление FastPlay. Профили и игровые настройки не удаляются.', pub_date: new Date().toISOString(), platforms };
++}
++
++if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
++  const [directory, tag] = process.argv.slice(2);
++  if (!directory || !tag) throw new Error('Usage: updater-manifest.mjs artifact-directory release-tag');
++  const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
++  const assets = {};
++  for (const [kind, name] of Object.entries({ nsis: `FastPlay_${version}_x64-setup.exe`, msi: `FastPlay_${version}_x64_ru-RU.msi` })) {
++    if ((await stat(resolve(directory, name))).size === 0) throw new Error('Empty installer');
++    assets[kind] = { name, signature: await readFile(resolve(directory, `${name}.sig`), 'utf8') };
++  }
++  await writeFile(resolve(directory, 'latest.json'), JSON.stringify(makeManifest(version, tag, assets), null, 2) + '\n');
++}
+diff --git a/scripts/updater-manifest.check.mjs b/scripts/updater-manifest.check.mjs
+new file mode 100644
+index 0000000..e139505
+--- /dev/null
++++ b/scripts/updater-manifest.check.mjs
+@@ -0,0 +1,20 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { makeManifest } from './updater-manifest.mjs';
++const assets = {
++  nsis: { name: 'FastPlay_0.11.2_x64-setup.exe', signature: 'signed-exe' },
++  msi: { name: 'FastPlay_0.11.2_x64_ru-RU.msi', signature: 'signed-msi' },
++};
++test('retains installer type and immutable release URLs', () => {
++  const value = makeManifest('0.11.2', 'public-33', assets);
++  assert.match(value.platforms['windows-x86_64-nsis'].url, /public-33\/FastPlay_0.11.2_x64-setup.exe$/);
++  assert.match(value.platforms['windows-x86_64-msi'].url, /\.msi$/);
++  assert.equal(value.platforms['windows-x86_64-msi'].signature, 'signed-msi');
++  assert.equal(value.platforms['windows-x86_64'], undefined);
++});
++test('rejects absent signatures, missing installer types and wrong version', () => {
++  assert.throws(() => makeManifest('0.11.2', 'public-33', { nsis: assets.nsis }));
++  assert.throws(() => makeManifest('0.11.2', 'public-33', { ...assets, nsis: { ...assets.nsis, signature: '' } }));
++  assert.throws(() => makeManifest('0.11.3', 'public-33', assets));
++  assert.throws(() => makeManifest('0.11.2', '../other', assets));
++});
+diff --git a/src/services/useAppUpdate.ts b/src/services/useAppUpdate.ts
+new file mode 100644
+index 0000000..a427564
+--- /dev/null
++++ b/src/services/useAppUpdate.ts
+@@ -0,0 +1,87 @@
++import { useCallback, useEffect, useRef, useState } from "react";
++import { check, type Update } from "@tauri-apps/plugin-updater";
++import { isTauriDesktop } from "./platform";
++import { applyLock } from "./applyLock";
++
++export type UpdateState = "idle" | "checking" | "available" | "current" | "installing" | "error";
++
++// Automatic checks, explicit installation only on an idle dashboard.
++export function useAppUpdate(blocked: boolean) {
++  const [state, setState] = useState<UpdateState>("idle");
++  const [version, setVersion] = useState("");
++  const [message, setMessage] = useState("");
++  const [percent, setPercent] = useState<number>();
++  const update = useRef<Update | null>(null);
++  const busy = useRef(false);
++  const mounted = useRef(false);
++  const blockedRef = useRef(blocked);
++  blockedRef.current = blocked;
++  const enabled = isTauriDesktop();
++
++  const checkNow = useCallback(async () => {
++    if (!enabled || busy.current || blockedRef.current) return;
++    busy.current = true;
++    setState("checking");
++    setMessage("");
++    try {
++      const next = await check({ timeout: 20_000 });
++      if (!mounted.current) { await next?.close(); return; }
++      await update.current?.close();
++      update.current = next;
++      setVersion(next?.version ?? "");
++      setState(next ? "available" : "current");
++    } catch {
++      if (mounted.current) {
++        setState("error");
++        setMessage("Не удалось проверить обновления. Приложением можно пользоваться. Повторите позже.");
++      }
++    } finally { busy.current = false; }
++  }, [enabled]);
++
++  const install = useCallback(async () => {
++    if (!enabled || busy.current || blockedRef.current || !update.current) return;
++    busy.current = true;
++    setState("installing");
++    setPercent(undefined);
++    setMessage("Скачиваем обновление. FastPlay закроется для установки; профили сохранятся.");
++    try {
++      const lock = await applyLock.status();
++      if (lock.state !== "success" || lock.active || lock.interrupted || blockedRef.current) throw new Error("operation-active");
++      let downloaded = 0;
++      let total: number | undefined;
++      await update.current.downloadAndInstall((event) => {
++        if (!mounted.current) return;
++        if (event.event === "Started") total = event.data.contentLength;
++        if (event.event === "Progress") {
++          downloaded += event.data.chunkLength;
++          if (total) setPercent(Math.min(100, Math.round(downloaded / total * 100)));
++        }
++        if (event.event === "Finished") setMessage("Загрузка завершена. Проверяем подпись и запускаем установку…");
++      }, { timeout: 10 * 60 * 1000 });
++      // Launching the installer is not proof that installation succeeded.
++      if (mounted.current) setMessage("Установщик запущен. Дождитесь его завершения и откройте FastPlay.");
++    } catch {
++      if (mounted.current) {
++        setState("error");
++        setMessage("Обновление не установлено. Проверьте интернет и завершите операции с профилями, затем повторите проверку.");
++      }
++      busy.current = false;
++    }
++  }, [enabled]);
++
++  useEffect(() => {
++    mounted.current = true;
++    return () => {
++      mounted.current = false;
++      void Promise.resolve(update.current?.close()).catch(() => undefined);
++      update.current = null;
++    };
++  }, []);
++  useEffect(() => {
++    if (blocked) return;
++    const startup = window.setTimeout(() => void checkNow(), 3_000);
++    const interval = window.setInterval(() => void checkNow(), 6 * 60 * 60 * 1000);
++    return () => { window.clearTimeout(startup); window.clearInterval(interval); };
++  }, [blocked, checkNow]);
++  return { enabled, state, version, message, percent, checkNow, install };
++}
+diff --git a/src/test/AppUpdate.test.ts b/src/test/AppUpdate.test.ts
+new file mode 100644
+index 0000000..70acce4
+--- /dev/null
++++ b/src/test/AppUpdate.test.ts
+@@ -0,0 +1,78 @@
++import { act, renderHook, waitFor } from "@testing-library/react";
++import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
++import { useAppUpdate } from "../services/useAppUpdate";
++const mocks = vi.hoisted(() => ({ check: vi.fn(), desktop: vi.fn(), status: vi.fn() }));
++vi.mock("@tauri-apps/plugin-updater", () => ({ check: mocks.check }));
++vi.mock("../services/platform", () => ({ isTauriDesktop: mocks.desktop }));
++vi.mock("../services/applyLock", () => ({ applyLock: { status: mocks.status } }));
++
++describe("in-app updates", () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    mocks.desktop.mockReturnValue(true);
++    mocks.status.mockResolvedValue({ state: "success", active: false });
++    mocks.check.mockResolvedValue(null);
++  });
++  afterEach(() => vi.useRealTimers());
++  it("automatically checks when idle, without installing", async () => {
++    vi.useFakeTimers();
++    const downloadAndInstall = vi.fn();
++    mocks.check.mockResolvedValue({ version: "0.12.0", close: vi.fn(), downloadAndInstall });
++    const { result } = renderHook(() => useAppUpdate(false));
++    await act(() => vi.advanceTimersByTimeAsync(3000));
++    expect(result.current.state).toBe("available");
++    expect(downloadAndInstall).not.toHaveBeenCalled();
++  });
++  it("does not check in browser preview", async () => {
++    mocks.desktop.mockReturnValue(false);
++    const { result } = renderHook(() => useAppUpdate(false));
++    await act(() => result.current.checkNow());
++    expect(mocks.check).not.toHaveBeenCalled();
++  });
++  it("blocks updates during operations and unsaved edits", async () => {
++    const { result } = renderHook(() => useAppUpdate(true));
++    await act(() => result.current.checkNow());
++    await act(() => result.current.install());
++    expect(mocks.check).not.toHaveBeenCalled();
++  });
++  it("does not call a failed network check an up-to-date version", async () => {
++    mocks.check.mockRejectedValue(new Error("offline"));
++    const { result } = renderHook(() => useAppUpdate(false));
++    await act(() => result.current.checkNow());
++    expect(result.current.state).toBe("error");
++    mocks.check.mockResolvedValue(null);
++    await act(() => result.current.checkNow());
++    expect(result.current.state).toBe("current");
++  });
++  it.each([{ active: true }, { active: false, interrupted: {} }, { state: "error" }])("rechecks native operation lock before installation: %j", async (lock) => {
++    const downloadAndInstall = vi.fn();
++    mocks.check.mockResolvedValue({ version: "0.12.0", close: vi.fn(), downloadAndInstall });
++    mocks.status.mockResolvedValue({ state: "success", ...lock });
++    const { result } = renderHook(() => useAppUpdate(false));
++    await act(() => result.current.checkNow());
++    await act(() => result.current.install());
++    expect(downloadAndInstall).not.toHaveBeenCalled();
++    expect(result.current.state).toBe("error");
++  });
++  it("signature/download failure is an error, not success", async () => {
++    const downloadAndInstall = vi.fn().mockRejectedValue(new Error("invalid signature"));
++    mocks.check.mockResolvedValue({ version: "0.12.0", close: vi.fn(), downloadAndInstall });
++    const { result } = renderHook(() => useAppUpdate(false));
++    await act(() => result.current.checkNow());
++    await act(() => result.current.install());
++    expect(downloadAndInstall).toHaveBeenCalledOnce();
++    expect(result.current.state).toBe("error");
++  });
++  it("releases a pending check result after unmount", async () => {
++    let resolve!: (value: unknown) => void;
++    mocks.check.mockImplementation(() => new Promise((r) => { resolve = r; }));
++    const close = vi.fn().mockResolvedValue(undefined);
++    const { result, unmount } = renderHook(() => useAppUpdate(false));
++    let task!: Promise<void>;
++    act(() => { task = result.current.checkNow(); });
++    unmount();
++    resolve({ close });
++    await task;
++    await waitFor(() => expect(close).toHaveBeenCalledOnce());
++  });
++});
+diff --git a/src/test/DashboardHelp.test.tsx b/src/test/DashboardHelp.test.tsx
+new file mode 100644
+index 0000000..a5cca67
+--- /dev/null
++++ b/src/test/DashboardHelp.test.tsx
+@@ -0,0 +1,22 @@
++import { cleanup, fireEvent, render, screen } from "@testing-library/react";
++import { afterEach, expect, it, vi } from "vitest";
++import { Dashboard } from "../components/Dashboard";
++import type { Services } from "../infrastructure/createServices";
++vi.mock("../services/useAppUpdate", () => ({ useAppUpdate: () => ({ enabled: false, state: "idle" }) }));
++vi.mock("../services/applyLock", () => ({ applyLock: { status: async () => ({ state: "success", active: false }) } }));
++afterEach(cleanup);
++it("never forces instructions on startup but keeps the sidebar button", async () => {
++  const services = { mode: "demo", profiles: { list: async () => [] }, checkCloud: async () => "demo" } as unknown as Services;
++  const props = { user: { id: "guide-user", email: "guide@example.com" }, services, license: { state: "not_required" as const, message: "", offlineGrace: false }, onSignOut: () => undefined };
++  const first = render(<Dashboard {...props} />);
++  await screen.findByRole("heading", { name: "Создайте первый игровой профиль" });
++  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++  fireEvent.click(screen.getByRole("button", { name: "Как пользоваться" }));
++  expect(screen.getByRole("dialog")).toBeInTheDocument();
++  fireEvent.click(screen.getByRole("button", { name: "Закрыть инструкцию" }));
++  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++  first.unmount();
++  render(<Dashboard {...props} />);
++  await screen.findByRole("heading", { name: "Создайте первый игровой профиль" });
++  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
++});

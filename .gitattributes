@@ -1,3 +1,4 @@
 game-passport-update.patch -text
 fastplay-v0.11.0.patch.part-* -text
 fastplay-v0.11.1.patch -text
+fastplay-v0.11.2.patch -text
