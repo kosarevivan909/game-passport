@@ -2,6 +2,11 @@ name: Windows build
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_stable:
+        description: "Publish to the automatic update channel (after Windows smoke tests)"
+        type: boolean
+        default: false
   push:
     branches: ["main", "release/**"]
     tags: ["v*"]
@@ -44,7 +49,18 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "September patch application failed." }
           }
           $version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
-          if ($version -ne "0.11.1") { throw "Expected FastPlay 0.11.1 source." }
+          if ($version -notin @("0.11.1", "0.11.2")) { throw "Unexpected FastPlay source version." }
+      - name: Apply in-app updater source when using staged releases
+        shell: pwsh
+        run: |
+          $version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
+          if ($version -eq "0.11.1") {
+            git apply --check --whitespace=nowarn "fastplay-v0.11.2.patch"
+            if ($LASTEXITCODE -ne 0) { throw "Updater patch validation failed." }
+            git apply --whitespace=nowarn "fastplay-v0.11.2.patch"
+            if ($LASTEXITCODE -ne 0) { throw "Updater patch application failed." }
+          }
+          if ((Get-Content "package.json" -Raw | ConvertFrom-Json).version -ne "0.11.2") { throw "Expected FastPlay 0.11.2 source." }
       - name: Validate public cloud distribution
         shell: pwsh
         run: |
@@ -69,6 +85,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Public sign-in, cloud profiles and adapter tests
         run: pnpm test
+      - name: Update manifest safety tests
+        run: node --test scripts/updater-manifest.check.mjs
       - name: TypeScript and production frontend build
         run: pnpm build
       - name: Rust formatting
@@ -79,6 +97,9 @@ jobs:
         run: cargo test --manifest-path src-tauri/Cargo.toml --target x86_64-pc-windows-msvc --lib
       - name: Build real MSI and NSIS installers
         uses: tauri-apps/tauri-action@v0
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           args: --target x86_64-pc-windows-msvc
       - name: Verify and stage Windows installers
@@ -90,6 +111,13 @@ jobs:
           New-Item -ItemType Directory -Force "windows-artifacts" | Out-Null
           $installerFiles = @($nsis.FullName) + @($msi.FullName)
           Copy-Item -Path $installerFiles -Destination "windows-artifacts"
+          foreach ($file in $installerFiles) {
+            if (-not (Test-Path "$file.sig")) { throw "Missing updater signature. Configure TAURI_SIGNING_PRIVATE_KEY." }
+            Copy-Item "$file.sig" "windows-artifacts"
+          }
+          $releaseTag = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF_NAME } else { "public-${{ github.run_number }}" }
+          node scripts/updater-manifest.mjs windows-artifacts $releaseTag
+          if ($LASTEXITCODE -ne 0) { throw "Updater manifest generation failed." }
           Get-ChildItem "windows-artifacts" -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Set-Content "windows-artifacts/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
@@ -102,10 +130,15 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          PUBLISH_STABLE: ${{ inputs.publish_stable }}
         run: |
           $version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
           $releaseTag = if ($env:GITHUB_REF -like "refs/tags/v*") { $env:GITHUB_REF_NAME } else { "public-${{ github.run_number }}" }
+          $channelArgs = if ($env:PUBLISH_STABLE -eq "true") { @("--latest") } else { @("--prerelease") }
           gh release create $releaseTag "windows-artifacts/*" --target "${{ github.sha }}" `
             --title "FastPlay v$version — CS2, PUBG и VALORANT" `
-            --notes "FastPlay 0.11.1 — совместимость с сентябрьскими обновлениями игр. CS2: проверка нового формата прицела и исходной высоты экрана до применения; старые неполные снимки не перезаписывают настройки. Один раз заново сохраните профиль после настройки прицела в обновлённой CS2. CFG и параметры запуска, способные менять прицел, дают Warning. PUBG/VALORANT: исправлено чтение UTF-8 BOM, сохранение новых безопасных параметров покрыто тестами; исправлена классификация графики VALORANT и DLSS/FSR в PUBG. Steam не закрывается, NVIDIA и разрешение игры независимы. Проверки файлов и CI не заменяют тест внутри игр: сначала проверьте на одном Windows-ПК. Установщики не подписаны Authenticode. SHA-256 приложены." `
-            --prerelease
+            --notes "FastPlay $version: обновления без ручного удаления, проверка подписи, инструкция по кнопке для CS2/PUBG/VALORANT без всплытия при входе. Совместимость проверена по обновлениям игр на 5 ноября 2026: исправлено отклонение отрицательного зазора прицела CS2. Новые параметры поддерживаемых конфигураций сохраняются без подмены разрешения NVIDIA игровым. Установите эту версию поверх прежней один раз. Проверки сборки не заменяют испытание внутри игр: сначала проверьте один Windows-ПК. Подпись обновлений не является Authenticode-подписью Windows." `
+            --draft
+          if ($LASTEXITCODE -ne 0) { throw "Release publication failed." }
+          gh release edit $releaseTag --draft=false @channelArgs
+          if ($LASTEXITCODE -ne 0) { throw "Release activation failed; draft retained." }
